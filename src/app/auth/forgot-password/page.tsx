@@ -12,7 +12,7 @@ export default function Page() {
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
         <div className={cn("flex flex-col gap-6")}>
-          <Card className="overflow-hidden rounded-md border-none">
+          <Card className="overflow-hidden rounded-md">
             <CardHeader className="p-0">
               <CardTitle className="text-2xl px-6 pt-9 pb-5 rounded-b-3xl bg-primary flex justify-center">
                 <svg
@@ -31,10 +31,10 @@ export default function Page() {
             </CardHeader>
             <CardContent>
               <div className="flex justify-center p-4">
-                <img src="/logo-tree.png" className="w-25" />
+                <img src="/logo-tree.png" className="w-[120px]"/>
               </div>
               <form>
-                <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-6">
                   <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
