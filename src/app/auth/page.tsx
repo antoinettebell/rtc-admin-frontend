@@ -5,9 +5,50 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import * as z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { authApiService } from "@/services/auth-api-service";
+import { toast } from "sonner";
 
 export default function Page() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const formSchema = z.object({
+    email: z.string().email({ message: "Invalid email format." }),
+    password: z.string().min(6),
+  });
+
+  type FormSchemaType = z.infer<typeof formSchema>;
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    getValues: getFormValue,
+  } = useForm<FormSchemaType>({
+    resolver: zodResolver(formSchema),
+  });
+
+  const onSubmit = (data: FormSchemaType) => {
+    const { email, password } = data;
+    setIsLoading(true);
+    authApiService
+      .login(email, password)
+      .then((res) => {
+        if (res.data.data.authToken) {
+          localStorage.setItem("token", res.data.data.authToken);
+          router.replace("/");
+        }
+      })
+      .catch(() => {
+        toast.error("Invalid creds");
+      })
+      .finally(() => setIsLoading(false));
+  };
+
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
@@ -33,7 +74,7 @@ export default function Page() {
               <div className="flex justify-center p-4">
                 <img src="/logo-tree.png" className="w-[120px]" />
               </div>
-              <form>
+              <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="flex flex-col gap-6">
                   <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
@@ -41,13 +82,14 @@ export default function Page() {
                       type="email"
                       placeholder="m@example.com"
                       required
+                      {...register("email")}
                     />
                   </div>
                   <div className="grid gap-2">
                     <div className="flex items-center">
                       <Label htmlFor="password">Password</Label>
                     </div>
-                    <Input type="password" required />
+                    <Input type="password" required {...register("password")} />
                     <div className="flex justify-end items-center">
                       <a
                         onClick={() => router.push("/auth/forgot-password")}
@@ -57,7 +99,12 @@ export default function Page() {
                       </a>
                     </div>
                   </div>
-                  <Button type="submit" variant="default" className="w-full">
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    variant="default"
+                    className="w-full"
+                  >
                     Login
                   </Button>
                 </div>
