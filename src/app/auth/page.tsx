@@ -11,6 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { authApiService } from "@/services/auth-api-service";
 import { toast } from "sonner";
+import { LoaderCircle } from "lucide-react";
 
 export default function Page() {
   const router = useRouter();
@@ -38,6 +39,11 @@ export default function Page() {
     authApiService
       .login(email, password)
       .then((res) => {
+        if (res.data.data.user.userType !== "SUPER_ADMIN") {
+          toast.error("Invalid creds");
+          return;
+        }
+
         if (res.data.data.authToken) {
           localStorage.setItem("token", res.data.data.authToken);
           router.replace("/");
@@ -106,6 +112,7 @@ export default function Page() {
                     className="w-full"
                   >
                     Login
+                    {isLoading && <LoaderCircle className="animate-spin" />}
                   </Button>
                 </div>
               </form>

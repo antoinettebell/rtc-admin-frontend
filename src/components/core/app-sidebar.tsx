@@ -2,53 +2,38 @@ import type * as React from "react";
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { Home, SquareUserRound } from "lucide-react";
+import { NavMain } from "@/components/core/nav-main";
 
 // This is sample data.
-const data = {
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "",
-      items: [],
-    },
-  ],
-};
+const navMain = [
+  {
+    title: "Dashboard",
+    url: "/",
+    icon: Home,
+    items: [],
+  },
+  {
+    title: "Vendors",
+    url: "/vendor",
+    icon: SquareUserRound,
+    items: [],
+  },
+];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar {...props}>
       <SidebarHeader>
-        <div className="flex bg-primary rounded-xl h-12 px-4 text-white font-semibold justify-center items-center">
-          Demo App
+        <div className="flex h-14 px-4 text-white font-semibold items-center p-2 bg-primary rounded-b-3xl">
+          Round The Corner
         </div>
       </SidebarHeader>
-      <SidebarContent>
-        {/* We create a SidebarGroup for each parent. */}
-        {data.navMain.map((item) => (
-          <SidebarGroup key={item.title}>
-            <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {item.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={item.isActive}>
-                      <a href={item.url}>{item.title}</a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+      <SidebarContent className="gap-0">
+        <NavMain items={navMain} />
       </SidebarContent>
       <SidebarRail />
     </Sidebar>

@@ -6,6 +6,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useUser } from "@/hooks/use-user";
+import { NavUser } from "@/components/core/nav-user";
 
 export default function RootLayout({
   children,
@@ -24,10 +25,13 @@ export default function RootLayout({
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 rounded-b-3xl px-4 bg-primary">
+        <header className="flex h-14 shrink-0 items-center gap-2 rounded-b-3xl px-4 bg-primary justify-between">
           <SidebarTrigger className="-ml-1 text-white" />
+          <div className="max-w-[150px]">
+            <NavUser user={user} />
+          </div>
         </header>
-        {children}
+        <div className="p-4">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -1,5 +1,7 @@
 // lib/BaseAPI.ts
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
+import { IPaginateResponse } from "@/interfaces/response-interface";
+import { User } from "@/interfaces/user-interface";
 
 export class BaseAPI {
   protected api: AxiosInstance;
@@ -54,5 +56,22 @@ export class BaseAPI {
     config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<T>> {
     return this.api.delete<T>(url, config);
+  }
+
+  protected getPaginated<T>(
+    url: string,
+    resultKey: string,
+    config?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<T>> {
+    return this.api.get<IPaginateResponse<T>>(url, config).then((res) => {
+      const data = res.data.data;
+      const records = data[resultKey];
+      delete data[resultKey];
+      res.data.data = {
+        ...data,
+        records,
+      };
+      return res;
+    });
   }
 }

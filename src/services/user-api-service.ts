@@ -1,16 +1,43 @@
 // services/user-service.ts
 import { BaseAPI } from "./base-api";
-import { APIEndpoint } from "@/modals/api-endpoint";
+import { APIEndpoint } from "@/models/api-endpoint";
 import { IPaginateResponse, IResponse } from "@/interfaces/response-interface";
 import { User } from "@/interfaces/user-interface";
 
 class UserApiService extends BaseAPI {
-  list() {
-    return this.get<IPaginateResponse<User>>(`${APIEndpoint.USER}`);
+  listVendors(page: number, search: string, limit = 10) {
+    return this.getPaginated<User>(`${APIEndpoint.USER}`, "userList", {
+      params: {
+        userType: "VENDOR",
+        page,
+        limit,
+        ...(search.trim().length ? { search: search.trim() } : {}),
+      },
+    });
   }
 
-  getById(id: number) {
+  listCustomer(page: number, search: string, limit = 20) {
+    return this.getPaginated<User>(`${APIEndpoint.USER}`, "userList", {
+      params: {
+        userType: "CUSTOMER",
+        page,
+        limit,
+        ...(search.trim().length ? { search: search.trim() } : {}),
+      },
+    });
+  }
+
+  getById(id: string) {
     return this.get<IResponse<{ user: User }>>(`${APIEndpoint.USER}/${id}`);
+  }
+
+  changeStatus(id: string, inactive) {
+    return this.put<IResponse<boolean>>(
+      `${APIEndpoint.USER}/${id}/change-status`,
+      {
+        inactive,
+      },
+    );
   }
 }
 

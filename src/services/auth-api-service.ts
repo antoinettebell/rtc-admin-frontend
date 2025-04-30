@@ -1,6 +1,6 @@
 // services/user-service.ts
 import { BaseAPI } from "./base-api";
-import { APIEndpoint } from "@/modals/api-endpoint";
+import { APIEndpoint } from "@/models/api-endpoint";
 import { IPaginateResponse, IResponse } from "@/interfaces/response-interface";
 import { User } from "@/interfaces/user-interface";
 

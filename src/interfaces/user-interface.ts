@@ -4,6 +4,8 @@ export interface User {
   lastName: string;
   email: string;
   userType: "SUPER_ADMIN" | "VENDOR" | "CUSTOMER";
+  countryCode?: boolean;
+  mobileNumber?: boolean;
   inactive?: boolean;
   verified?: boolean;
   createdAt?: string;
