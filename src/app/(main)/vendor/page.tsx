@@ -61,7 +61,7 @@ export default function Vendors() {
         console.log(e);
         toast.error("Something went wrong");
       })
-      .finally((_) => {
+      .finally(() => {
         setChanging(false);
       });
   };

@@ -11,7 +11,7 @@ export const NameDetail = ({
   imgSrc?: string | null;
   name: string;
   email: string;
-  contact: string;
+  contact?: string;
   avatarClassName: string;
 }) => {
   return (
