@@ -4,6 +4,7 @@ export interface User {
   lastName: string;
   email: string;
   userType: "SUPER_ADMIN" | "VENDOR" | "CUSTOMER";
+  requestStatus?: "PENDING" | "APPROVED" | "REJECTED";
   countryCode?: boolean;
   mobileNumber?: boolean;
   inactive?: boolean;

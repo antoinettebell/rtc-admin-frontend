@@ -27,6 +27,18 @@ class UserApiService extends BaseAPI {
     });
   }
 
+  getOverview() {
+    return this.get<
+      IResponse<{
+        totalVendor: number;
+        pendingVendor: number;
+        rejectedVendor: number;
+        totalUser: number;
+        inactiveUser: number;
+      }>
+    >(`${APIEndpoint.USER}/overview/counter`);
+  }
+
   getById(id: string) {
     return this.get<IResponse<{ user: User }>>(`${APIEndpoint.USER}/${id}`);
   }

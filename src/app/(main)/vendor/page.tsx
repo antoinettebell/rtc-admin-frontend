@@ -21,6 +21,7 @@ import { User } from "@/interfaces/user-interface";
 import { NameDetail } from "@/components/ui/name-detail";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { Status } from "@/components/ui/status";
 
 export default function Vendors() {
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
@@ -94,11 +95,17 @@ export default function Vendors() {
         <Switch
           checked={!d.inactive}
           onClick={(e) => {
+            e.stopPropagation();
             e.preventDefault();
             setChangeStatus(d);
           }}
         />
       ),
+    },
+    {
+      header: "Request",
+      fieldName: "requestStatus",
+      accessor: (d) => <Status status={d.requestStatus} />,
     },
     // {
     //   header: "Primary colour",
