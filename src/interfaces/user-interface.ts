@@ -11,4 +11,45 @@ export interface User {
   verified?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  foodTruck?: FoodTruck;
+}
+
+export interface FoodTruck {
+  _id: string;
+  userId: string;
+  name: string;
+  facebookLink: string;
+  instagramLink: string;
+  logo: string | null;
+  photos: string[];
+  cuisine: {
+    _id: string;
+    name: string;
+    deletedAt?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+  }[];
+  inactive: boolean;
+  verified: boolean;
+  locations: {
+    title: string;
+    address: string;
+    lat: string;
+    long: string;
+    _id: string;
+  }[];
+
+  availability: [
+    {
+      day: string;
+      locationId: string;
+      startTime: string;
+      endTime: string;
+      available: boolean;
+      _id: string;
+    },
+  ];
+  createdAt: string;
+  updatedAt: string;
+  infoType: "truck" | "caterer";
 }

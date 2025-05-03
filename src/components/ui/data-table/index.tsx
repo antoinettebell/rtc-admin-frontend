@@ -72,6 +72,8 @@ interface DataTableProps<T> {
   >;
   sortOrder?: { key: keyof T | null; direction: SortDirection } | null;
   containerRef?: MutableRefObject<any>;
+  extraTemplate?: React.ReactNode;
+  onRowClick?: (d: T) => void;
 }
 type SortDirection = "asc" | "desc" | null;
 
@@ -93,6 +95,8 @@ export function DataTable<T>({
   sortOrder = null,
   hideColumnFilter = false,
   hidePagination = false,
+  extraTemplate,
+  onRowClick,
 }: DataTableProps<T>) {
   // const [sortConfig, setSortConfig] = useState<{
   //   key: keyof T | null;
@@ -202,15 +206,18 @@ export function DataTable<T>({
   return (
     <div className="space-y-4 max-h-full max-w-full h-full w-full flex flex-col">
       <div className="flex items-center justify-between">
-        {searchable && (
-          <Command className="max-w-[220px] border border-[#d9d9d9]">
-            <CommandInput
-              placeholder="Search..."
-              className="h-9"
-              onValueChange={(e) => onSearch(e)}
-            />
-          </Command>
-        )}
+        <div className="flex gap-2">
+          {searchable && (
+            <Command className="max-w-[220px] border border-[#d9d9d9]">
+              <CommandInput
+                placeholder="Search..."
+                className="h-9"
+                onValueChange={(e) => onSearch(e)}
+              />
+            </Command>
+          )}
+          {extraTemplate || <></>}
+        </div>
         {!hideColumnFilter && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -335,7 +342,12 @@ export function DataTable<T>({
                   </TableRow>
                 ) : (
                   data.map((item, rowIndex) => (
-                    <TableRow key={`row-${rowIndex}`}>
+                    <TableRow
+                      key={`row-${rowIndex}`}
+                      onClick={() => {
+                        onRowClick?.(item);
+                      }}
+                    >
                       {columns.map((column, colIndex) => {
                         const key = column.fieldName;
                         if (key in visibility && !visibility[key as string])
@@ -361,114 +373,114 @@ export function DataTable<T>({
         </ScrollArea>
       </div>
       {!hidePagination && (
-          <div className="flex items-center justify-between p-3 !mt-0">
-            <div className="text-sm text-gray-500">
-              {!isLoading && (
-                  <>
-                    Showing {(currentPage - 1) * pageSize + 1} to{" "}
-                    {Math.min(currentPage * pageSize, totalRecords)} of{" "}
-                    {totalRecords} entries
-                  </>
-              )}
-            </div>
+        <div className="flex items-center justify-between p-3 !mt-0">
+          <div className="text-sm text-gray-500">
             {!isLoading && (
-                <Pagination className="w-fit mx-0">
-                  <PaginationContent className="h-[32px]">
-                    <PaginationItem className="flex items-center gap-1">
-                    <span className="text-[#18181B] text-sm">
-                      Result per page
-                    </span>
-                      <Select
-                          defaultValue={pageSize?.toString()}
-                          onValueChange={(e) => {
-                            setPagination &&
-                            setPagination((prev) => ({
-                              ...prev,
-                              limit: Number(e),
-                            }));
-                          }}
-                      >
-                        <SelectTrigger className="!mt-0 !h-8 border-[#d9d9d9] w-fit flex gap-2">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            {["10", "20", "30", "50"].map((item: any, inx) => (
-                                <SelectItem key={`size-${inx}`} value={item}>
-                                  {item}
-                                </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationPrevious
-                          onClick={() =>
-                              currentPage !== 1 &&
-                              setPagination &&
-                              setPagination((prev) => ({
-                                ...prev,
-                                page: Math.max(1, prev.page - 1),
-                              }))
-                          }
-                          className={
-                            currentPage === 1
-                                ? "cursor-not-allowed opacity-50"
-                                : "cursor-pointer"
-                          }
-                      />
-                    </PaginationItem>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                        (page) => (
-                            <PaginationItem key={`page-inx-${page}`}>
-                              <PaginationLink
-                                  isActive={currentPage === page}
-                                  className={
-                                    currentPage === page
-                                        ? "bg-primary text-[#fff]"
-                                        : "cursor-pointer"
-                                  }
-                                  onClick={() =>
-                                      currentPage !== page &&
-                                      setPagination &&
-                                      setPagination((prev) => ({
-                                        ...prev,
-                                        page,
-                                      }))
-                                  }
-                              >
-                                {page}
-                              </PaginationLink>
-                            </PaginationItem>
-                        ),
-                    )}
-                    <PaginationItem>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                    <PaginationItem>
-                      {!(isLoading || currentPage === totalPages) ? (
-                          <PaginationNext
-                              className="cursor-pointer"
-                              onClick={() =>
-                                  setPagination &&
-                                  setPagination((prev) => ({
-                                    ...prev,
-                                    page: Math.max(1, prev.page + 1),
-                                  }))
-                              }
-                          />
-                      ) : (
-                          <PaginationNext
-                              onClick={(e) => e.preventDefault()}
-                              className="cursor-not-allowed opacity-50"
-                          />
-                      )}
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+              <>
+                Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                {Math.min(currentPage * pageSize, totalRecords)} of{" "}
+                {totalRecords} entries
+              </>
             )}
           </div>
+          {!isLoading && (
+            <Pagination className="w-fit mx-0">
+              <PaginationContent className="h-[32px]">
+                <PaginationItem className="flex items-center gap-1">
+                  <span className="text-[#18181B] text-sm">
+                    Result per page
+                  </span>
+                  <Select
+                    defaultValue={pageSize?.toString()}
+                    onValueChange={(e) => {
+                      setPagination &&
+                        setPagination((prev) => ({
+                          ...prev,
+                          limit: Number(e),
+                        }));
+                    }}
+                  >
+                    <SelectTrigger className="!mt-0 !h-8 border-[#d9d9d9] w-fit flex gap-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {["10", "20", "30", "50"].map((item: any, inx) => (
+                          <SelectItem key={`size-${inx}`} value={item}>
+                            {item}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() =>
+                      currentPage !== 1 &&
+                      setPagination &&
+                      setPagination((prev) => ({
+                        ...prev,
+                        page: Math.max(1, prev.page - 1),
+                      }))
+                    }
+                    className={
+                      currentPage === 1
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <PaginationItem key={`page-inx-${page}`}>
+                      <PaginationLink
+                        isActive={currentPage === page}
+                        className={
+                          currentPage === page
+                            ? "bg-primary text-[#fff]"
+                            : "cursor-pointer"
+                        }
+                        onClick={() =>
+                          currentPage !== page &&
+                          setPagination &&
+                          setPagination((prev) => ({
+                            ...prev,
+                            page,
+                          }))
+                        }
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ),
+                )}
+                {/*<PaginationItem>*/}
+                {/*  <PaginationEllipsis />*/}
+                {/*</PaginationItem>*/}
+                <PaginationItem>
+                  {!(isLoading || currentPage === totalPages) ? (
+                    <PaginationNext
+                      className="cursor-pointer"
+                      onClick={() =>
+                        setPagination &&
+                        setPagination((prev) => ({
+                          ...prev,
+                          page: Math.max(1, prev.page + 1),
+                        }))
+                      }
+                    />
+                  ) : (
+                    <PaginationNext
+                      onClick={(e) => e.preventDefault()}
+                      className="cursor-not-allowed opacity-50"
+                    />
+                  )}
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </div>
       )}
 
       {/*/!* Pagination *!/*/}

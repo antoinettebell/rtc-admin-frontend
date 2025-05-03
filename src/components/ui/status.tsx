@@ -3,6 +3,7 @@ import { Ban, Clock3, UserRoundCheck } from "lucide-react";
 
 export const Status = ({
   status,
+  className,
 }: {
   status:
     | "ACTIVE"
@@ -11,6 +12,7 @@ export const Status = ({
     | "PENDING"
     | "APPROVED"
     | "REJECTED";
+  className: ClassDecorator;
 }) => {
   const bg: Record<string, string> = {
     ACTIVE: "bg-[#05CD9933]",
@@ -61,7 +63,7 @@ export const Status = ({
   }, []);
   return (
     <div
-      className={`p-2.5 flex gap-1 rounded-md w-fit min-w-[95px] items-center ${details.bg}`}
+      className={`p-2.5 flex gap-1 rounded-md w-fit min-w-[95px] items-center ${details.bg} ${className}`}
     >
       {details.icon && (
         <details.icon size="16" className={details.color}></details.icon>

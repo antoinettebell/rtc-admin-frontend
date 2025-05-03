@@ -7,6 +7,7 @@ enum APIPath {
 }
 
 export enum APIEndpoint {
-  LOGIN = `${APIVersion.V1}/${APIPath.AUTH}`,
+  AUTH = `${APIVersion.V1}/${APIPath.AUTH}`,
+  LOGIN = `${APIVersion.V1}/${APIPath.AUTH}/admin-login`,
   USER = `${APIVersion.V1}/${APIPath.USER}`,
 }

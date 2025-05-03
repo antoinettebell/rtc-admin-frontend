@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function Vendors() {
+export default function Users() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
@@ -44,7 +44,7 @@ export default function Vendors() {
 
   useEffect(() => {
     let st = searchParams.get("status");
-    st = ["PENDING", "APPROVED", "REJECTED"].includes(st) ? st : null;
+    st = ["inactive"].includes(st) ? st : null;
     setStatus(st || null);
     setParamST(st || null);
   }, [searchParams]);
@@ -55,14 +55,14 @@ export default function Vendors() {
     refetch,
   } = useQuery({
     queryKey: [
-      "vendor-list",
+      "user-list",
       pagination.page,
       pagination.limit,
       searchTerm,
       status,
     ],
     queryFn: () =>
-      userApiService.listVendors(
+      userApiService.listCustomer(
         pagination.page,
         status,
         searchTerm,
@@ -131,11 +131,6 @@ export default function Vendors() {
         />
       ),
     },
-    {
-      header: "Request",
-      fieldName: "requestStatus",
-      accessor: (d) => <Status status={d.requestStatus} />,
-    },
   ];
 
   const statusSelect = (): React.ReactNode => {
@@ -152,9 +147,8 @@ export default function Vendors() {
         <SelectContent>
           <SelectGroup>
             <SelectItem value={null}>All</SelectItem>
-            <SelectItem value={"PENDING"}>Pending</SelectItem>
-            <SelectItem value={"APPROVED"}>Approved</SelectItem>
-            <SelectItem value={"REJECTED"}>Rejected</SelectItem>
+            <SelectItem value={"active"}>Active</SelectItem>
+            <SelectItem value={"inactive"}>Inactive</SelectItem>
           </SelectGroup>
         </SelectContent>
       </Select>
@@ -165,7 +159,7 @@ export default function Vendors() {
     <>
       <div className="flex justify-between">
         <div className="font-semibold text-[28px] leading-[42px] mb-2">
-          Vendors
+          Users
         </div>
       </div>
       <DataTable
@@ -179,7 +173,6 @@ export default function Vendors() {
         setPagination={setPagination}
         hideColumnFilter={true}
         extraTemplate={paramST ? <></> : statusSelect()}
-        onRowClick={(d) => router.push(`/vendor/detail?q=${d._id}`)}
       />
       {!!changeStatus && (
         <AlertDialog open={true}>
@@ -189,7 +182,7 @@ export default function Vendors() {
               <AlertDialogDescription>
                 Are you sure want to change status to{" "}
                 <b>{changeStatus.inactive ? "Active" : "Inactive"}</b> of the
-                vendor{" "}
+                user{" "}
                 <b>
                   {`${changeStatus.firstName} ${changeStatus.lastName || ""}`.trim()}
                 </b>
