@@ -174,7 +174,7 @@ export default function VendorDetail() {
                       height="250"
                       decoding="async"
                       data-nimg="1"
-                      className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-[3/4]"
+                      className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-[3/4] border rounded"
                       src={result.data.data.user.foodTruck?.logo}
                     />
                   ) : (
@@ -187,7 +187,7 @@ export default function VendorDetail() {
               {result.data.data.user.foodTruck?.photos.map((item, i) => (
                 <div className="space-y-3 w-[100px]" key={`${i}-truck-photo`}>
                   <span data-state="closed">
-                    <div className="overflow-hidden rounded-md">
+                    <div className="overflow-hidden rounded-md border">
                       <img
                         loading="lazy"
                         width="150"
