@@ -1,5 +1,12 @@
 "use client";
-import { Check, LoaderCircle, MapPin, SquareUserRound, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  LoaderCircle,
+  MapPin,
+  SquareUserRound,
+  X,
+} from "lucide-react";
 import * as React from "react";
 import { useState } from "react";
 import {
@@ -14,13 +21,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { userApiService } from "@/services/user-api-service";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Status } from "@/components/ui/status";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function VendorDetail() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("q");
   const [changeStatus, setChangeStatus] = useState<
@@ -82,8 +90,11 @@ export default function VendorDetail() {
 
   return (
     <>
-      <div className="flex justify-between">
-        <div className="font-semibold text-[28px] leading-[42px] mb-2">
+      <div className="flex justify-between flex-wrap mb-2">
+        <div className="font-semibold text-[28px] leading-[42px] mb-2 flex gap-3 items-center">
+          <Button variant="outline" onClick={() => router.replace("/vendor")}>
+            <ArrowLeft /> Back
+          </Button>
           Vendor Detail
         </div>
 
