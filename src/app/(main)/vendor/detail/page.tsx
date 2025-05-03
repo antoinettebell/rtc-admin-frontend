@@ -167,6 +167,7 @@ export default function VendorDetail() {
               <span data-state="closed">
                 <div className="overflow-hidden rounded-md">
                   {result.data.data.user.foodTruck?.logo ? (
+                          <div className="border rounded overflow-hidden">
                     <img
                       alt="React Rendezvous"
                       loading="lazy"
@@ -174,9 +175,9 @@ export default function VendorDetail() {
                       height="250"
                       decoding="async"
                       data-nimg="1"
-                      className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-[3/4] border rounded"
+                      className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-[3/4]"
                       src={result.data.data.user.foodTruck?.logo}
-                    />
+                    /></div>
                   ) : (
                     <div className="bg-gray-200 w-[190px] h-[250px]"></div>
                   )}
