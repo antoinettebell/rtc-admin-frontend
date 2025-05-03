@@ -31,7 +31,7 @@ export default function RootLayout({
             <NavUser user={user} />
           </div>
         </header>
-        <div className="p-4">{children}</div>
+        <div className="p-4 h-[calc(100vh-56px)] overflow-x-auto">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -216,8 +216,10 @@ export default function VendorDetail() {
                   key={`${i}-location`}
                   className="border rounded-md px-3 py-2 flex items-center gap-3"
                 >
-                  <MapPin className="text-primary" />
-                  <div className="w-full">
+                  <div>
+                    <MapPin className="text-primary" />
+                  </div>
+                  <div className="w-full pr-[24px]">
                     <div className="font-semibold truncate">{item.title}</div>
                     <div className="font-medium text-sm truncate">
                       {item.address}
