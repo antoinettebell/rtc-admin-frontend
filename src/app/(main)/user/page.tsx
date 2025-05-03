@@ -147,7 +147,6 @@ export default function Users() {
         <SelectContent>
           <SelectGroup>
             <SelectItem value={null}>All</SelectItem>
-            <SelectItem value={"active"}>Active</SelectItem>
             <SelectItem value={"inactive"}>Inactive</SelectItem>
           </SelectGroup>
         </SelectContent>
