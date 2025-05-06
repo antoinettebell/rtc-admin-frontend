@@ -211,9 +211,14 @@ export default function VendorDetail() {
               ))}
             </div>
           </div>
-          <div className="border-b"></div>
+          <div className="flex items-center gap-3 mt-3">
+            <div className="whitespace-nowrap font-semibold text-xl">
+              Cuisines
+            </div>
+            <div className="border-b w-full"></div>
+          </div>
           <div className="pt-2 pb-4">
-            <div className="py-2 text-xl font-semibold">Cuisines</div>
+            {/*<div className="py-2 text-xl font-semibold">Cuisines</div>*/}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 5xl:grid-cols-4 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
               {result.data.data.user.foodTruck?.cuisine.map((item, i) => (
                 <div
@@ -226,9 +231,14 @@ export default function VendorDetail() {
               ))}
             </div>
           </div>
-          <div className="border-b"></div>
+          <div className="flex items-center gap-3 mt-3">
+            <div className="whitespace-nowrap font-semibold text-xl">
+              Locations
+            </div>
+            <div className="border-b w-full"></div>
+          </div>
           <div className="pt-2 pb-4">
-            <div className="py-2 text-xl font-semibold">Locations</div>
+            {/*<div className="py-2 text-xl font-semibold">Locations</div>*/}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
               {result.data.data.user.foodTruck?.locations.map((item, i) => (
                 <div
@@ -248,9 +258,14 @@ export default function VendorDetail() {
               ))}
             </div>
           </div>
-          <div className="border-b"></div>
+          <div className="flex items-center gap-3 mt-3">
+            <div className="whitespace-nowrap font-semibold text-xl">
+              Availability
+            </div>
+            <div className="border-b w-full"></div>
+          </div>
           <div className="pt-2 pb-4">
-            <div className="py-2 text-xl font-semibold">Availability</div>
+            {/*<div className="py-2 text-xl font-semibold">Availability</div>*/}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
               {result.data.data.user.foodTruck?.availability.map((item, i) => (
                 <div
