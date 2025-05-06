@@ -347,6 +347,7 @@ export function DataTable<T>({
                       onClick={() => {
                         onRowClick?.(item);
                       }}
+                      className={onRowClick ? "cursor-pointer" : ""}
                     >
                       {columns.map((column, colIndex) => {
                         const key = column.fieldName;

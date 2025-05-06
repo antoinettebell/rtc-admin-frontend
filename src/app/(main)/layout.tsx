@@ -27,7 +27,7 @@ export default function RootLayout({
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 rounded-b-3xl px-4 bg-primary justify-between">
           <SidebarTrigger className="-ml-1 text-white" />
-          <div className="max-w-[150px]">
+          <div className="max-w-[300px]">
             <NavUser user={user} />
           </div>
         </header>

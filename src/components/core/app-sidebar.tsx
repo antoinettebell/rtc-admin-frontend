@@ -5,7 +5,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import {Home, SquareUserRound, User2} from "lucide-react";
+import { Home, SquareUserRound, User2 } from "lucide-react";
 import { NavMain } from "@/components/core/nav-main";
 
 // This is sample data.
@@ -35,6 +35,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar {...props}>
       <SidebarHeader>
         <div className="flex h-14 px-4 text-white font-semibold items-center p-2 bg-primary rounded-b-3xl">
+          <img src="/logo-tree.png" className="w-[40px] mr-2 mb-2" />
           Round The Corner
         </div>
       </SidebarHeader>

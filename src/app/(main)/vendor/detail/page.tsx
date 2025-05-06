@@ -151,8 +151,14 @@ export default function VendorDetail() {
                   {`${result?.data.data.user.firstName} ${result?.data.data.user.lastName || ""}`.trim()}
                 </b>
               </h3>
+              <p className="text-sm text-muted-foreground mb-1">
+                Detail: <b>{result.data.data.user.foodTruck?.name}</b>
+              </p>
               <p className="text-sm text-muted-foreground">
-                Truck: <b>{result.data.data.user.foodTruck?.name}</b>
+                Type:{" "}
+                <b className="capitalize">
+                  {result.data.data.user.foodTruck?.infoType || "-"}
+                </b>
               </p>
               <div className="flex justify-end w-full mt-1">
                 <Status
@@ -167,17 +173,18 @@ export default function VendorDetail() {
               <span data-state="closed">
                 <div className="overflow-hidden rounded-md">
                   {result.data.data.user.foodTruck?.logo ? (
-                          <div className="border rounded overflow-hidden">
-                    <img
-                      alt="React Rendezvous"
-                      loading="lazy"
-                      width="190"
-                      height="250"
-                      decoding="async"
-                      data-nimg="1"
-                      className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-[3/4]"
-                      src={result.data.data.user.foodTruck?.logo}
-                    /></div>
+                    <div className="border rounded overflow-hidden">
+                      <img
+                        alt="React Rendezvous"
+                        loading="lazy"
+                        width="190"
+                        height="250"
+                        decoding="async"
+                        data-nimg="1"
+                        className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-[3/4]"
+                        src={result.data.data.user.foodTruck?.logo}
+                      />
+                    </div>
                   ) : (
                     <div className="bg-gray-200 w-[190px] h-[250px]"></div>
                   )}

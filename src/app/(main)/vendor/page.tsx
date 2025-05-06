@@ -1,5 +1,5 @@
 "use client";
-import { LoaderCircle } from "lucide-react";
+import { Eye, LoaderCircle } from "lucide-react";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { Column, DataTable } from "@/components/ui/data-table";
@@ -98,7 +98,7 @@ export default function Vendors() {
 
   const columns: Column<User>[] = [
     {
-      header: "Name",
+      header: "Vendor Name",
       fieldName: "firstName",
       accessor: (d) => (
         <NameDetail
@@ -113,6 +113,31 @@ export default function Vendors() {
       canNotHide: true,
     },
     {
+      header: "Detail",
+      fieldName: "mobileNumber",
+      accessor: (d) =>
+        d.foodTruck ? (
+          <NameDetail
+            name={`${d.foodTruck.name || ""}`}
+            email={`${d.foodTruck.cuisine?.length || 0} cuisine${d.foodTruck.cuisine?.length > 1 ? "s" : ""}`}
+            imgSrc={d.foodTruck.logo || d.foodTruck.photos[0] || ""}
+            avatarClassName={"object-contain"}
+          />
+        ) : (
+          "-"
+        ),
+    },
+    {
+      header: "Type",
+      fieldName: "mobileNumber",
+      accessor: (d) =>
+        d.foodTruck ? (
+          <div className="capitalize">{d.foodTruck.infoType}</div>
+        ) : (
+          "-"
+        ),
+    },
+    {
       header: "Contact",
       fieldName: "mobileNumber",
       accessor: (d) => `${d.countryCode} ${d.mobileNumber}`,
@@ -123,11 +148,17 @@ export default function Vendors() {
       accessor: (d) => (
         <Switch
           checked={!d.inactive}
+          disabled={d.requestStatus !== "APPROVED"}
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
             setChangeStatus(d);
           }}
+          title={
+            d.requestStatus !== "APPROVED"
+              ? "It will be enabled after the request approved"
+              : ""
+          }
         />
       ),
     },
@@ -135,6 +166,11 @@ export default function Vendors() {
       header: "Request",
       fieldName: "requestStatus",
       accessor: (d) => <Status status={d.requestStatus} />,
+    },
+    {
+      header: "Action",
+      fieldName: "requestStatus",
+      accessor: (d) => <Eye className="text-primary" size={18} />,
     },
   ];
 
