@@ -86,7 +86,7 @@ export default function Page() {
                     <Label htmlFor="email">Email</Label>
                     <Input
                       type="email"
-                      placeholder="m@example.com"
+                      placeholder="Enter your email"
                       required
                       {...register("email")}
                     />
@@ -95,7 +95,12 @@ export default function Page() {
                     <div className="flex items-center">
                       <Label htmlFor="password">Password</Label>
                     </div>
-                    <Input type="password" required {...register("password")} />
+                    <Input
+                      type="password"
+                      placeholder="Enter your password"
+                      required
+                      {...register("password")}
+                    />
                     {/*<div className="flex justify-end items-center">*/}
                     {/*  <a*/}
                     {/*    onClick={() => router.push("/auth/forgot-password")}*/}

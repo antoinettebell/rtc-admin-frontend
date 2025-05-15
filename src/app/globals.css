@@ -79,3 +79,13 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.hover-card-item {
+  transition: all 0.3s cubic-bezier(0, 0, 0.5, 1) !important;
+
+  &:hover {
+    //box-shadow: 2px 4px 16px #00000029 !important;
+    box-shadow: 2px 4px 16px rgba(0, 0, 0, 0.11) !important;
+    transform: scale3d(1.01, 1.01, 1.01) !important;
+  }
+}

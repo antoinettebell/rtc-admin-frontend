@@ -38,7 +38,7 @@ export function SectionCards({ data, isLoading }: IAttribs) {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 5xl:grid-cols-4 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
         <Card
-          className="@container/card cursor-pointer bg-gradient-to-br shadow-lg transition-all hover:shadow-xl from-green-50 to-green-100 border-green-200 shadow-green-100/50"
+          className="@container/card cursor-pointer bg-gradient-to-br shadow-lg transition-all hover-card-item from-green-50 to-green-100 border-green-200 shadow-green-100/50"
           onClick={() => {
             router.push("/vendor");
           }}
@@ -64,7 +64,7 @@ export function SectionCards({ data, isLoading }: IAttribs) {
           </CardFooter>
         </Card>
         <Card
-          className="@container/card cursor-pointer bg-gradient-to-br shadow-lg transition-all hover:shadow-xl from-amber-50 to-amber-100 border-amber-200 shadow-amber-100/50"
+          className="@container/card cursor-pointer bg-gradient-to-br shadow-lg transition-all hover-card-item from-amber-50 to-amber-100 border-amber-200 shadow-amber-100/50"
           onClick={() => {
             router.push("/vendor?status=PENDING");
           }}
@@ -88,7 +88,7 @@ export function SectionCards({ data, isLoading }: IAttribs) {
           </CardFooter>
         </Card>
         <Card
-          className="@container/card cursor-pointer bg-gradient-to-br shadow-lg transition-all hover:shadow-xl from-red-50 to-red-100 border-red-200 shadow-red-100/50"
+          className="@container/card cursor-pointer bg-gradient-to-br shadow-lg transition-all hover-card-item from-red-50 to-red-100 border-red-200 shadow-red-100/50"
           onClick={() => {
             router.push("/vendor?status=REJECTED");
           }}
@@ -122,7 +122,7 @@ export function SectionCards({ data, isLoading }: IAttribs) {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 5xl:grid-cols-4 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
         <Card
-          className="@container/card cursor-pointer bg-gradient-to-br shadow-lg transition-all hover:shadow-xl from-purple-50 to-purple-100 border-purple-200 shadow-purple-100/50"
+          className="@container/card cursor-pointer bg-gradient-to-br shadow-lg transition-all hover-card-item from-purple-50 to-purple-100 border-purple-200 shadow-purple-100/50"
           onClick={() => {
             router.push("/user");
           }}
@@ -148,7 +148,7 @@ export function SectionCards({ data, isLoading }: IAttribs) {
           </CardFooter>
         </Card>
         <Card
-          className="@container/card cursor-pointer bg-gradient-to-br shadow-lg transition-all hover:shadow-xl from-slate-50 to-slate-100 border-slate-200 shadow-slate-100/50"
+          className="@container/card cursor-pointer bg-gradient-to-br shadow-lg transition-all hover-card-item from-slate-50 to-slate-100 border-slate-200 shadow-slate-100/50"
           onClick={() => {
             router.push("/user?status=inactive");
           }}

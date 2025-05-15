@@ -14,6 +14,14 @@ export interface User {
   foodTruck?: FoodTruck;
 }
 
+export interface Cuisine {
+  _id: string;
+  name: string;
+  deletedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface FoodTruck {
   _id: string;
   userId: string;
@@ -22,13 +30,7 @@ export interface FoodTruck {
   instagramLink: string;
   logo: string | null;
   photos: string[];
-  cuisine: {
-    _id: string;
-    name: string;
-    deletedAt?: string | null;
-    createdAt?: string;
-    updatedAt?: string;
-  }[];
+  cuisine: Cuisine[];
   inactive: boolean;
   verified: boolean;
   locations: {
