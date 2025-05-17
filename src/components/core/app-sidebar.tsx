@@ -5,7 +5,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { Home, Soup, SquareUserRound, User2 } from "lucide-react";
+import { Cog, Home, Soup, SquareUserRound, User2 } from "lucide-react";
 import { NavMain } from "@/components/core/nav-main";
 
 // This is sample data.
@@ -32,6 +32,12 @@ const navMain = [
     title: "Cuisines",
     url: "/cuisine",
     icon: Soup,
+    items: [],
+  },
+  {
+    title: "Settings",
+    url: "/setting",
+    icon: Cog,
     items: [],
   },
 ];

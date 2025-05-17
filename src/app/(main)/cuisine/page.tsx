@@ -1,7 +1,6 @@
 "use client";
 import * as React from "react";
 import { useState } from "react";
-import { Column, DataTable } from "@/components/ui/data-table";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback/use-debounced-callback";
 import { useQuery } from "@tanstack/react-query";
 import { cuisineApiService } from "@/services/cuisine-api-service";
@@ -53,31 +52,6 @@ export default function Cuisines() {
     setSearchTerm(value);
     setPagination((prev) => ({ ...prev, page: 1 })); // Reset to first page
   }, 500);
-
-  const columns: Column<Cuisine>[] = [
-    {
-      header: "Name",
-      fieldName: "name",
-      accessor: "name",
-      // sortable: true,
-      className: "!px-4 w-[270px]",
-      canNotHide: true,
-    },
-    // {
-    //   header: "Active",
-    //   fieldName: "inactive",
-    //   accessor: (d) => (
-    //     <Switch
-    //       checked={!d.inactive}
-    //       onClick={(e) => {
-    //         e.stopPropagation();
-    //         e.preventDefault();
-    //         setChangeStatus(d);
-    //       }}
-    //     />
-    //   ),
-    // },
-  ];
 
   const onAddCuisine = () => {
     if (!addCui || !addCui.name.trim()) return;
@@ -224,17 +198,7 @@ export default function Cuisines() {
           </>
         )}
       </div>
-      {/*<DataTable*/}
-      {/*  columns={columns as any}*/}
-      {/*  data={(result?.data?.data?.records || []) as any}*/}
-      {/*  totalRecords={result?.data?.data?.total || 0}*/}
-      {/*  isLoading={isFetching}*/}
-      {/*  onSearch={(s: string) => debouncedSearch(s)}*/}
-      {/*  currentPage={pagination.page}*/}
-      {/*  pageSize={pagination.limit}*/}
-      {/*  setPagination={setPagination}*/}
-      {/*  hideColumnFilter={true}*/}
-      {/*/>*/}
+
       {(addCui || editCui) && (
         <AlertDialog open={true}>
           <AlertDialogContent>

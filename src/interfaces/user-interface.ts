@@ -55,3 +55,8 @@ export interface FoodTruck {
   updatedAt: string;
   infoType: "truck" | "caterer";
 }
+
+export interface SiteSetting {
+  termsConditions: string | null;
+  privacyPolicy: string | null;
+}

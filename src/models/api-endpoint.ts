@@ -5,6 +5,7 @@ enum APIPath {
   AUTH = "auth",
   USER = "user",
   CUISINE = "cuisine",
+  SETTING = "setting",
 }
 
 export enum APIEndpoint {
@@ -12,4 +13,5 @@ export enum APIEndpoint {
   LOGIN = `${APIVersion.V1}/${APIPath.AUTH}/admin-login`,
   USER = `${APIVersion.V1}/${APIPath.USER}`,
   CUISINE = `${APIVersion.V1}/${APIPath.CUISINE}`,
+  SETTING = `${APIVersion.V1}/${APIPath.SETTING}`,
 }
