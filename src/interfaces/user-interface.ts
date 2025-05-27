@@ -59,4 +59,5 @@ export interface FoodTruck {
 export interface SiteSetting {
   termsConditions: string | null;
   privacyPolicy: string | null;
+  agreement: string | null;
 }

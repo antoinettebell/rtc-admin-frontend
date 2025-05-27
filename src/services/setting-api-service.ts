@@ -23,6 +23,13 @@ class SettingApiService extends BaseAPI {
       { privacyPolicy },
     );
   }
+
+  updateAgreement(agreement: string) {
+    return this.post<IResponse<{ setting: SiteSetting | null }>>(
+      `${APIEndpoint.SETTING}/agreement`,
+      { agreement },
+    );
+  }
 }
 
 export const settingApiService = new SettingApiService();

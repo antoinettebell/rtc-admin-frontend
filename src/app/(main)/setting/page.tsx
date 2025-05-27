@@ -61,6 +61,23 @@ export default function Cuisines() {
       });
   };
 
+  const onSaveAgreement = (d: string) => {
+    if (!d.trim()) return;
+    setLoading(true);
+    settingApiService
+      .updateAgreement(d)
+      .then(() => {
+        toast.success("Agreement updated");
+        refetch();
+      })
+      .catch((e) => {
+        toast.error(e.response?.data?.message || "Error while updating");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
   return (
     <>
       {isFetching ? (
@@ -89,13 +106,28 @@ export default function Cuisines() {
 
           <AccordionItem value="item-2">
             <AccordionTrigger>
-              <div className="font-semibold text-[20px] my-2">Privacy policy</div>
+              <div className="font-semibold text-[20px] my-2">
+                Privacy policy
+              </div>
             </AccordionTrigger>
             <AccordionContent>
               <HtmlEditor
                 initialHtml={result?.data?.data?.setting?.privacyPolicy || ""}
                 isLoading={loading}
                 onSave={(d) => onSavePolicy(d)}
+              />
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="item-3">
+            <AccordionTrigger>
+              <div className="font-semibold text-[20px] my-2">Agreement</div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <HtmlEditor
+                initialHtml={result?.data?.data?.setting?.agreement || ""}
+                isLoading={loading}
+                onSave={(d) => onSaveAgreement(d)}
               />
             </AccordionContent>
           </AccordionItem>
