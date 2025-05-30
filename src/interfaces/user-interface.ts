@@ -127,6 +127,7 @@ export interface OrderItem {
     menuItem: MenuItem;
   }[];
   subTotal: number;
+  discount: number;
   taxAmount: number;
   total: number;
   orderStatus:

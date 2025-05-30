@@ -67,42 +67,46 @@ export default function Users() {
       header: "Items",
       fieldName: "items",
       accessor: (d) => (
-        <table>
-          {d.items.map((item, inx) => (
-            <tr key={`orderItem-${inx}`}>
-              <td
-                className={`capitalize p-1 pr-1 ${inx + 1 === d.items.length ? "" : "border-b"} border-r`}
-              >
-                {inx + 1}
-              </td>
-              <td
-                className={`capitalize p-1 pr-1 font-semibold min-w-[100px] truncate ${inx + 1 === d.items.length ? "" : "border-b"} border-r`}
-              >
-                {item.menuItem.name}
-              </td>
-              <td
-                className={`capitalize p-1 min-w-[100px] ${inx + 1 === d.items.length ? "" : "border-b"} border-r`}
-              >
-                ${item.menuItem.price} * {item.qty}
-              </td>
-              <td
-                className={`capitalize p-1 ${inx + 1 === d.items.length ? "" : "border-b"}`}
-              >
-                ${item.total}
-              </td>
-            </tr>
-          ))}
-        </table>
+        <div className="pr-2">
+          <table>
+            {d.items.map((item, inx) => (
+              <tr key={`orderItem-${inx}`}>
+                <td
+                  className={`capitalize p-1 pr-1 ${inx + 1 === d.items.length ? "" : "border-b"} border-r`}
+                >
+                  {inx + 1}
+                </td>
+                <td
+                  className={`capitalize p-1 pr-1 font-semibold min-w-[100px] truncate ${inx + 1 === d.items.length ? "" : "border-b"} border-r`}
+                >
+                  {item.menuItem.name}
+                </td>
+                <td
+                  className={`capitalize p-1 min-w-[100px] ${inx + 1 === d.items.length ? "" : "border-b"} border-r`}
+                >
+                  ${item.menuItem.price} * {item.qty}
+                </td>
+                <td
+                  className={`capitalize p-1 ${inx + 1 === d.items.length ? "" : "border-b"}`}
+                >
+                  ${item.total}
+                </td>
+              </tr>
+            ))}
+          </table>
+        </div>
       ),
     },
     {
       header: "Total",
       fieldName: "total",
+      className: "w-[150px]",
       accessor: (d) => <span className="font-semibold">${d.total}</span>,
     },
     {
       header: "Date",
       fieldName: "createdAt",
+      className: "w-[200px]",
       accessor: (d) => (
         <span className="">
           {dayjs(d.createdAt).format("DD MMM, YYYY HH:mm")}
@@ -112,7 +116,11 @@ export default function Users() {
     {
       header: "Status",
       fieldName: "orderStatus",
-      accessor: "orderStatus",
+      accessor: (d) => (
+        <span className="text-primary capitalize font-bold">
+          {d.orderStatus?.toLowerCase()}
+        </span>
+      ),
     },
   ];
 
