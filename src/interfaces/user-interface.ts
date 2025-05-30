@@ -2,6 +2,7 @@ export interface User {
   _id: string;
   firstName: string;
   lastName: string;
+  profilePic?: string | null;
   email: string;
   userType: "SUPER_ADMIN" | "VENDOR" | "CUSTOMER";
   requestStatus?: "PENDING" | "APPROVED" | "REJECTED";
@@ -22,10 +23,42 @@ export interface Cuisine {
   updatedAt?: string;
 }
 
+export interface Plan {
+  _id: string;
+  name: string;
+  titleColor: string;
+  slug: string;
+  rate: number;
+  rateType: string;
+  isPopular: boolean;
+  details: string[];
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FoodTruckAvailability {
+  _id: string;
+  day: string;
+  locationId: string;
+  startTime: string;
+  endTime: string;
+  available: boolean;
+}
+
+export interface FoodTruckLocation {
+  _id: string;
+  title: string;
+  address: string;
+  lat: string;
+  long: string;
+}
 export interface FoodTruck {
   _id: string;
   userId: string;
   name: string;
+  planId: string;
+  plan?: Plan;
   facebookLink: string;
   instagramLink: string;
   logo: string | null;
@@ -33,31 +66,82 @@ export interface FoodTruck {
   cuisine: Cuisine[];
   inactive: boolean;
   verified: boolean;
-  locations: {
-    title: string;
-    address: string;
-    lat: string;
-    long: string;
-    _id: string;
-  }[];
-
-  availability: [
-    {
-      day: string;
-      locationId: string;
-      startTime: string;
-      endTime: string;
-      available: boolean;
-      _id: string;
-    },
-  ];
+  locations: FoodTruckLocation[];
+  availability: FoodTruckAvailability[];
   createdAt: string;
   updatedAt: string;
   infoType: "truck" | "caterer";
+}
+
+export interface MenuCategory {
+  _id: string;
+  name: string;
+  userId: string;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  menuCount: number;
+}
+
+export interface MenuItem {
+  _id: string;
+  name: string;
+  description: string;
+  imgUrls: string[];
+  price: number;
+  minQty: number;
+  maxQty: number;
+  available: boolean;
+  itemType: "COMBO" | "INDIVIDUAL";
+  categoryId: string;
+  subItem: {
+    menuItem: Partial<MenuItem>;
+    qty: number;
+    _id: string;
+  }[];
+  userId: string;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  category: MenuCategory;
 }
 
 export interface SiteSetting {
   termsConditions: string | null;
   privacyPolicy: string | null;
   agreement: string | null;
+}
+
+export interface OrderItem {
+  _id: string;
+  foodTruckId: string;
+  userId: string;
+  availability: FoodTruckAvailability;
+  deliveryTime: string;
+  items: {
+    menuItemId: string;
+    qty: number;
+    price: number;
+    total: number;
+    _id: string;
+    menuItem: MenuItem;
+  }[];
+  subTotal: number;
+  taxAmount: number;
+  total: number;
+  orderStatus:
+    | "INITIATE"
+    | "CANCEL"
+    | "PLACED"
+    | "ACCEPTED"
+    | "REJECTED"
+    | "PREPARING"
+    | "READY_FOR_PICKUP"
+    | "COMPLETED";
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  foodTruck: FoodTruck;
+  vendor: User;
+  user: User;
 }

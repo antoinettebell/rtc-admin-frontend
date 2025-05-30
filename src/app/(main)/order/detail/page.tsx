@@ -60,7 +60,7 @@ export default function VendorDetail() {
     isFetching,
     refetch,
   } = useQuery({
-    queryKey: ["vendor-detail"],
+    queryKey: ["order-detail"],
     queryFn: () =>
       Promise.all([
         userApiService.getById(id?.toString() || ""),
@@ -105,36 +105,11 @@ export default function VendorDetail() {
     <>
       <div className="flex justify-between flex-wrap mb-2">
         <div className="font-semibold text-[28px] leading-[42px] mb-2 flex gap-3 items-center">
-          <Button variant="outline" onClick={() => router.replace("/vendor")}>
+          <Button variant="outline" onClick={() => router.replace("/order")}>
             <ArrowLeft /> Back
           </Button>
-          Vendor Detail
+          Order Detail
         </div>
-
-        {!isFetching && (
-          <div className="flex gap-2">
-            <Button
-              variant="default"
-              className="bg-green-500 hover:bg-green-600 font-semibold px-6"
-              disabled={changing || result?.user.requestStatus === "APPROVED"}
-              onClick={() => {
-                setChangeStatus("APPROVED");
-              }}
-            >
-              Approve
-            </Button>
-            <Button
-              variant="default"
-              className="bg-red-500 hover:bg-red-600 font-semibold px-6"
-              disabled={changing || result?.user.requestStatus === "REJECTED"}
-              onClick={() => {
-                setChangeStatus("REJECTED");
-              }}
-            >
-              Reject
-            </Button>
-          </div>
-        )}
       </div>
 
       {isFetching && (
