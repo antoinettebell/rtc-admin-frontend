@@ -36,22 +36,6 @@ export default function OrderDetail() {
       orderApiService.getById(id?.toString() || "").then((res) => {
         return res?.data?.data?.order;
       }),
-    // Promise.all([
-    //   userApiService.getById(id?.toString() || ""),
-    //   categoryApiService.list("", 1, 100, { userId: id?.toString() }),
-    //   menuApiService.list("", 1, 100, { userId: id?.toString() }),
-    // ]).then(([userRes, categoryRes, menuRes]) => {
-    //   if (userRes.data?.data.user.foodTruck?.plan) {
-    //     setPlanColor(
-    //       userRes.data?.data.user.foodTruck?.plan?.titleColor || "",
-    //     );
-    //   }
-    //   return {
-    //     ...(userRes?.data.data || {}),
-    //     categoryList: categoryRes.data.data.records,
-    //     menuList: menuRes.data.data.records,
-    //   };
-    // }),
     staleTime: 0,
     refetchOnWindowFocus: false,
   });

@@ -69,30 +69,32 @@ export default function Orders() {
       accessor: (d) => (
         <div className="pr-2">
           <table>
-            {d.items.map((item, inx) => (
-              <tr key={`orderItem-${inx}`}>
-                <td
-                  className={`capitalize p-1 pr-1 ${inx + 1 === d.items.length ? "" : "border-b"} border-r`}
-                >
-                  {inx + 1}
-                </td>
-                <td
-                  className={`capitalize p-1 pr-1 font-semibold min-w-[100px] truncate ${inx + 1 === d.items.length ? "" : "border-b"} border-r`}
-                >
-                  {item.menuItem.name}
-                </td>
-                <td
-                  className={`capitalize p-1 min-w-[100px] ${inx + 1 === d.items.length ? "" : "border-b"} border-r`}
-                >
-                  ${item.menuItem.price} * {item.qty}
-                </td>
-                <td
-                  className={`capitalize p-1 ${inx + 1 === d.items.length ? "" : "border-b"}`}
-                >
-                  ${item.total}
-                </td>
-              </tr>
-            ))}
+            <tbody>
+              {d.items.map((item, inx) => (
+                <tr key={`orderItem-${inx}`}>
+                  <td
+                    className={`capitalize p-1 pr-1 ${inx + 1 === d.items.length ? "" : "border-b"} border-r`}
+                  >
+                    {inx + 1}
+                  </td>
+                  <td
+                    className={`capitalize p-1 pr-1 font-semibold min-w-[100px] truncate ${inx + 1 === d.items.length ? "" : "border-b"} border-r`}
+                  >
+                    {item.menuItem.name}
+                  </td>
+                  <td
+                    className={`capitalize p-1 min-w-[100px] ${inx + 1 === d.items.length ? "" : "border-b"} border-r`}
+                  >
+                    ${Number(item.menuItem.price).toFixed(2)} * {item.qty}
+                  </td>
+                  <td
+                    className={`capitalize p-1 ${inx + 1 === d.items.length ? "" : "border-b"}`}
+                  >
+                    ${Number(item.total).toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
       ),
@@ -101,7 +103,9 @@ export default function Orders() {
       header: "Total",
       fieldName: "total",
       className: "w-[150px]",
-      accessor: (d) => <span className="font-semibold">${d.total}</span>,
+      accessor: (d) => (
+        <span className="font-semibold">${Number(d.total).toFixed(2)}</span>
+      ),
     },
     {
       header: "Date",

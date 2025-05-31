@@ -1,7 +1,7 @@
 "use client";
-import { Eye, LoaderCircle, Trash } from "lucide-react";
+import { LoaderCircle, Trash } from "lucide-react";
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Column, DataTable } from "@/components/ui/data-table";
 import {
   AlertDialog,
@@ -13,26 +13,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { userApiService } from "@/services/user-api-service";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback/use-debounced-callback";
 import { useQuery } from "@tanstack/react-query";
-import { Banner, Cuisine, User } from "@/interfaces/user-interface";
-import { NameDetail } from "@/components/ui/name-detail";
-import { Switch } from "@/components/ui/switch";
+import { Banner } from "@/interfaces/user-interface";
 import { toast } from "sonner";
-import { Status } from "@/components/ui/status";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { bannerApiService } from "@/services/banner-api-service";
 import dayjs from "dayjs";
-import { cuisineApiService } from "@/services/cuisine-api-service";
 import { Button } from "@/components/ui/button";
 
 export default function Banners() {
@@ -65,14 +52,12 @@ export default function Banners() {
       header: "Banner",
       fieldName: "imageUrl",
       accessor: (d) => (
-        <div className="border rounded overflow-hidden">
+        <div className="border rounded overflow-hidden h-[75px] w-[110px]">
           <img
             loading="lazy"
-            width="450"
-            height="300"
             decoding="async"
             data-nimg="1"
-            className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-[4/3]"
+            className="h-full w-full object-cover transition-all hover:scale-105 aspect-[4/3]"
             src={d.imageUrl}
           />
         </div>
@@ -118,7 +103,7 @@ export default function Banners() {
   const onDeleteBanner = () => {
     if (!deleteBanner || !deleteBanner._id) return;
     setDeletingBanner(true);
-    cuisineApiService
+    bannerApiService
       .destroy(deleteBanner._id)
       .then(() => {
         toast.success("Banner deleted");

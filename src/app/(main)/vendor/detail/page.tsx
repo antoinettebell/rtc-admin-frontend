@@ -389,7 +389,15 @@ export default function VendorDetail() {
                         )}
                       </div>
                       <div className="truncate">
-                        Price: <b>{item.price}</b>
+                        Price: <b>{Number(item.price).toFixed(2)}</b>
+                      </div>
+                      <div className="truncate">
+                        Discount:{" "}
+                        <b>
+                          {item.discount
+                            ? `$${Number(item.discount).toFixed(2)}`
+                            : "-"}
+                        </b>
                       </div>
                     </div>
                   </div>

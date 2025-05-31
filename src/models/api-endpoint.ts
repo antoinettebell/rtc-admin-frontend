@@ -10,6 +10,7 @@ enum APIPath {
   ORDER = "order",
   SETTING = "setting",
   BANNER = "banner",
+  FILE = "file",
 }
 
 export enum APIEndpoint {
@@ -22,4 +23,5 @@ export enum APIEndpoint {
   MENU = `${APIVersion.V1}/${APIPath.MENU}`,
   ORDER = `${APIVersion.V1}/${APIPath.ORDER}`,
   BANNER = `${APIVersion.V1}/${APIPath.BANNER}`,
+  FILE = `${APIVersion.V1}/${APIPath.FILE}`,
 }

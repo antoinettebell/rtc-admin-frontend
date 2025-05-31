@@ -89,6 +89,7 @@ export interface MenuItem {
   description: string;
   imgUrls: string[];
   price: number;
+  discount: number;
   minQty: number;
   maxQty: number;
   available: boolean;
@@ -155,4 +156,11 @@ export interface Banner {
   fromDate: string;
   toDate: string;
   deletedAt: string;
+}
+
+export interface FileUpload {
+  _id: string;
+  fileUrl: string;
+  createdAt: string;
+  updatedAt: string;
 }

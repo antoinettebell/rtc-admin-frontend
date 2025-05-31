@@ -1,7 +1,7 @@
 // services/user-service.ts
 import { BaseAPI } from "./base-api";
 import { APIEndpoint } from "@/models/api-endpoint";
-import { Banner, OrderItem } from "@/interfaces/user-interface";
+import { Banner } from "@/interfaces/user-interface";
 import { IResponse } from "@/interfaces/response-interface";
 
 class BannerApiService extends BaseAPI {
@@ -20,6 +20,18 @@ class BannerApiService extends BaseAPI {
         ...extraParam,
       },
     });
+  }
+
+  add(data: Banner) {
+    return this.post<boolean>(`${APIEndpoint.BANNER}`, data);
+  }
+
+  update(id: string, data: Banner) {
+    return this.put<boolean>(`${APIEndpoint.BANNER}/${id}`, data);
+  }
+
+  destroy(id: string) {
+    return this.delete<boolean>(`${APIEndpoint.BANNER}/${id}`);
   }
 }
 
