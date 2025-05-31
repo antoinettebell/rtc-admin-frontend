@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { orderApiService } from "@/services/order-api-service";
 import dayjs from "dayjs";
 
-export default function Users() {
+export default function Orders() {
   const router = useRouter();
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
   const [searchTerm, setSearchTerm] = useState("");

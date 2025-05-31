@@ -146,3 +146,13 @@ export interface OrderItem {
   vendor: User;
   user: User;
 }
+
+export interface Banner {
+  _id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  fromDate: string;
+  toDate: string;
+  deletedAt: string;
+}

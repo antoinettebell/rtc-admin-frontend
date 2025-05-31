@@ -11,6 +11,7 @@ import {
   ListOrdered,
   Soup,
   SquareUserRound,
+  TicketPercent,
   User2,
 } from "lucide-react";
 import { NavMain } from "@/components/core/nav-main";
@@ -45,6 +46,12 @@ const navMain = [
     title: "Orders",
     url: "/order",
     icon: ListOrdered,
+    items: [],
+  },
+  {
+    title: "Banners",
+    url: "/banner",
+    icon: TicketPercent,
     items: [],
   },
   {

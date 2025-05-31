@@ -17,7 +17,7 @@ import { OrderItem } from "@/interfaces/user-interface";
 import { Fragment } from "react";
 import dayjs from "dayjs";
 
-export default function VendorDetail() {
+export default function OrderDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("q");

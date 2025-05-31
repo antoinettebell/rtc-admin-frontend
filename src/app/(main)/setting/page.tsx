@@ -13,7 +13,7 @@ import HtmlEditor from "@/components/ui/html-editor";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function Cuisines() {
+export default function Settings() {
   const [loading, setLoading] = useState<boolean>(false);
 
   const {
