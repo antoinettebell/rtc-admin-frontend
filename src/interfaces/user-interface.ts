@@ -23,6 +23,14 @@ export interface Cuisine {
   updatedAt?: string;
 }
 
+export interface Diet {
+  _id: string;
+  name: string;
+  deletedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Plan {
   _id: string;
   name: string;

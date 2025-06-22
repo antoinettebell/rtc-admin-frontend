@@ -100,6 +100,22 @@ export default function Orders() {
       ),
     },
     {
+      header: "Sub total",
+      fieldName: "subTotal",
+      className: "w-[150px]",
+      accessor: (d) => (
+        <span className="font-semibold">${Number(d.subTotal).toFixed(2)}</span>
+      ),
+    },
+    {
+      header: "Discount",
+      fieldName: "discount",
+      className: "w-[150px]",
+      accessor: (d) => (
+        <span className="font-semibold">${Number(d.discount).toFixed(2)}</span>
+      ),
+    },
+    {
       header: "Total",
       fieldName: "total",
       className: "w-[150px]",

@@ -147,7 +147,7 @@ export default function OrderDetail() {
               </div>
             </div>
           </div>
-          {!!result.availability && (
+          {!!result.locationId && (
             <>
               <div className="flex items-center gap-3 mt-3">
                 <div className="whitespace-nowrap font-semibold text-xl">
@@ -158,7 +158,7 @@ export default function OrderDetail() {
               <div className="pt-2 pb-4">
                 {result.foodTruck?.locations.map((item, i) => (
                   <Fragment key={`${i}-location`}>
-                    {item._id === result.availability.locationId && (
+                    {item._id === result.locationId && (
                       <div className="border rounded-md px-3 py-2 flex items-center gap-3 w-fit">
                         <div>
                           <MapPin className="text-primary" />

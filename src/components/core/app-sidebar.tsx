@@ -9,6 +9,7 @@ import {
   Cog,
   Home,
   ListOrdered,
+  Salad,
   Soup,
   SquareUserRound,
   TicketPercent,
@@ -40,6 +41,12 @@ const navMain = [
     title: "Cuisines",
     url: "/cuisine",
     icon: Soup,
+    items: [],
+  },
+  {
+    title: "Diets",
+    url: "/diet",
+    icon: Salad,
     items: [],
   },
   {
