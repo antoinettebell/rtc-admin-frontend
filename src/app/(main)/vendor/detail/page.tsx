@@ -30,6 +30,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { categoryApiService } from "@/services/category-api-service";
 import { menuApiService } from "@/services/menu-api-service";
 import { MenuItem } from "@/interfaces/user-interface";
+import dayjs from "dayjs";
+import PhotoViewer from "@/components/ui/photo-viewer";
 
 export default function VendorDetail() {
   const router = useRouter();
@@ -197,16 +199,18 @@ export default function VendorDetail() {
                 <div className="overflow-hidden rounded-md">
                   {result.user.foodTruck?.logo ? (
                     <div className="border rounded overflow-hidden">
-                      <img
-                        alt="React Rendezvous"
-                        loading="lazy"
-                        width="190"
-                        height="250"
-                        decoding="async"
-                        data-nimg="1"
-                        className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-[3/4]"
-                        src={result.user.foodTruck?.logo}
-                      />
+                      <PhotoViewer src={result.user.foodTruck?.logo}>
+                        <img
+                          alt="React Rendezvous"
+                          loading="lazy"
+                          width="190"
+                          height="250"
+                          decoding="async"
+                          data-nimg="1"
+                          className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-[3/4] cursor-pointer"
+                          src={result.user.foodTruck?.logo}
+                        />
+                      </PhotoViewer>
                     </div>
                   ) : (
                     <div className="bg-gray-200 w-[190px] h-[250px]"></div>
@@ -219,15 +223,17 @@ export default function VendorDetail() {
                 <div className="space-y-3 w-[100px]" key={`${i}-truck-photo`}>
                   <span data-state="closed">
                     <div className="overflow-hidden rounded-md border">
-                      <img
-                        loading="lazy"
-                        width="150"
-                        height="150"
-                        decoding="async"
-                        data-nimg="1"
-                        className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square"
-                        src={item}
-                      />
+                      <PhotoViewer src={item}>
+                        <img
+                          loading="lazy"
+                          width="150"
+                          height="150"
+                          decoding="async"
+                          data-nimg="1"
+                          className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square cursor-pointer"
+                          src={item}
+                        />
+                      </PhotoViewer>
                     </div>
                   </span>
                 </div>
@@ -310,12 +316,18 @@ export default function VendorDetail() {
                         <div>
                           Start{" "}
                           <span className="font-semibold">
-                            {item.startTime}
+                            {dayjs(`0000-00-00 ${item.startTime}:00`).format(
+                              "hh:mm A",
+                            )}
                           </span>
                         </div>
                         <div>
                           Close{" "}
-                          <span className="font-semibold">{item.endTime}</span>
+                          <span className="font-semibold">
+                            {dayjs(`0000-00-00 ${item.endTime}:00`).format(
+                              "hh:mm A",
+                            )}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -369,10 +381,12 @@ export default function VendorDetail() {
                   <div className="flex items-start gap-3">
                     <div className="rounded-md w-[130px] h-[130px] flex items-center justify-center bg-gray-100 overflow-hidden">
                       {!!item.imgUrls.length && (
-                        <img
-                          src={item.imgUrls[0]}
-                          className="h-full w-full object-cover transition-all hover:scale-105 aspect-square"
-                        />
+                        <PhotoViewer src={item.imgUrls[0]}>
+                          <img
+                            src={item.imgUrls[0]}
+                            className="h-full w-full object-cover transition-all hover:scale-105 aspect-square cursor-pointer"
+                          />
+                        </PhotoViewer>
                       )}
                     </div>
                     <div className="h-full">

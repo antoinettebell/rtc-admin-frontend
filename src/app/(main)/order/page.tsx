@@ -129,7 +129,7 @@ export default function Orders() {
       className: "w-[200px]",
       accessor: (d) => (
         <span className="">
-          {dayjs(d.createdAt).format("DD MMM, YYYY HH:mm")}
+          {dayjs(d.createdAt).format("DD MMM, YYYY hh:mm A")}
         </span>
       ),
     },

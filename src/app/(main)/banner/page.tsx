@@ -21,6 +21,7 @@ import { useRouter } from "next/navigation";
 import { bannerApiService } from "@/services/banner-api-service";
 import dayjs from "dayjs";
 import { Button } from "@/components/ui/button";
+import PhotoViewer from "@/components/ui/photo-viewer";
 
 export default function Banners() {
   const router = useRouter();
@@ -52,14 +53,19 @@ export default function Banners() {
       header: "Banner",
       fieldName: "imageUrl",
       accessor: (d) => (
-        <div className="border rounded overflow-hidden h-[75px] w-[110px]">
-          <img
-            loading="lazy"
-            decoding="async"
-            data-nimg="1"
-            className="h-full w-full object-cover transition-all hover:scale-105 aspect-[4/3]"
-            src={d.imageUrl}
-          />
+        <div
+          className="border rounded overflow-hidden h-[75px] w-[110px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <PhotoViewer src={d.imageUrl}>
+            <img
+              loading="lazy"
+              decoding="async"
+              data-nimg="1"
+              className="h-full w-full object-cover transition-all hover:scale-105 aspect-[4/3] cursor-pointer"
+              src={d.imageUrl}
+            />
+          </PhotoViewer>
         </div>
       ),
     },

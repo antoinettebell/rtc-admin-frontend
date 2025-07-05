@@ -8,14 +8,15 @@ import {
   User2,
 } from "lucide-react";
 import * as React from "react";
+import { Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { orderApiService } from "@/services/order-api-service";
 import { OrderItem } from "@/interfaces/user-interface";
-import { Fragment } from "react";
 import dayjs from "dayjs";
+import PhotoViewer from "@/components/ui/photo-viewer";
 
 export default function OrderDetail() {
   const router = useRouter();
@@ -74,10 +75,12 @@ export default function OrderDetail() {
               <div className="p-2 flex gap-3 rounded-md w-fit min-w-[350px] bg-white">
                 <div className="h-12 w-12 border rounded overflow-hidden flex items-center justify-center">
                   {result.user.profilePic ? (
-                    <img
-                      className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square"
-                      src={result.user.profilePic}
-                    />
+                    <PhotoViewer src={result.user.profilePic}>
+                      <img
+                        className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square cursor-pointer"
+                        src={result.user.profilePic}
+                      />
+                    </PhotoViewer>
                   ) : (
                     <User2 size={30} />
                   )}
@@ -101,10 +104,12 @@ export default function OrderDetail() {
               <div className="p-2 flex gap-3 rounded-md w-fit min-w-[350px] bg-white">
                 <div className="h-12 w-12 border rounded overflow-hidden flex items-center justify-center">
                   {result.vendor.profilePic ? (
-                    <img
-                      className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square"
-                      src={result.user.profilePic}
-                    />
+                    <PhotoViewer src={result.user.profilePic}>
+                      <img
+                        className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square cursor-pointer"
+                        src={result.user.profilePic}
+                      />
+                    </PhotoViewer>
                   ) : (
                     <SquareUserRound size={30} />
                   )}
@@ -128,10 +133,16 @@ export default function OrderDetail() {
               <div className="p-2 flex gap-3 rounded-md w-fit min-w-[350px] bg-white">
                 <div className="h-12 w-12 border rounded overflow-hidden flex items-center justify-center">
                   {result.foodTruck.logo || result.foodTruck.photos[0] ? (
-                    <img
-                      className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square"
+                    <PhotoViewer
                       src={result.foodTruck.logo || result.foodTruck.photos[0]}
-                    />
+                    >
+                      <img
+                        className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square cursor-pointer"
+                        src={
+                          result.foodTruck.logo || result.foodTruck.photos[0]
+                        }
+                      />
+                    </PhotoViewer>
                   ) : (
                     <Truck size={30} />
                   )}
@@ -187,7 +198,7 @@ export default function OrderDetail() {
           <div className="w-full flex gap-3 justify-between py-3 pr-1 max-w-[50rem]">
             <div className="text-md">
               Order Date:{" "}
-              <b>{dayjs(result.createdAt).format("DD MMM, YYYY HH:mm")}</b>
+              <b>{dayjs(result.createdAt).format("DD MMM, YYYY hh:mm A")}</b>
             </div>
             <div className="text-md">
               Time Est: <b>{result.deliveryTime}</b>
@@ -224,10 +235,12 @@ export default function OrderDetail() {
                       <div className="flex w-full gap-3">
                         <div className="h-12 w-12 border rounded overflow-hidden flex items-center justify-center">
                           {!!item.menuItem?.imgUrls[0] ? (
-                            <img
-                              className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square"
-                              src={item.menuItem?.imgUrls[0]}
-                            />
+                            <PhotoViewer src={item.menuItem?.imgUrls[0]}>
+                              <img
+                                className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square cursor-pointer"
+                                src={item.menuItem?.imgUrls[0]}
+                              />
+                            </PhotoViewer>
                           ) : (
                             <CookingPot size={30} />
                           )}
