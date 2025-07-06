@@ -139,6 +139,7 @@ export interface OrderItem {
   discount: number;
   taxAmount: number;
   total: number;
+  orderNumber?: number;
   orderStatus:
     | "INITIATE"
     | "CANCEL"

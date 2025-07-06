@@ -48,7 +48,10 @@ export default function OrderDetail() {
           <Button variant="outline" onClick={() => router.replace("/order")}>
             <ArrowLeft /> Back
           </Button>
-          Order Detail
+          Order Detail{" "}
+          {!!result && !isFetching && (
+            <span className="italic text-gray-500 font-medium">[#{result.orderNumber || result._id}]</span>
+          )}
         </div>
       </div>
 
