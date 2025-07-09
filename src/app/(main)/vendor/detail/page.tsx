@@ -29,9 +29,11 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { categoryApiService } from "@/services/category-api-service";
 import { menuApiService } from "@/services/menu-api-service";
-import { MenuItem } from "@/interfaces/user-interface";
+import { MenuItem, User } from "@/interfaces/user-interface";
 import dayjs from "dayjs";
 import PhotoViewer from "@/components/ui/photo-viewer";
+import { foodTruckApiService } from "@/services/food-truck-api-service";
+import { Switch } from "@/components/ui/switch";
 
 export default function VendorDetail() {
   const router = useRouter();
@@ -43,6 +45,11 @@ export default function VendorDetail() {
   const [changing, setChanging] = useState<boolean>(false);
   const [planColor, setPlanColor] = useState<string>("");
   const [locations, setLocations] = useState<Record<string, string>>({});
+
+  const [changeFeature, setChangeFeature] = useState<User | null>(null);
+  const [changingFeature, setChangingFeature] = useState<boolean>(false);
+  const [isFeatured, setIsFeatured] = useState<boolean>(false);
+
   const days = {
     sun: "Sunday",
     mon: "Monday",
@@ -74,6 +81,8 @@ export default function VendorDetail() {
             userRes.data?.data.user.foodTruck?.plan?.titleColor || "",
           );
         }
+        console.log('==========userRes?.data?.data', userRes?.data?.data)
+        setIsFeatured(!!userRes?.data?.data?.user?.foodTruck?.featured);
         return {
           ...(userRes?.data.data || {}),
           categoryList: categoryRes.data.data.records,
@@ -100,6 +109,30 @@ export default function VendorDetail() {
       })
       .finally(() => {
         setChanging(false);
+      });
+  };
+
+  const onFeatureChange = () => {
+    if (
+      !changeFeature ||
+      !!changeFeature.foodTruck?.inactive ||
+      !changeFeature.foodTruck?._id
+    )
+      return;
+    setChangingFeature(true);
+    foodTruckApiService
+      .updateExtra(changeFeature.foodTruck._id, !isFeatured)
+      .then((res) => {
+        toast.success("Feature mark is changed.");
+        setIsFeatured(!isFeatured);
+        setChangeFeature(null);
+      })
+      .catch((e) => {
+        console.log(e);
+        toast.error("Something went wrong");
+      })
+      .finally(() => {
+        setChangingFeature(false);
       });
   };
 
@@ -164,32 +197,51 @@ export default function VendorDetail() {
             <div className="px-2 py-1 text-base font-bold text-white">
               {result?.user.foodTruck?.plan?.name}
             </div>
-            <div className="p-2 flex gap-3 rounded-md w-fit min-w-[350px] bg-white">
-              <div className="border rounded p-2 h-fit">
-                <SquareUserRound size={30} />
-              </div>
-              <div className="w-full">
-                <h3 className="font-medium leading-none mt-1 mb-1 w-auto">
-                  Vendor:{" "}
-                  <b>
-                    {`${result?.user.firstName} ${result?.user.lastName || ""}`.trim()}
-                  </b>
-                </h3>
-                <p className="text-sm text-muted-foreground mb-1">
-                  Detail: <b>{result.user.foodTruck?.name}</b>
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Type:{" "}
-                  <b className="capitalize">
-                    {result.user.foodTruck?.infoType || "-"}
-                  </b>
-                </p>
-                <div className="flex justify-end w-full mt-1">
-                  <Status
-                    status={result?.user.requestStatus}
-                    className="!py-1.5"
-                  />
+            <div className="p-2 rounded-md w-fit min-w-[350px] bg-white">
+              <div className="flex gap-3">
+                <div className="border rounded p-2 h-fit">
+                  <SquareUserRound size={30} />
                 </div>
+                <div className="w-full">
+                  <h3 className="font-medium leading-none mt-1 mb-1 w-auto">
+                    Vendor:{" "}
+                    <b>
+                      {`${result?.user.firstName} ${result?.user.lastName || ""}`.trim()}
+                    </b>
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Detail: <b>{result.user.foodTruck?.name}</b>
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Type:{" "}
+                    <b className="capitalize">
+                      {result.user.foodTruck?.infoType || "-"}
+                    </b>
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-between w-full mt-2">
+                <Status
+                  status={result?.user.requestStatus}
+                  className="!py-1.5"
+                />
+                <p className="text-sm text-muted-foreground flex items-center">
+                  Featured:{" "}
+                  <Switch
+                    checked={isFeatured}
+                    disabled={result.user.requestStatus !== "APPROVED"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setChangeFeature(result.user);
+                    }}
+                    title={
+                      result.user.requestStatus !== "APPROVED"
+                        ? "It will be enabled after the request approved"
+                        : ""
+                    }
+                  />
+                </p>
               </div>
             </div>
           </div>
@@ -455,6 +507,45 @@ export default function VendorDetail() {
               >
                 Yes, Change it
                 {changing && (
+                  <LoaderCircle size={16} className="animate-spin" />
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {!!changeFeature && (
+        <AlertDialog open={true}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure want to{" "}
+                {changeFeature.foodTruck?.featured ? (
+                  <>
+                    remove this from <b>featured</b> listing
+                  </>
+                ) : (
+                  <>
+                    mark it as <b>featured</b>
+                  </>
+                )}
+                ?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setChangeFeature(null)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                disabled={changingFeature}
+                onClick={() => onFeatureChange()}
+              >
+                {changeFeature.foodTruck?.featured
+                  ? "Yes, Remove it"
+                  : "Yes, Mark it"}
+                {changingFeature && (
                   <LoaderCircle size={16} className="animate-spin" />
                 )}
               </AlertDialogAction>

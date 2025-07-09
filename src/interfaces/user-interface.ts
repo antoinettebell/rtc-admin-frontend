@@ -74,6 +74,7 @@ export interface FoodTruck {
   cuisine: Cuisine[];
   inactive: boolean;
   verified: boolean;
+  featured?: boolean;
   locations: FoodTruckLocation[];
   availability: FoodTruckAvailability[];
   createdAt: string;

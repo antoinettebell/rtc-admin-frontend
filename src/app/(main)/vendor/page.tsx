@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter, useSearchParams } from "next/navigation";
+import { foodTruckApiService } from "@/services/food-truck-api-service";
 
 export default function Vendors() {
   const router = useRouter();
@@ -41,6 +42,9 @@ export default function Vendors() {
 
   const [changeStatus, setChangeStatus] = useState<User | null>(null);
   const [changing, setChanging] = useState<boolean>(false);
+
+  const [changeFeature, setChangeFeature] = useState<User | null>(null);
+  const [changingFeature, setChangingFeature] = useState<boolean>(false);
 
   useEffect(() => {
     let st = searchParams.get("status");
@@ -93,6 +97,33 @@ export default function Vendors() {
       })
       .finally(() => {
         setChanging(false);
+      });
+  };
+
+  const onFeatureChange = () => {
+    if (
+      !changeFeature ||
+      !!changeFeature.foodTruck?.inactive ||
+      !changeFeature.foodTruck?._id
+    )
+      return;
+    setChangingFeature(true);
+    foodTruckApiService
+      .updateExtra(
+        changeFeature.foodTruck._id,
+        !changeFeature.foodTruck?.featured,
+      )
+      .then((res) => {
+        toast.success("Feature mark is changed.");
+        setChangeFeature(null);
+        refetch();
+      })
+      .catch((e) => {
+        console.log(e);
+        toast.error("Something went wrong");
+      })
+      .finally(() => {
+        setChangingFeature(false);
       });
   };
 
@@ -153,6 +184,26 @@ export default function Vendors() {
             e.stopPropagation();
             e.preventDefault();
             setChangeStatus(d);
+          }}
+          title={
+            d.requestStatus !== "APPROVED"
+              ? "It will be enabled after the request approved"
+              : ""
+          }
+        />
+      ),
+    },
+    {
+      header: "Featured",
+      fieldName: "featured" as keyof User,
+      accessor: (d) => (
+        <Switch
+          checked={!!d.foodTruck?.featured}
+          disabled={d.requestStatus !== "APPROVED"}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setChangeFeature(d);
           }}
           title={
             d.requestStatus !== "APPROVED"
@@ -241,6 +292,45 @@ export default function Vendors() {
               >
                 Yes, Change it
                 {changing && (
+                  <LoaderCircle size={16} className="animate-spin" />
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {!!changeFeature && (
+        <AlertDialog open={true}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure want to{" "}
+                {changeFeature.foodTruck?.featured ? (
+                  <>
+                    remove this from <b>featured</b> listing
+                  </>
+                ) : (
+                  <>
+                    mark it as <b>featured</b>
+                  </>
+                )}
+                ?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setChangeFeature(null)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                disabled={changingFeature}
+                onClick={() => onFeatureChange()}
+              >
+                {changeFeature.foodTruck?.featured
+                  ? "Yes, Remove it"
+                  : "Yes, Mark it"}
+                {changingFeature && (
                   <LoaderCircle size={16} className="animate-spin" />
                 )}
               </AlertDialogAction>

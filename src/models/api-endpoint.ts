@@ -12,6 +12,7 @@ enum APIPath {
   BANNER = "banner",
   FILE = "file",
   DIET = "diet",
+  FOOD_TRUCK = "food-truck",
 }
 
 export enum APIEndpoint {
@@ -26,4 +27,5 @@ export enum APIEndpoint {
   BANNER = `${APIVersion.V1}/${APIPath.BANNER}`,
   FILE = `${APIVersion.V1}/${APIPath.FILE}`,
   DIET = `${APIVersion.V1}/${APIPath.DIET}`,
+  FOOD_TRUCK = `${APIVersion.V1}/${APIPath.FOOD_TRUCK}`,
 }
