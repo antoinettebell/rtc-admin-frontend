@@ -13,6 +13,7 @@ enum APIPath {
   FILE = "file",
   DIET = "diet",
   FOOD_TRUCK = "food-truck",
+  REVIEW = "review",
 }
 
 export enum APIEndpoint {
@@ -28,4 +29,5 @@ export enum APIEndpoint {
   FILE = `${APIVersion.V1}/${APIPath.FILE}`,
   DIET = `${APIVersion.V1}/${APIPath.DIET}`,
   FOOD_TRUCK = `${APIVersion.V1}/${APIPath.FOOD_TRUCK}`,
+  REVIEW = `${APIVersion.V1}/${APIPath.REVIEW}`,
 }

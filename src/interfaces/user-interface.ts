@@ -174,3 +174,29 @@ export interface FileUpload {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Review {
+  _id?: string;
+  userId: string;
+  foodTruckId: string;
+  orderId?: string;
+  rate: number;
+  review: string;
+  images: string[];
+  deletedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: User;
+}
+
+export interface ReviewStats {
+  reviewStats: {
+    avgRate: number;
+    totalReviews: number;
+    star1: number;
+    star2: number;
+    star3: number;
+    star4: number;
+    star5: number;
+  };
+}
