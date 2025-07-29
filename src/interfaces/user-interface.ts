@@ -79,6 +79,9 @@ export interface FoodTruck {
   availability: FoodTruckAvailability[];
   createdAt: string;
   updatedAt: string;
+  ssn?: string;
+  snn?: string;
+  ein?: string;
   infoType: "truck" | "caterer";
 }
 

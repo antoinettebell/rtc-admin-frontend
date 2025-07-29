@@ -31,6 +31,9 @@ import {
 } from "@/components/ui/select";
 import { useRouter, useSearchParams } from "next/navigation";
 import { foodTruckApiService } from "@/services/food-truck-api-service";
+import { StringHelper } from "@/models/string-helper-model";
+import { LoadingButton } from "@/components/loading-button";
+import dayjs from "dayjs";
 
 export default function Vendors() {
   const router = useRouter();
@@ -45,6 +48,8 @@ export default function Vendors() {
 
   const [changeFeature, setChangeFeature] = useState<User | null>(null);
   const [changingFeature, setChangingFeature] = useState<boolean>(false);
+
+  const [exporting, setExporting] = useState<boolean>(false);
 
   useEffect(() => {
     let st = searchParams.get("status");
@@ -97,6 +102,54 @@ export default function Vendors() {
       })
       .finally(() => {
         setChanging(false);
+      });
+  };
+
+  const callExport = () => {
+    if (!result?.data?.data?.total) return;
+    setExporting(true);
+
+    userApiService
+      .listVendors(1, status || "", searchTerm, result?.data?.data?.total)
+      .then((res) => {
+        const jsonData = res.data.data.records.map((itm) => ({
+          VendorId: itm._id,
+          "Vendor Name": itm.firstName,
+          "Vendor Email": itm.email,
+          "Mobile Number": itm.mobileNumber
+            ? `(${itm.countryCode}) ${itm.mobileNumber}`
+            : "",
+          "Request Status": itm.requestStatus,
+          "Vendor Image": itm.profilePic || "",
+          Verified: itm.verified ? "Yes" : "No",
+          Inactive: itm.inactive ? "Yes" : "No",
+          foodTruckId: itm.foodTruck?._id,
+          "FoodTruck Name": itm.foodTruck?.name,
+          "FoodTruck Featured": itm.foodTruck?.featured ? "Yes" : "No",
+          "FoodTruck SSN": itm.foodTruck?.ssn || itm.foodTruck?.snn || "",
+          "FoodTruck EIN": itm.foodTruck?.ein || "",
+          "FoodTruck Type": itm.foodTruck?.infoType,
+          "FoodTruck Logo": itm.foodTruck?.logo || "",
+          "FoodTruck Images": (itm.foodTruck?.photos || []).join(", "),
+          "FoodTruck Locations": JSON.stringify(itm.foodTruck?.locations || []),
+          "FoodTruck Availability": JSON.stringify(
+            itm.foodTruck?.availability || [],
+          ),
+          "FoodTruck PlanId": itm.foodTruck?.plan?._id || "",
+          "FoodTruck Plan Name": itm.foodTruck?.plan?.name || "",
+          "FoodTruck Total Cuisines": itm.foodTruck?.cuisine?.length || 0,
+        }));
+        StringHelper.downloadCSV(
+          jsonData,
+          `vendor_${dayjs().format(`YYYY-MM-DD-HH-mm-ss`)}`,
+        );
+      })
+      .catch((e) => {
+        console.log(e);
+        toast.error("Something went wrong");
+      })
+      .finally(() => {
+        setExporting(false);
       });
   };
 
@@ -214,6 +267,16 @@ export default function Vendors() {
       ),
     },
     {
+      header: "ssn",
+      fieldName: "ssn" as keyof User,
+      accessor: (d) => d.foodTruck?.ssn || d.foodTruck?.snn || "",
+    },
+    {
+      header: "ein",
+      fieldName: "ein" as keyof User,
+      accessor: (d) => d.foodTruck?.ein || "",
+    },
+    {
       header: "Request",
       fieldName: "requestStatus",
       accessor: (d) => <Status status={d.requestStatus} />,
@@ -251,8 +314,18 @@ export default function Vendors() {
   return (
     <>
       <div className="flex justify-between">
-        <div className="font-semibold text-[28px] leading-[42px] mb-2">
+        <div className="font-semibold text-[28px] leading-[42px] mb-2 flex justify-between flex-wrap gap-2 w-full">
           Vendors
+          <LoadingButton
+            isLoading={exporting}
+            disabled={exporting}
+            onClick={(e) => {
+              callExport();
+            }}
+            className="text-base font-medium min-w-[135px]"
+          >
+            Export
+          </LoadingButton>
         </div>
       </div>
       <DataTable

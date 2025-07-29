@@ -20,7 +20,6 @@ import { User } from "@/interfaces/user-interface";
 import { NameDetail } from "@/components/ui/name-detail";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Status } from "@/components/ui/status";
 import {
   Select,
   SelectContent,
@@ -30,6 +29,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter, useSearchParams } from "next/navigation";
+import { LoadingButton } from "@/components/loading-button";
+import { StringHelper } from "@/models/string-helper-model";
+import dayjs from "dayjs";
 
 export default function Users() {
   const router = useRouter();
@@ -41,6 +43,8 @@ export default function Users() {
 
   const [changeStatus, setChangeStatus] = useState<User | null>(null);
   const [changing, setChanging] = useState<boolean>(false);
+
+  const [exporting, setExporting] = useState<boolean>(false);
 
   useEffect(() => {
     let st = searchParams.get("status");
@@ -93,6 +97,40 @@ export default function Users() {
       })
       .finally(() => {
         setChanging(false);
+      });
+  };
+
+  const callExport = () => {
+    if (!result?.data?.data?.total) return;
+    setExporting(true);
+
+    userApiService
+      .listCustomer(1, status || "", searchTerm, result?.data?.data?.total)
+      .then((res) => {
+        const jsonData = res.data.data.records.map((itm) => ({
+          UserId: itm._id,
+          "First Name": itm.firstName,
+          "Last Name": itm.lastName,
+          Email: itm.email,
+          "Mobile Number": itm.mobileNumber
+            ? `(${itm.countryCode}) ${itm.mobileNumber}`
+            : "",
+          "Request Status": itm.requestStatus,
+          Verified: itm.verified ? "Yes" : "No",
+          Inactive: itm.inactive ? "Yes" : "No",
+          Image: itm.profilePic || "",
+        }));
+        StringHelper.downloadCSV(
+          jsonData,
+          `customer_${dayjs().format(`YYYY-MM-DD-HH-mm-ss`)}`,
+        );
+      })
+      .catch((e) => {
+        console.log(e);
+        toast.error("Something went wrong");
+      })
+      .finally(() => {
+        setExporting(false);
       });
   };
 
@@ -157,8 +195,18 @@ export default function Users() {
   return (
     <>
       <div className="flex justify-between">
-        <div className="font-semibold text-[28px] leading-[42px] mb-2">
+        <div className="font-semibold text-[28px] leading-[42px] mb-2 flex justify-between flex-wrap gap-2 w-full">
           Users
+          <LoadingButton
+            isLoading={exporting}
+            disabled={exporting}
+            onClick={(e) => {
+              callExport();
+            }}
+            className="text-base font-medium min-w-[135px]"
+          >
+            Export
+          </LoadingButton>
         </div>
       </div>
       <DataTable
