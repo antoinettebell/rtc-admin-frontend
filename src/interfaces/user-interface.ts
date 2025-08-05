@@ -6,6 +6,7 @@ export interface User {
   email: string;
   userType: "SUPER_ADMIN" | "VENDOR" | "CUSTOMER";
   requestStatus?: "PENDING" | "APPROVED" | "REJECTED";
+  reasonForRejection?: string;
   countryCode?: boolean;
   mobileNumber?: boolean;
   inactive?: boolean;

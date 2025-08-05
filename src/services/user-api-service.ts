@@ -1,7 +1,7 @@
 // services/user-service.ts
 import { BaseAPI } from "./base-api";
 import { APIEndpoint } from "@/models/api-endpoint";
-import { IPaginateResponse, IResponse } from "@/interfaces/response-interface";
+import { IResponse } from "@/interfaces/response-interface";
 import { User } from "@/interfaces/user-interface";
 
 class UserApiService extends BaseAPI {
@@ -54,11 +54,16 @@ class UserApiService extends BaseAPI {
     );
   }
 
-  changeRequest(id: string, requestStatus: "APPROVED" | "REJECTED") {
+  changeRequest(
+    id: string,
+    requestStatus: "APPROVED" | "REJECTED",
+    reasonForRejection = "",
+  ) {
     return this.put<IResponse<boolean>>(
       `${APIEndpoint.USER}/${id}/change-request`,
       {
         requestStatus,
+        reasonForRejection,
       },
     );
   }

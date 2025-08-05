@@ -41,6 +41,7 @@ import { foodTruckApiService } from "@/services/food-truck-api-service";
 import { Switch } from "@/components/ui/switch";
 import { reviewApiService } from "@/services/review-api-service";
 import { StringHelper } from "@/models/string-helper-model";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function VendorDetail() {
   const router = useRouter();
@@ -49,6 +50,7 @@ export default function VendorDetail() {
   const [changeStatus, setChangeStatus] = useState<
     "APPROVED" | "REJECTED" | null
   >(null);
+  const [reason, setReason] = useState<string>("");
   const [changing, setChanging] = useState<boolean>(false);
   const [planColor, setPlanColor] = useState<string>("");
   const [locations, setLocations] = useState<Record<string, string>>({});
@@ -129,11 +131,13 @@ export default function VendorDetail() {
 
   const onStatusChange = () => {
     if (!id || !changeStatus) return;
+    if (changeStatus === "REJECTED" && !reason.trim().length) return;
     setChanging(true);
     userApiService
-      .changeRequest(id, changeStatus)
+      .changeRequest(id, changeStatus, reason)
       .then((res) => {
         setChangeStatus(null);
+        setReason("");
         refetch();
         toast.success("Status has been changed.");
       })
@@ -188,6 +192,7 @@ export default function VendorDetail() {
               disabled={changing || result?.user.requestStatus === "APPROVED"}
               onClick={() => {
                 setChangeStatus("APPROVED");
+                setReason("");
               }}
             >
               Approve
@@ -198,6 +203,7 @@ export default function VendorDetail() {
               disabled={changing || result?.user.requestStatus === "REJECTED"}
               onClick={() => {
                 setChangeStatus("REJECTED");
+                setReason("");
               }}
             >
               Reject
@@ -218,9 +224,9 @@ export default function VendorDetail() {
 
       {!!result?.user && !isFetching && (
         <>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-4 mb-4">
             <div
-              className="border mb-2 w-fit rounded-xl p-1"
+              className="border w-fit rounded-xl p-1"
               style={
                 planColor
                   ? {
@@ -345,6 +351,17 @@ export default function VendorDetail() {
                 </div>
               </div>
             </div>
+            {result?.user?.requestStatus === "REJECTED" &&
+              result?.user?.reasonForRejection?.trim()?.length && (
+                <div className="p-3 rounded-md bg-red-100 border border-red-200 h-fit w-fit max-w-full">
+                  <div className="text-base font-semibold text-red-700 mb-2">
+                    Reason for the Rejection:
+                  </div>
+                  <div className="text-sm text-red-800">
+                    {result?.user.reasonForRejection || "-"}
+                  </div>
+                </div>
+              )}
           </div>
           <div className="flex gap-4 pt-2 pb-4">
             <div className="space-y-3 w-[190px]">
@@ -654,7 +671,15 @@ export default function VendorDetail() {
                   </div>
                 </div>
               ))}
-              {showMore && <Button onClick={() => getMoreReview(result?.user?.foodTruck?._id || '', page)}>Load more</Button>}
+              {showMore && (
+                <Button
+                  onClick={() =>
+                    getMoreReview(result?.user?.foodTruck?._id || "", page)
+                  }
+                >
+                  Load more
+                </Button>
+              )}
             </div>
           </div>
         </>
@@ -673,13 +698,32 @@ export default function VendorDetail() {
                   {`${result?.user.firstName} ${result?.user.lastName || ""}`.trim()}
                 </b>
               </AlertDialogDescription>
+              {changeStatus === "REJECTED" && (
+                <>
+                  <div className="w-full">
+                    <Textarea
+                      value={reason}
+                      placeholder="Enter reason for the Rejection"
+                      onChange={(e) => setReason(e.target.value || "")}
+                    />
+                  </div>
+                </>
+              )}
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setChangeStatus(null)}>
+              <AlertDialogCancel
+                onClick={() => {
+                  setChangeStatus(null);
+                  setReason("");
+                }}
+              >
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                disabled={changing}
+                disabled={
+                  changing ||
+                  (changeStatus === "REJECTED" && !reason.trim().length)
+                }
                 onClick={() => onStatusChange()}
               >
                 Yes, Change it
