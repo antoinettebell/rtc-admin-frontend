@@ -487,7 +487,7 @@ export default function VendorDetail() {
                           Start{" "}
                           <span className="font-semibold">
                             {dayjs(`0000-00-00 ${item.startTime}:00`).format(
-                              "hh:mm A",
+                              "hh:mm A"
                             )}
                           </span>
                         </div>
@@ -495,7 +495,7 @@ export default function VendorDetail() {
                           Close{" "}
                           <span className="font-semibold">
                             {dayjs(`0000-00-00 ${item.endTime}:00`).format(
-                              "hh:mm A",
+                              "hh:mm A"
                             )}
                           </span>
                         </div>
@@ -515,6 +515,63 @@ export default function VendorDetail() {
               ))}
             </div>
           </div>
+
+          {/* Business hours */}
+          <div className="flex items-center gap-3 mt-3">
+            <div className="whitespace-nowrap font-semibold text-xl">
+              Business hours
+            </div>
+            <div className="border-b w-full"></div>
+          </div>
+          <div className="pt-2 pb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
+              {result.user.foodTruck?.businessHours.map((item, i) => (
+                <div
+                  key={`${i}-availability`}
+                  className="border rounded-md px-3 py-2 flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <div className="truncate">
+                        Location:{" "}
+                        <span className="font-semibold">
+                          {locations[item.locationId]}
+                        </span>
+                      </div>
+                      <div className="flex gap-4">
+                        <div>
+                          Start{" "}
+                          <span className="font-semibold">
+                            {dayjs(`0000-00-00 ${item.startTime}:00`).format(
+                              "hh:mm A"
+                            )}
+                          </span>
+                        </div>
+                        <div>
+                          Close{" "}
+                          <span className="font-semibold">
+                            {dayjs(`0000-00-00 ${item.endTime}:00`).format(
+                              "hh:mm A"
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className={`rounded-full w-5 h-5 flex items-center justify-center text-white ${item.available ? "bg-green-500" : "bg-gray-500"}`}
+                  >
+                    {item.available ? (
+                      <Check strokeWidth={3} size={16} />
+                    ) : (
+                      <X strokeWidth={3} size={16} />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="flex items-center gap-3 mt-3">
             <div className="whitespace-nowrap font-semibold text-xl">
               Menu category
@@ -559,12 +616,17 @@ export default function VendorDetail() {
                         </PhotoViewer>
                       )}
                     </div>
-                    <div className="h-full">
+                    <div className="h-full w-full max-w-full">
                       <div className="truncate font-bold text-xl capitalize">
                         {item.name}
                       </div>
-                      <div className="truncate">{item.description || "-"}</div>
-                      <div className="truncate">
+                      <div
+                        className="line-clamp-2"
+                        title={item.description || "-"}
+                      >
+                        {item.description || "-"}
+                      </div>
+                      <div className="truncate w-fit">
                         Type:{" "}
                         {item.itemType === "INDIVIDUAL" ? (
                           <b>Individual</b>

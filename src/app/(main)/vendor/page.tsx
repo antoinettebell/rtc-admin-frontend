@@ -182,7 +182,7 @@ export default function Vendors() {
 
   const columns: Column<User>[] = [
     {
-      header: "Vendor Name",
+      header: "Food Truck Name",
       fieldName: "firstName",
       accessor: (d) => (
         <NameDetail
