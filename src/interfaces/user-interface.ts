@@ -113,6 +113,7 @@ export interface MenuItem {
   imgUrls: string[];
   price: number;
   discount: number;
+  discountType: "PERCENTAGE" | "FIXED";
   minQty: number;
   maxQty: number;
   available: boolean;

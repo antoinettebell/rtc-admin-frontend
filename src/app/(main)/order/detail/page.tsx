@@ -215,7 +215,7 @@ export default function OrderDetail() {
           </div>
           <div className="flex items-center gap-3 mt-3">
             <div className="whitespace-nowrap font-semibold text-xl">
-              Order items
+              Order Items
             </div>
             <div className="border-b w-full"></div>
           </div>
@@ -226,7 +226,7 @@ export default function OrderDetail() {
                   <th className="bg-gray-100 w-[50%] text-start p-2 pl-4">
                     Item
                   </th>
-                  <th className="bg-gray-100 p-2">price</th>
+                  <th className="bg-gray-100 p-2">Price</th>
                   <th className="bg-gray-100 p-2">Quantity</th>
                   <th className="bg-gray-100 w-[230px] pr-4 text-end">Total</th>
                 </tr>

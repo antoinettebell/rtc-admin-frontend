@@ -50,7 +50,7 @@ export default function Orders() {
       canNotHide: true,
     },
     {
-      header: "Vendor / Food truck",
+      header: "Vendor / Food Truck",
       fieldName: "vendor",
       accessor: (d) => (
         <NameDetail
@@ -100,7 +100,7 @@ export default function Orders() {
       ),
     },
     {
-      header: "Sub total",
+      header: "Sub Total",
       fieldName: "subTotal",
       className: "w-[150px]",
       accessor: (d) => (
@@ -126,7 +126,7 @@ export default function Orders() {
     {
       header: "Date",
       fieldName: "createdAt",
-      className: "w-[200px]",
+      className: "w-[400px]",
       accessor: (d) => (
         <span className="">
           {dayjs(d.createdAt).format("DD MMM, YYYY hh:mm A")}

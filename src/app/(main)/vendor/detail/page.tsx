@@ -49,6 +49,15 @@ export default function VendorDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("q");
+  const p = searchParams.get("p") || "";
+  const l = searchParams.get("l") || "";
+  const goBackWithListState = () => {
+    const params = new URLSearchParams();
+    if (p) params.set("p", p);
+    if (l) params.set("l", l);
+    const qs = params.toString();
+    router.replace(qs ? `/vendor?${qs}` : "/vendor");
+  };
   const [changeStatus, setChangeStatus] = useState<
     "APPROVED" | "REJECTED" | null
   >(null);
@@ -98,7 +107,17 @@ export default function VendorDetail() {
           );
         }
         setIsFeatured(!!userRes?.data?.data?.user?.foodTruck?.featured);
-        
+
+        userRes?.data?.data?.user?.foodTruck?.locations?.map((loc) => {
+          if (loc.address) {
+            const address = loc.address;
+            const addressParts = address.split(",");
+            const city = addressParts[addressParts.length - 2];
+            const state = addressParts[addressParts.length - 1];
+            setLocations((prev) => ({ ...prev, [loc._id]: `${city}, ${state}` }));
+          }
+        });
+
         // Decrypt bank details here (using cryptlib via utils/encryption)
         try {
           const secretKey = process.env.NEXT_PUBLIC_ENCRYPTION_SECRET_KEY || "";
@@ -200,7 +219,7 @@ export default function VendorDetail() {
     <>
       <div className="flex justify-between flex-wrap mb-2">
         <div className="font-semibold text-[28px] leading-[42px] mb-2 flex gap-3 items-center">
-          <Button variant="outline" onClick={() => router.replace("/vendor")}>
+          <Button variant="outline" onClick={goBackWithListState}>
             <ArrowLeft /> Back
           </Button>
           Vendor Detail
@@ -405,13 +424,17 @@ export default function VendorDetail() {
                       </PhotoViewer>
                     </div>
                   ) : (
-                    <div className="bg-gray-200 w-[190px] h-[250px]"></div>
+                    <div className="text-center text-muted-foreground py-8">
+                      {result.user.foodTruck?.photos?.length === 0
+                        ? "No Logo uploaded yet"
+                        : ""}
+                    </div>
                   )}
                 </div>
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {result.user.foodTruck?.photos.map((item, i) => (
+              {result.user.foodTruck?.photos?.map((item, i) => (
                 <div className="space-y-3 w-[100px]" key={`${i}-truck-photo`}>
                   <span data-state="closed">
                     <div className="overflow-hidden rounded-md border">
@@ -441,7 +464,7 @@ export default function VendorDetail() {
             <div className="border-b w-full"></div>
           </div>
           <BankDetailsDisplay userData={result?.user} />
-          
+
           <div className="flex items-center gap-3 mt-3">
             <div className="whitespace-nowrap font-semibold text-xl">
               Cuisines
@@ -557,7 +580,7 @@ export default function VendorDetail() {
           </div>
           <div className="pt-2 pb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
-              {result.user.foodTruck?.businessHours.map((item, i) => (
+              {result.user.foodTruck?.businessHours?.map((item, i) => (
                 <div
                   key={`${i}-availability`}
                   className="border rounded-md px-3 py-2 flex items-center justify-between gap-3"
@@ -606,7 +629,7 @@ export default function VendorDetail() {
 
           <div className="flex items-center gap-3 mt-3">
             <div className="whitespace-nowrap font-semibold text-xl">
-              Menu category
+              Menu Category
             </div>
             <div className="border-b w-full"></div>
           </div>
@@ -667,13 +690,18 @@ export default function VendorDetail() {
                         )}
                       </div>
                       <div className="truncate">
-                        Price: <b>{Number(item.price).toFixed(2)}</b>
+                        item.price Price:{" "}
+                        <b>
+                          {item.price
+                            ? `$${Number(item.price).toFixed(2)}`
+                            : "$0.00"}
+                        </b>
                       </div>
                       <div className="truncate">
                         Discount:{" "}
                         <b>
                           {item.discount
-                            ? `$${Number(item.discount).toFixed(2)}`
+                            ? `${item?.discountType === "PERCENTAGE" ? "%" : "$"}${Number(item.discount).toFixed(2)}`
                             : "-"}
                         </b>
                       </div>

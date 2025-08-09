@@ -38,7 +38,18 @@ import dayjs from "dayjs";
 export default function Vendors() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [pagination, setPagination] = useState({ page: 1, limit: 10 });
+
+  // Initialize page & limit from URL (?p=&l=)
+  const initialPage = (() => {
+    const p = parseInt(searchParams.get("p") || "1", 10);
+    return Number.isFinite(p) && p > 0 ? p : 1;
+  })();
+  const initialLimit = (() => {
+    const l = parseInt(searchParams.get("l") || "10", 10);
+    return Number.isFinite(l) && l > 0 ? l : 10;
+  })();
+
+  const [pagination, setPagination] = useState({ page: initialPage, limit: initialLimit });
   const [searchTerm, setSearchTerm] = useState("");
   const [status, setStatus] = useState<null | string>(null);
   const [paramST, setParamST] = useState<null | string>(null);
@@ -51,12 +62,27 @@ export default function Vendors() {
 
   const [exporting, setExporting] = useState<boolean>(false);
 
+  // Read status from URL whenever it changes
   useEffect(() => {
     let st = searchParams.get("status");
     st = ["PENDING", "APPROVED", "REJECTED"].includes(st) ? st : null;
     setStatus(st || null);
     setParamST(st || null);
   }, [searchParams]);
+
+  // Keep p & l in URL in sync with state (preserving status)
+  useEffect(() => {
+    const currentP = searchParams.get("p") || "";
+    const currentL = searchParams.get("l") || "";
+    const needUpdate = currentP !== String(pagination.page) || currentL !== String(pagination.limit);
+    if (!needUpdate) return;
+
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    params.set("p", String(pagination.page));
+    params.set("l", String(pagination.limit));
+    router.replace(`/vendor?${params.toString()}`);
+  }, [pagination.page, pagination.limit, status, router, searchParams]);
 
   const {
     data: result,
@@ -344,7 +370,14 @@ export default function Vendors() {
         setPagination={setPagination}
         hideColumnFilter={true}
         extraTemplate={paramST ? <></> : statusSelect()}
-        onRowClick={(d) => router.push(`/vendor/detail?q=${d._id}`)}
+        onRowClick={(d: any) => {
+          const params = new URLSearchParams();
+          if(d?._id) params.set("q", d._id);
+          if (pagination?.page) params.set("p", pagination.page.toString());
+          if (pagination?.limit) params.set("l", pagination.limit.toString());
+          const qs = params.toString();
+          router.push(`/vendor/detail?${qs}`);
+        }}
       />
       {!!changeStatus && (
         <AlertDialog open={true}>
