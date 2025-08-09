@@ -42,6 +42,8 @@ import { Switch } from "@/components/ui/switch";
 import { reviewApiService } from "@/services/review-api-service";
 import { StringHelper } from "@/models/string-helper-model";
 import { Textarea } from "@/components/ui/textarea";
+import { BankDetailsDisplay } from "@/components/bank-details-display";
+import { decryptFields } from "@/utils/encryption";
 
 export default function VendorDetail() {
   const router = useRouter();
@@ -95,8 +97,28 @@ export default function VendorDetail() {
             userRes.data?.data.user.foodTruck?.plan?.titleColor || "",
           );
         }
-        console.log("==========userRes?.data?.data", userRes?.data?.data);
         setIsFeatured(!!userRes?.data?.data?.user?.foodTruck?.featured);
+        
+        // Decrypt bank details here (using cryptlib via utils/encryption)
+        try {
+          const secretKey = process.env.NEXT_PUBLIC_ENCRYPTION_SECRET_KEY || "";
+          const userAny = userRes?.data?.data?.user as any;
+          if (secretKey && userAny?.bankDetail) {
+            userAny.bankDetail = decryptFields(
+              userAny.bankDetail,
+              [
+                "accountHolderName",
+                "bankName",
+                "accountNumber",
+                "routingNumber",
+                "accountType",
+              ] as (keyof typeof userAny.bankDetail)[],
+              secretKey,
+            );
+          }
+        } catch (e) {
+          console.error("error userAny.bankDetail:", e);
+        }
 
         getStats(userRes?.data?.data?.user?.foodTruck?._id || "");
         getMoreReview(userRes?.data?.data?.user?.foodTruck?._id || "", 1);
@@ -251,7 +273,7 @@ export default function VendorDetail() {
                       </b>
                     </h3>
                     <p className="text-sm text-muted-foreground mb-1">
-                      Detail: <b>{result.user.foodTruck?.name}</b>
+                      Food Truck Name: <b>{result.user.foodTruck?.name}</b>
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Type:{" "}
@@ -410,6 +432,16 @@ export default function VendorDetail() {
               ))}
             </div>
           </div>
+
+          {/* Bank Account Information */}
+          <div className="flex items-center gap-3 mt-3">
+            <div className="whitespace-nowrap font-semibold text-xl">
+              Bank Account Information
+            </div>
+            <div className="border-b w-full"></div>
+          </div>
+          <BankDetailsDisplay userData={result?.user} />
+          
           <div className="flex items-center gap-3 mt-3">
             <div className="whitespace-nowrap font-semibold text-xl">
               Cuisines
