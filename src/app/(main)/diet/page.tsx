@@ -10,6 +10,14 @@ import { Card } from "@/components/ui/card";
 import { LoaderCircle, Pencil, Salad, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -52,6 +60,15 @@ export default function Diets() {
     setSearchTerm(value);
     setPagination((prev) => ({ ...prev, page: 1 })); // Reset to first page
   }, 500);
+
+  const handleCloseAddEditDialog = () => {
+    setAddCui(null);
+    setEditCui(null);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setDeleteCui(null);
+  };
 
   const onAddDiet = () => {
     if (!addCui || !addCui.name.trim()) return;
@@ -197,90 +214,96 @@ export default function Diets() {
         )}
       </div>
 
-      {(addCui || editCui) && (
-        <AlertDialog open={true}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {addCui ? "Add" : "Update"} Diet
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                <Input
-                  placeholder="Enter diet name"
-                  className="h-9 my-2"
-                  defaultValue={
-                    addCui ? addCui.name : editCui ? editCui.name : ""
-                  }
-                  onChange={(e) => {
-                    if (addCui) {
-                      setAddCui((prev) => ({
-                        ...addCui,
-                        name: e.target.value,
-                      }));
-                    }
-                    if (editCui) {
-                      setEditCui((prev) => ({
-                        ...editCui,
-                        name: e.target.value,
-                      }));
-                    }
-                  }}
-                />
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel
-                onClick={() => {
-                  setAddCui(null);
-                  setEditCui(null);
-                }}
-              >
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                disabled={
-                  addingCui ||
-                  editingCui ||
-                  !(addCui ? addCui.name : editCui ? editCui.name : "").trim()
+      {/* Add/Edit Diet Dialog */}
+      <Dialog 
+        open={!!(addCui || editCui)} 
+        onOpenChange={(open) => {
+          if (!open) handleCloseAddEditDialog();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {addCui ? "Add" : "Update"} Diet
+            </DialogTitle>
+            <DialogDescription>
+              Enter the diet name below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              placeholder="Enter diet name"
+              className="h-9"
+              defaultValue={
+                addCui ? addCui.name : editCui ? editCui.name : ""
+              }
+              onChange={(e) => {
+                if (addCui) {
+                  setAddCui((prev) => ({
+                    ...addCui,
+                    name: e.target.value,
+                  }));
                 }
-                onClick={() => (addCui ? onAddDiet() : onEditDiet())}
-              >
-                {addCui ? "Save" : "Update"}
-                {addingCui ||
-                  (editingCui && (
-                    <LoaderCircle size={16} className="animate-spin" />
-                  ))}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-      {!!deleteCui && (
-        <AlertDialog open={true}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure want to delete <b>"{deleteCui.name}"</b> diet?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setDeleteCui(null)}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                disabled={deletingCui}
-                onClick={() => onDeleteDiet()}
-              >
-                Yes, Delete it
-                {deletingCui && (
-                  <LoaderCircle size={16} className="animate-spin" />
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+                if (editCui) {
+                  setEditCui((prev) => ({
+                    ...editCui,
+                    name: e.target.value,
+                  }));
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseAddEditDialog}>
+              Cancel
+            </Button>
+            <Button
+              disabled={
+                addingCui ||
+                editingCui ||
+                !(addCui ? addCui.name : editCui ? editCui.name : "").trim()
+              }
+              onClick={() => (addCui ? onAddDiet() : onEditDiet())}
+            >
+              {addCui ? "Save" : "Update"}
+              {(addingCui || editingCui) && (
+                <LoaderCircle size={16} className="animate-spin ml-2" />
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Diet Dialog */}
+      <AlertDialog 
+        open={!!deleteCui} 
+        onOpenChange={(open) => {
+          if (!open) handleCloseDeleteDialog();
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure want to delete <b>"{deleteCui?.name}"</b> diet?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCloseDeleteDialog}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deletingCui}
+              onClick={() => onDeleteDiet()}
+            >
+              Yes, Delete it
+              {deletingCui && (
+                <LoaderCircle size={16} className="animate-spin" />
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

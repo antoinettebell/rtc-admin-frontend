@@ -10,6 +10,14 @@ import { Card } from "@/components/ui/card";
 import { LoaderCircle, Pencil, Soup, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -53,6 +61,15 @@ export default function Cuisines() {
     setPagination((prev) => ({ ...prev, page: 1 })); // Reset to first page
   }, 500);
 
+  const handleCloseAddEditDialog = () => {
+    setAddCui(null);
+    setEditCui(null);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setDeleteCui(null);
+  };
+
   const onAddCuisine = () => {
     if (!addCui || !addCui.name.trim()) return;
     setAddingCui(true);
@@ -66,7 +83,7 @@ export default function Cuisines() {
       })
       .catch((e) => {
         toast.error(
-          e.response?.data?.message || "Error while adding the cuisine",
+          e.response?.data?.message || "Error while adding the cuisine"
         );
       })
       .finally(() => setAddingCui(false));
@@ -85,7 +102,7 @@ export default function Cuisines() {
       })
       .catch((e) => {
         toast.error(
-          e.response?.data?.message || "Error while updating the cuisine",
+          e.response?.data?.message || "Error while updating the cuisine"
         );
       })
       .finally(() => setEditingCui(false));
@@ -103,7 +120,7 @@ export default function Cuisines() {
       })
       .catch((e) => {
         toast.error(
-          e.response?.data?.message || "Error while deleting the cuisine",
+          e.response?.data?.message || "Error while deleting the cuisine"
         );
       })
       .finally(() => setDeletingCui(false));
@@ -199,90 +216,90 @@ export default function Cuisines() {
         )}
       </div>
 
-      {(addCui || editCui) && (
-        <AlertDialog open={true}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {addCui ? "Add" : "Update"} Cuisine
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                <Input
-                  placeholder="Enter cuisine name"
-                  className="h-9 my-2"
-                  defaultValue={
-                    addCui ? addCui.name : editCui ? editCui.name : ""
-                  }
-                  onChange={(e) => {
-                    if (addCui) {
-                      setAddCui((prev) => ({
-                        ...addCui,
-                        name: e.target.value,
-                      }));
-                    }
-                    if (editCui) {
-                      setEditCui((prev) => ({
-                        ...editCui,
-                        name: e.target.value,
-                      }));
-                    }
-                  }}
-                />
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel
-                onClick={() => {
-                  setAddCui(null);
-                  setEditCui(null);
-                }}
-              >
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                disabled={
-                  addingCui ||
-                  editingCui ||
-                  !(addCui ? addCui.name : editCui ? editCui.name : "").trim()
+      {/* Add/Edit Cuisine Dialog */}
+      <Dialog
+        open={!!(addCui || editCui)}
+        onOpenChange={(open) => {
+          if (!open) handleCloseAddEditDialog();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{addCui ? "Add" : "Update"} Cuisine</DialogTitle>
+            <DialogDescription>Enter the cuisine name below.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              placeholder="Enter cuisine name"
+              className="h-9"
+              defaultValue={addCui ? addCui.name : editCui ? editCui.name : ""}
+              onChange={(e) => {
+                if (addCui) {
+                  setAddCui((prev) => ({
+                    ...addCui,
+                    name: e.target.value,
+                  }));
                 }
-                onClick={() => (addCui ? onAddCuisine() : onEditCuisine())}
-              >
-                {addCui ? "Save" : "Update"}
-                {addingCui ||
-                  (editingCui && (
-                    <LoaderCircle size={16} className="animate-spin" />
-                  ))}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-      {!!deleteCui && (
-        <AlertDialog open={true}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure want to delete <b>"{deleteCui.name}"</b> cuisine?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setDeleteCui(null)}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                disabled={deletingCui}
-                onClick={() => onDeleteCuisine()}
-              >
-                Yes, Delete it
-                {deletingCui && (
-                  <LoaderCircle size={16} className="animate-spin" />
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+                if (editCui) {
+                  setEditCui((prev) => ({
+                    ...editCui,
+                    name: e.target.value,
+                  }));
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseAddEditDialog}>
+              Cancel
+            </Button>
+            <Button
+              disabled={
+                addingCui ||
+                editingCui ||
+                !(addCui ? addCui.name : editCui ? editCui.name : "").trim()
+              }
+              onClick={() => (addCui ? onAddCuisine() : onEditCuisine())}
+            >
+              {addCui ? "Save" : "Update"}
+              {(addingCui || editingCui) && (
+                <LoaderCircle size={16} className="animate-spin ml-2" />
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Cuisine Dialog */}
+      <AlertDialog
+        open={!!deleteCui}
+        onOpenChange={(open) => {
+          if (!open) handleCloseDeleteDialog();
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure want to delete <b>"{deleteCui?.name}"</b> cuisine?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCloseDeleteDialog}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deletingCui}
+              onClick={() => onDeleteCuisine()}
+            >
+              Yes, Delete it
+              {deletingCui && (
+                <LoaderCircle size={16} className="animate-spin" />
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
