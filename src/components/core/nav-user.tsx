@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { User } from "@/interfaces/user-interface";
 import { StringHelper } from "@/models/string-helper-model";
+import { toast } from "sonner";
 
 export function NavUser({ user }: { user: User }) {
   const [initial, setInitial] = useState<string>("");
@@ -116,6 +117,7 @@ export function NavUser({ user }: { user: User }) {
               className="cursor-pointer"
               onClick={() => {
                 localStorage.clear();
+                toast.success("Logged out successfully");
                 router.push("/auth");
               }}
             >

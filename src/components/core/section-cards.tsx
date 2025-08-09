@@ -40,7 +40,7 @@ export function SectionCards({ data, isLoading }: IAttribs) {
         <Card
           className="@container/card cursor-pointer bg-gradient-to-br shadow-lg transition-all hover-card-item from-green-50 to-green-100 border-green-200 shadow-green-100/50"
           onClick={() => {
-            router.push("/vendor");
+            router.push("/vendor/?status=APPROVED");
           }}
         >
           <CardHeader className="relative">
