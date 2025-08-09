@@ -42,7 +42,7 @@ export default function Page() {
       .login(email, password)
       .then((res) => {
         if (res.data.data.user.userType !== "SUPER_ADMIN") {
-          toast.error("Invalid creds");
+          toast.error("Invalid credentials");
           return;
         }
 
@@ -53,7 +53,7 @@ export default function Page() {
         }
       })
       .catch(() => {
-        toast.error("Invalid creds");
+        toast.error("Invalid credentials");
       })
       .finally(() => setIsLoading(false));
   };

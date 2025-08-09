@@ -284,7 +284,12 @@ export default function Vendors() {
     {
       header: "Action",
       fieldName: "requestStatus",
-      accessor: (d) => <Eye className="text-primary" size={18} />,
+      className: "flex justify-center",
+      accessor: (d) => (
+        <div className="flex justify-center">
+          <Eye className="text-primary" size={18} />
+        </div>
+      ),
     },
   ];
 

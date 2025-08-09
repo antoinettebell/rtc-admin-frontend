@@ -93,15 +93,18 @@ export default function Banners() {
     {
       header: "Action",
       fieldName: "_id",
+      className: "flex justify-center",
       accessor: (d) => (
-        <Trash
-          className="text-red-600 p-1"
-          size={18}
-          onClick={(e) => {
-            e.stopPropagation();
-            setDeleteBanner(d);
-          }}
-        />
+        <div className="flex justify-center">
+          <Trash
+            className="text-red-600 p-1"
+            size={18}
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeleteBanner(d);
+            }}
+          />
+        </div>
       ),
     },
   ];
