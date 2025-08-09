@@ -220,6 +220,7 @@ export default function Users() {
         setPagination={setPagination}
         hideColumnFilter={true}
         extraTemplate={paramST ? <></> : statusSelect()}
+        equalColumnWidth
       />
       {!!changeStatus && (
         <AlertDialog open={true}>

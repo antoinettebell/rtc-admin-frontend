@@ -58,9 +58,9 @@ interface DataTableProps<T> {
   searchable?: boolean;
   hideColumnFilter?: boolean;
   hidePagination?: boolean;
-  isLoading?: boolean; // Add loading prop
-  columnVisibility?: { [key: string]: boolean }; // Add this
-  onColumnVisibilityChange?: (visibility: { [key: string]: boolean }) => void; // Add this
+  isLoading?: boolean;
+  columnVisibility?: { [key: string]: boolean };
+  onColumnVisibilityChange?: (visibility: { [key: string]: boolean }) => void;
   onSearch?: (s: string) => void;
   totalRecords?: number;
   containerClass?: string;
@@ -74,6 +74,7 @@ interface DataTableProps<T> {
   containerRef?: MutableRefObject<any>;
   extraTemplate?: React.ReactNode;
   onRowClick?: (d: T) => void;
+  equalColumnWidth?: boolean; // New prop for equal column widths
 }
 type SortDirection = "asc" | "desc" | null;
 
@@ -97,6 +98,7 @@ export function DataTable<T>({
   hidePagination = false,
   extraTemplate,
   onRowClick,
+  equalColumnWidth = false, // Default to false
 }: DataTableProps<T>) {
   // const [sortConfig, setSortConfig] = useState<{
   //   key: keyof T | null;
@@ -184,6 +186,18 @@ export function DataTable<T>({
   //   setFilteredData(result);
   //   setCurrentPage(1);
   // }, [data, searchTerm, filters, sortConfig]);
+  // Calculate column width based on equalColumnWidth prop
+
+  const getColumnWidth = () => {
+    if (!equalColumnWidth) return undefined;
+    
+    const visibleColumns = columns.filter(column => {
+      const key = column.fieldName;
+      return !(key in visibility) || visibility[key as string];
+    });
+    const totalColumns = visibleColumns.length + (actions ? 1 : 0);
+    return `${100 / totalColumns}%`;
+  };
 
   // Pagination
   const totalPages = Math.ceil(totalRecords / pageSize);
@@ -280,7 +294,10 @@ export function DataTable<T>({
           }
         >
           <div className="min-w-full inline-block">
-            <Table className="relative max-h-full max-w-full">
+            <Table 
+              className="relative max-h-full max-w-full"
+              style={equalColumnWidth ? { tableLayout: 'fixed' } : undefined}
+            >
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
                   {columns.map((column, index) => {
@@ -293,6 +310,7 @@ export function DataTable<T>({
                         className={`px-2.5 py-3.5 ${column.className} ${
                           column.sortable && !isLoading ? "cursor-pointer" : ""
                         } whitespace-nowrap`}
+                        style={equalColumnWidth ? { width: getColumnWidth() } : undefined}
                         onClick={() =>
                           !isLoading &&
                           column.sortable &&
@@ -321,7 +339,12 @@ export function DataTable<T>({
                     );
                   })}
                   {actions && (
-                    <TableHead className="whitespace-nowrap">Actions</TableHead>
+                    <TableHead 
+                      className="whitespace-nowrap"
+                      style={equalColumnWidth ? { width: getColumnWidth() } : undefined}
+                    >
+                      Actions
+                    </TableHead>
                   )}
                 </TableRow>
               </TableHeader>
@@ -354,7 +377,11 @@ export function DataTable<T>({
                         if (key in visibility && !visibility[key as string])
                           return null;
                         return (
-                          <TableCell className="p-2.5" key={`col-${colIndex}`}>
+                          <TableCell 
+                            className="p-2.5" 
+                            key={`col-${colIndex}`}
+                            style={equalColumnWidth ? { width: getColumnWidth() } : undefined}
+                          >
                             {typeof column.accessor === "function"
                               ? column.accessor(item)
                               : ((item[column.accessor] ||
@@ -363,7 +390,12 @@ export function DataTable<T>({
                         );
                       })}
                       {actions && (
-                        <TableCell className="p-2.5">{actions(item)}</TableCell>
+                        <TableCell 
+                          className="p-2.5"
+                          style={equalColumnWidth ? { width: getColumnWidth() } : undefined}
+                        >
+                          {actions(item)}
+                        </TableCell>
                       )}
                     </TableRow>
                   ))
