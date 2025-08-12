@@ -1,5 +1,5 @@
 "use client";
-import { Eye, LoaderCircle } from "lucide-react";
+import { Edit, Eye, LoaderCircle } from "lucide-react";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { Column, DataTable } from "@/components/ui/data-table";
@@ -284,7 +284,19 @@ export default function Vendors() {
     {
       header: "Action",
       fieldName: "requestStatus",
-      accessor: (d) => <Eye className="text-primary" size={18} />,
+      accessor: (d) => (
+        <div className="flex gap-2 items-center mr-2">
+          <Eye className="text-primary" size={18} />
+          <Edit
+            className="text-blue-600 p-1"
+            size={22}
+            onClick={(e) => {
+              router.push(`/vendor/edit?q=${d._id}`);
+              e.stopPropagation();
+            }}
+          />
+        </div>
+      ),
     },
   ];
 
