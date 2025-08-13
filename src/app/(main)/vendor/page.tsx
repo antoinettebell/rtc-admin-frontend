@@ -310,8 +310,9 @@ export default function Vendors() {
     {
       header: "Action",
       fieldName: "requestStatus",
+      className: "flex justify-center",
       accessor: (d) => (
-        <div className="flex gap-2 items-center mr-2">
+        <div className="flex gap-2 justify-center items-center mr-2">
           <Eye className="text-primary" size={18} />
           <Edit
             className="text-blue-600 p-1"
