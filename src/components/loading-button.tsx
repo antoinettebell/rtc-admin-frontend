@@ -9,6 +9,7 @@ export function LoadingButton({
   size = "default",
   isLoading = false,
   asChild = false,
+  type = "button",
   ...props
 }: any) {
   return (
@@ -18,6 +19,7 @@ export function LoadingButton({
       size={size}
       asChild={asChild}
       disabled={disabled}
+      type={type}
     >
       {isLoading && <Loader2 className="animate-spin" />}
       <div {...props}></div>
