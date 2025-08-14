@@ -49,7 +49,10 @@ export default function Vendors() {
     return Number.isFinite(l) && l > 0 ? l : 10;
   })();
 
-  const [pagination, setPagination] = useState({ page: initialPage, limit: initialLimit });
+  const [pagination, setPagination] = useState({
+    page: initialPage,
+    limit: initialLimit,
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [status, setStatus] = useState<null | string>(null);
   const [paramST, setParamST] = useState<null | string>(null);
@@ -74,7 +77,9 @@ export default function Vendors() {
   useEffect(() => {
     const currentP = searchParams.get("p") || "";
     const currentL = searchParams.get("l") || "";
-    const needUpdate = currentP !== String(pagination.page) || currentL !== String(pagination.limit);
+    const needUpdate =
+      currentP !== String(pagination.page) ||
+      currentL !== String(pagination.limit);
     if (!needUpdate) return;
 
     const params = new URLSearchParams();
@@ -318,7 +323,13 @@ export default function Vendors() {
             className="text-blue-600 p-1"
             size={22}
             onClick={(e) => {
-              router.push(`/vendor/edit?q=${d._id}`);
+              const params = new URLSearchParams();
+              if (d?._id) params.set("q", d._id);
+              if (pagination?.page) params.set("p", pagination.page.toString());
+              if (pagination?.limit)
+                params.set("l", pagination.limit.toString());
+              const qs = params.toString();
+              router.push(`/vendor/edit?${qs}`);
               e.stopPropagation();
             }}
           />
@@ -380,7 +391,7 @@ export default function Vendors() {
         extraTemplate={paramST ? <></> : statusSelect()}
         onRowClick={(d: any) => {
           const params = new URLSearchParams();
-          if(d?._id) params.set("q", d._id);
+          if (d?._id) params.set("q", d._id);
           if (pagination?.page) params.set("p", pagination.page.toString());
           if (pagination?.limit) params.set("l", pagination.limit.toString());
           const qs = params.toString();

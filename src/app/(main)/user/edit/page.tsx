@@ -20,6 +20,8 @@ export default function UserDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("q");
+  const p = searchParams.get("p") || "";
+  const l = searchParams.get("l") || "";
 
   const [userLoading, setUserLoading] = useState<boolean>(false);
   const [loadingPassword, setLoadingPassword] = useState<boolean>(false);
@@ -27,6 +29,14 @@ export default function UserDetail() {
   if (!id) {
     return 404;
   }
+
+  const goBackWithListState = () => {
+    const params = new URLSearchParams();
+    if (p) params.set("p", p);
+    if (l) params.set("l", l);
+    const qs = params.toString();
+    router.replace(qs ? `/user?${qs}` : "/user");
+  };
 
   const userFormSchema = z.object({
     email: z.string().email({ message: "Invalid email format." }),
@@ -139,7 +149,7 @@ export default function UserDetail() {
     <>
       <div className="flex justify-between flex-wrap mb-2">
         <div className="font-semibold text-[28px] leading-[42px] mb-2 flex gap-3 items-center">
-          <Button variant="outline" onClick={() => router.replace("/user")}>
+          <Button variant="outline" onClick={() => goBackWithListState()}>
             <ArrowLeft /> Back
           </Button>
           Edit User Detail

@@ -53,6 +53,21 @@ export default function Users() {
     setParamST(st || null);
   }, [searchParams]);
 
+  useEffect(() => {
+    const currentP = searchParams.get("p") || "";
+    const currentL = searchParams.get("l") || "";
+    const needUpdate =
+      currentP !== String(pagination.page) ||
+      currentL !== String(pagination.limit);
+    if (!needUpdate) return;
+
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    params.set("p", String(pagination.page));
+    params.set("l", String(pagination.limit));
+    router.replace(`/vendor?${params.toString()}`);
+  }, [pagination.page, pagination.limit, status, router, searchParams]);
+
   const {
     data: result,
     isFetching,
@@ -178,7 +193,13 @@ export default function Users() {
             className="text-blue-600 p-1"
             size={22}
             onClick={(e) => {
-              router.push(`/user/edit?q=${d._id}`);
+              const params = new URLSearchParams();
+              if (d?._id) params.set("q", d._id);
+              if (pagination?.page) params.set("p", pagination.page.toString());
+              if (pagination?.limit)
+                params.set("l", pagination.limit.toString());
+              const qs = params.toString();
+              router.push(`/user/edit?${qs}`);
               e.stopPropagation();
             }}
           />
