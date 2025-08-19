@@ -41,6 +41,10 @@ class UserApiService extends BaseAPI {
     >(`${APIEndpoint.USER}/overview/counter`);
   }
 
+  update(id: string, data: Partial<User>) {
+    return this.put<IResponse<boolean>>(`${APIEndpoint.USER}/${id}`, data);
+  }
+
   getById(id: string) {
     return this.get<IResponse<{ user: User }>>(`${APIEndpoint.USER}/${id}`);
   }
