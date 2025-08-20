@@ -30,6 +30,18 @@ class SettingApiService extends BaseAPI {
       { agreement },
     );
   }
+
+  // Free Dessert settings
+  updateFreeDessert(payload: {
+    freeDessertAmount: number;
+    freeDessertOrderCount: number;
+    isFreeDessertEnabled: boolean;
+  }) {
+    return this.post<IResponse<{ setting: SiteSetting | null }>>(
+      `${APIEndpoint.SETTING}/free-dessert`,
+      payload,
+    );
+  }
 }
 
 export const settingApiService = new SettingApiService();

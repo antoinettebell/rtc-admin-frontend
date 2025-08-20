@@ -135,6 +135,10 @@ export interface SiteSetting {
   termsConditions: string | null;
   privacyPolicy: string | null;
   agreement: string | null;
+  // Free Dessert feature
+  freeDessertAmount?: number;
+  freeDessertOrderCount?: number;
+  isFreeDessertEnabled?: boolean;
 }
 
 export interface OrderItem {
