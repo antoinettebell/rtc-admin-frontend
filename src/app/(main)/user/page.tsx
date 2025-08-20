@@ -65,7 +65,7 @@ export default function Users() {
     if (status) params.set("status", status);
     params.set("p", String(pagination.page));
     params.set("l", String(pagination.limit));
-    router.replace(`/vendor?${params.toString()}`);
+    router.replace(`/user?${params.toString()}`);
   }, [pagination.page, pagination.limit, status, router, searchParams]);
 
   const {
