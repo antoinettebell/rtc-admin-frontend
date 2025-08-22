@@ -14,6 +14,7 @@ enum APIPath {
   DIET = "diet",
   FOOD_TRUCK = "food-truck",
   REVIEW = "review",
+  PUBLIC = "public",
 }
 
 export enum APIEndpoint {
@@ -30,4 +31,5 @@ export enum APIEndpoint {
   DIET = `${APIVersion.V1}/${APIPath.DIET}`,
   FOOD_TRUCK = `${APIVersion.V1}/${APIPath.FOOD_TRUCK}`,
   REVIEW = `${APIVersion.V1}/${APIPath.REVIEW}`,
+  PUBLIC_PRIVACY_POLICY = `${APIVersion.V1}/${APIPath.PUBLIC}/privacy-policy`,
 }

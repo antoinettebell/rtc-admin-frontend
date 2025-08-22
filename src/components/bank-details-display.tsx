@@ -1,8 +1,9 @@
-import React from 'react';
-import { useBankDetailsDecryption, BankDetails } from '@/hooks/useDecryption';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+"use client";
+import React from "react";
+import { useBankDetailsDecryption } from "@/hooks/useDecryption";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface Props {
   userData: any;
@@ -20,7 +21,11 @@ export const BankDetailsDisplay: React.FC<Props> = ({ userData }) => {
     );
   }
 
-  const { decryptedData: decryptedBankDetails, loading, error } = useBankDetailsDecryption(userData?.bankDetail);
+  const {
+    decryptedData: decryptedBankDetails,
+    loading,
+    error,
+  } = useBankDetailsDecryption(userData?.bankDetail);
 
   if (loading) {
     return (
@@ -85,7 +90,7 @@ export const BankDetailsDisplay: React.FC<Props> = ({ userData }) => {
             </div>
           </div>
         </div>
-        
+
         <div className="border rounded-md px-3 py-2 flex items-center gap-3">
           <div className="w-full">
             <div className="text-sm text-muted-foreground">Bank Name</div>
@@ -94,7 +99,7 @@ export const BankDetailsDisplay: React.FC<Props> = ({ userData }) => {
             </div>
           </div>
         </div>
-        
+
         <div className="border rounded-md px-3 py-2 flex items-center gap-3">
           <div className="w-full">
             <div className="text-sm text-muted-foreground">Account Number</div>
@@ -103,7 +108,7 @@ export const BankDetailsDisplay: React.FC<Props> = ({ userData }) => {
             </div>
           </div>
         </div>
-        
+
         <div className="border rounded-md px-3 py-2 flex items-center gap-3">
           <div className="w-full">
             <div className="text-sm text-muted-foreground">Routing Number</div>
@@ -112,7 +117,7 @@ export const BankDetailsDisplay: React.FC<Props> = ({ userData }) => {
             </div>
           </div>
         </div>
-        
+
         <div className="border rounded-md px-3 py-2 flex items-center gap-3">
           <div className="w-full">
             <div className="text-sm text-muted-foreground">Account Type</div>
@@ -124,4 +129,4 @@ export const BankDetailsDisplay: React.FC<Props> = ({ userData }) => {
       </div>
     </div>
   );
-}; 
+};
