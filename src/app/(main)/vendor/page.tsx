@@ -68,7 +68,11 @@ export default function Vendors() {
   // Read status from URL whenever it changes
   useEffect(() => {
     let st = searchParams.get("status");
-    st = ["PENDING", "APPROVED", "REJECTED"].includes(st) ? st : null;
+    st = ["PENDING", "APPROVED", "REJECTED", "COMPLETE", "INCOMPLETE"].includes(
+      st,
+    )
+      ? st
+      : null;
     setStatus(st || null);
     setParamST(st || null);
   }, [searchParams]);
@@ -101,13 +105,18 @@ export default function Vendors() {
       searchTerm,
       status,
     ],
-    queryFn: () =>
-      userApiService.listVendors(
+    queryFn: () => {
+      const newSt = !["COMPLETE", "INCOMPLETE"].includes(status || "")
+        ? status
+        : "";
+      return userApiService.listVendors(
         pagination.page,
-        status,
+        newSt,
         searchTerm,
         pagination.limit,
-      ),
+        ["COMPLETE", "INCOMPLETE"].includes(status || "") ? status || "" : "",
+      );
+    },
     staleTime: 0,
     refetchOnWindowFocus: false,
   });
@@ -154,6 +163,7 @@ export default function Vendors() {
           "Vendor Image": itm.profilePic || "",
           Verified: itm.verified ? "Yes" : "No",
           Inactive: itm.inactive ? "Yes" : "No",
+          "Detail Completed": itm.foodTruck?.completed ? "Yes" : "No",
           foodTruckId: itm.foodTruck?._id,
           "FoodTruck Name": itm.foodTruck?.name,
           "FoodTruck Featured": itm.foodTruck?.featured ? "Yes" : "No",
@@ -298,6 +308,11 @@ export default function Vendors() {
       ),
     },
     {
+      header: "Completed",
+      fieldName: "completed" as keyof User,
+      accessor: (d) => (d?.foodTruck?.completed ? "Yes" : "No"),
+    },
+    {
       header: "ssn",
       fieldName: "ssn" as keyof User,
       accessor: (d) => d.foodTruck?.ssn || d.foodTruck?.snn || "",
@@ -355,6 +370,8 @@ export default function Vendors() {
             <SelectItem value={"PENDING"}>Pending</SelectItem>
             <SelectItem value={"APPROVED"}>Approved</SelectItem>
             <SelectItem value={"REJECTED"}>Rejected</SelectItem>
+            <SelectItem value={"COMPLETE"}>Complete</SelectItem>
+            <SelectItem value={"INCOMPLETE"}>Incomplete</SelectItem>
           </SelectGroup>
         </SelectContent>
       </Select>

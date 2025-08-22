@@ -63,7 +63,7 @@ export interface FoodTruckLocation {
   long: string;
 }
 
-export interface BusinessHours{
+export interface BusinessHours {
   available: boolean;
   endTime: string;
   startTime: string;
@@ -85,6 +85,7 @@ export interface FoodTruck {
   inactive: boolean;
   verified: boolean;
   featured?: boolean;
+  completed?: boolean;
   locations: FoodTruckLocation[];
   availability: FoodTruckAvailability[];
   createdAt: string;
@@ -93,7 +94,7 @@ export interface FoodTruck {
   snn?: string;
   ein?: string;
   infoType: "truck" | "caterer";
-  businessHours: BusinessHours[]
+  businessHours: BusinessHours[];
 }
 
 export interface MenuCategory {

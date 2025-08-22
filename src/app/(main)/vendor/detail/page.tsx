@@ -114,7 +114,10 @@ export default function VendorDetail() {
             const addressParts = address.split(",");
             const city = addressParts[addressParts.length - 2];
             const state = addressParts[addressParts.length - 1];
-            setLocations((prev) => ({ ...prev, [loc._id]: `${city}, ${state}` }));
+            setLocations((prev) => ({
+              ...prev,
+              [loc._id]: `${city}, ${state}`,
+            }));
           }
         });
 
@@ -294,10 +297,16 @@ export default function VendorDetail() {
                     <p className="text-sm text-muted-foreground mb-1">
                       Food Truck Name: <b>{result.user.foodTruck?.name}</b>
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground mb-1">
                       Type:{" "}
                       <b className="capitalize">
                         {result.user.foodTruck?.infoType || "-"}
+                      </b>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Completed:{" "}
+                      <b className="capitalize">
+                        {result.user.foodTruck?.completed ? "Yes" : "No"}
                       </b>
                     </p>
                   </div>
@@ -542,7 +551,7 @@ export default function VendorDetail() {
                           Start{" "}
                           <span className="font-semibold">
                             {dayjs(`0000-00-00 ${item.startTime}:00`).format(
-                              "hh:mm A"
+                              "hh:mm A",
                             )}
                           </span>
                         </div>
@@ -550,7 +559,7 @@ export default function VendorDetail() {
                           Close{" "}
                           <span className="font-semibold">
                             {dayjs(`0000-00-00 ${item.endTime}:00`).format(
-                              "hh:mm A"
+                              "hh:mm A",
                             )}
                           </span>
                         </div>
@@ -598,7 +607,7 @@ export default function VendorDetail() {
                           Start{" "}
                           <span className="font-semibold">
                             {dayjs(`0000-00-00 ${item.startTime}:00`).format(
-                              "hh:mm A"
+                              "hh:mm A",
                             )}
                           </span>
                         </div>
@@ -606,7 +615,7 @@ export default function VendorDetail() {
                           Close{" "}
                           <span className="font-semibold">
                             {dayjs(`0000-00-00 ${item.endTime}:00`).format(
-                              "hh:mm A"
+                              "hh:mm A",
                             )}
                           </span>
                         </div>

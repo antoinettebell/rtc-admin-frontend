@@ -5,7 +5,13 @@ import { IResponse } from "@/interfaces/response-interface";
 import { User } from "@/interfaces/user-interface";
 
 class UserApiService extends BaseAPI {
-  listVendors(page: number, status: string | null, search: string, limit = 10) {
+  listVendors(
+    page: number,
+    status: string | null,
+    search: string,
+    limit = 10,
+    profileComplete = "",
+  ) {
     return this.getPaginated<User>(`${APIEndpoint.USER}`, "userList", {
       params: {
         userType: "VENDOR",
@@ -13,6 +19,7 @@ class UserApiService extends BaseAPI {
         limit,
         ...(status ? { status } : {}),
         ...(search.trim().length ? { search: search.trim() } : {}),
+        ...(profileComplete ? { profileComplete } : {}),
       },
     });
   }
