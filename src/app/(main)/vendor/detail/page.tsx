@@ -44,6 +44,7 @@ import { StringHelper } from "@/models/string-helper-model";
 import { Textarea } from "@/components/ui/textarea";
 import { BankDetailsDisplay } from "@/components/bank-details-display";
 import { decryptFields } from "@/utils/encryption";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function VendorDetail() {
   const router = useRouter();
@@ -86,7 +87,7 @@ export default function VendorDetail() {
   };
 
   if (!id) {
-    return 404;
+    return 404 as any;
   }
 
   const {
@@ -101,6 +102,8 @@ export default function VendorDetail() {
         categoryApiService.list("", 1, 100, { userId: id?.toString() }),
         menuApiService.list("", 1, 100, { userId: id?.toString() }),
       ]).then(([userRes, categoryRes, menuRes]) => {
+        console.log("==========userRes?.data?.data", userRes?.data?.data);
+
         if (userRes.data?.data.user.foodTruck?.plan) {
           setPlanColor(
             userRes.data?.data.user.foodTruck?.plan?.titleColor || "",
@@ -144,12 +147,12 @@ export default function VendorDetail() {
 
         getStats(userRes?.data?.data?.user?.foodTruck?._id || "");
         getMoreReview(userRes?.data?.data?.user?.foodTruck?._id || "", 1);
-
         return {
           ...(userRes?.data.data || {}),
-          categoryList: categoryRes.data.data.records,
-          menuList: menuRes.data.data.records,
-        };
+          // Casts below keep the logic intact while satisfying TS
+          categoryList: (categoryRes as any).data.data.records,
+          menuList: (menuRes as any).data.data.records,
+        } as any;
       }),
     staleTime: 0,
     refetchOnWindowFocus: false,
@@ -157,7 +160,7 @@ export default function VendorDetail() {
 
   const getStats = (ftId: string) => {
     reviewApiService.stats(ftId).then((res) => {
-      setReviewStats(res.data.data);
+      setReviewStats((res as any).data.data);
     });
   };
 
@@ -165,10 +168,10 @@ export default function VendorDetail() {
     reviewApiService.list(ftId, "", p, 10).then((res) => {
       setReviewList(
         p > 1
-          ? [...reviewList, ...res.data.data.records]
-          : res.data.data.records,
+          ? [...reviewList, ...((res as any).data.data.records as Review[])]
+          : ((res as any).data.data.records as Review[]),
       );
-      setShowMore(res.data.data.total > page * 10);
+      setShowMore(((res as any).data.data.total as number) > page * 10);
       setPage(p + 1);
     });
   };
@@ -220,7 +223,7 @@ export default function VendorDetail() {
 
   return (
     <>
-      <div className="flex justify-between flex-wrap mb-2">
+      <div className="sticky top-0 z-30 bg-white dark:bg-background border-b flex justify-between flex-wrap mb-2 py-2">
         <div className="font-semibold text-[28px] leading-[42px] mb-2 flex gap-3 items-center">
           <Button variant="outline" onClick={goBackWithListState}>
             <ArrowLeft /> Back
@@ -268,551 +271,580 @@ export default function VendorDetail() {
 
       {!!result?.user && !isFetching && (
         <>
-          <div className="flex flex-wrap gap-4 mb-4">
-            <div
-              className="border w-fit rounded-xl p-1"
-              style={
-                planColor
-                  ? {
-                      background: planColor,
-                    }
-                  : {}
-              }
-            >
-              <div className="px-2 py-1 text-base font-bold text-white">
-                {result?.user.foodTruck?.plan?.name}
-              </div>
-              <div className="p-2 rounded-md w-fit min-w-[350px] bg-white">
-                <div className="flex gap-3">
-                  <div className="border rounded p-2 h-fit">
-                    <SquareUserRound size={30} />
+          <Tabs defaultValue="profile" className="w-full">
+            <TabsList className="sticky top-[64px] z-20 bg-white dark:bg-background border-b mb-4 flex flex-wrap gap-2">
+              <TabsTrigger value="profile" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Profile</TabsTrigger>
+              <TabsTrigger value="details" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Cusines</TabsTrigger>
+              <TabsTrigger value="gallery" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Photo Gallery</TabsTrigger>
+              <TabsTrigger value="menu-categories" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Menu Categories</TabsTrigger>
+              <TabsTrigger value="menu-items" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Menu Items</TabsTrigger>
+              <TabsTrigger value="bank" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Bank Details</TabsTrigger>
+              <TabsTrigger value="locations" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Locations</TabsTrigger>
+              <TabsTrigger value="availability" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Availability</TabsTrigger>
+              <TabsTrigger value="business-hours" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Business Hours</TabsTrigger>
+              <TabsTrigger value="reviews" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Reviews</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="profile">
+              <div className="flex flex-wrap gap-4 mb-4">
+                <div
+                  className="border w-fit rounded-xl p-1"
+                  style={
+                    planColor
+                      ? {
+                          background: planColor,
+                        }
+                      : {}
+                  }
+                >
+                  <div className="px-2 py-1 text-base font-bold text-white">
+                    {result?.user.foodTruck?.plan?.name}
                   </div>
-                  <div className="w-full">
-                    <h3 className="font-medium leading-none mt-1 mb-1 w-auto">
-                      Vendor:{" "}
-                      <b>
-                        {`${result?.user.firstName} ${result?.user.lastName || ""}`.trim()}
-                      </b>
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Food Truck Name: <b>{result.user.foodTruck?.name}</b>
-                    </p>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Type:{" "}
-                      <b className="capitalize">
-                        {result.user.foodTruck?.infoType || "-"}
-                      </b>
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Completed:{" "}
-                      <b className="capitalize">
-                        {result.user.foodTruck?.completed ? "Yes" : "No"}
-                      </b>
-                    </p>
-                  </div>
-                </div>
-                <div className="flex justify-between w-full mt-2">
-                  <Status
-                    status={result?.user.requestStatus}
-                    className="!py-1.5"
-                  />
-                  <p className="text-sm text-muted-foreground flex items-center">
-                    Featured:{" "}
-                    <Switch
-                      checked={isFeatured}
-                      disabled={result.user.requestStatus !== "APPROVED"}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        setChangeFeature(result.user);
-                      }}
-                      title={
-                        result.user.requestStatus !== "APPROVED"
-                          ? "It will be enabled after the request approved"
-                          : ""
-                      }
-                    />
-                  </p>
-                </div>
-                <div className="review-stats flex gap-6 items-center pt-4 w-full border-t mt-4">
-                  <div className="flex flex-col items-center min-w-[5rem]">
-                    <div className="flex gap-2 items-center">
-                      <svg
-                        width="36"
-                        height="34"
-                        viewBox="0 0 36 34"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M17.9991 28.4835L9.2738 33.6812C8.88834 33.9237 8.48536 34.0277 8.06487 33.993C7.64437 33.9584 7.27644 33.8198 6.96106 33.5772C6.64569 33.3347 6.4004 33.0318 6.22519 32.6687C6.04999 32.3055 6.01495 31.898 6.12007 31.4462L8.4328 21.6225L0.706174 15.0214C0.35576 14.7095 0.137101 14.354 0.0501985 13.9548C-0.0367042 13.5556 -0.0107737 13.1662 0.12799 12.7864C0.266754 12.4066 0.477003 12.0947 0.758735 11.8508C1.04047 11.6068 1.42592 11.4509 1.9151 11.383L12.1121 10.4994L16.0543 1.24745C16.2295 0.831634 16.5014 0.519771 16.8701 0.311862C17.2387 0.103954 17.6151 0 17.9991 0C18.3832 0 18.7595 0.103954 19.1281 0.311862C19.4968 0.519771 19.7687 0.831634 19.9439 1.24745L23.8861 10.4994L34.0831 11.383C34.5737 11.4523 34.9591 11.6082 35.2395 11.8508C35.5198 12.0933 35.73 12.4052 35.8702 12.7864C36.0104 13.1675 36.037 13.5577 35.9501 13.9569C35.8632 14.3561 35.6438 14.7109 35.292 15.0214L27.5654 21.6225L29.8781 31.4462C29.9833 31.8966 29.9482 32.3041 29.773 32.6687C29.5978 33.0332 29.3525 33.3361 29.0371 33.5772C28.7218 33.8184 28.3538 33.957 27.9333 33.993C27.5128 34.0291 27.1099 33.9251 26.7244 33.6812L17.9991 28.4835Z"
-                          fill={
-                            (reviewStats?.reviewStats?.avgRate || 0) >= 1
-                              ? "#FFCC00"
-                              : "#8E8E93"
+                  <div className="p-2 rounded-md w-fit min-w-[350px] bg-white">
+                    <div className="flex gap-3">
+                      <div className="border rounded p-2 h-fit">
+                        <SquareUserRound size={30} />
+                      </div>
+                      <div className="w-full">
+                        <h3 className="font-medium leading-none mt-1 mb-1 w-auto">
+                          Vendor: {" "}
+                          <b>
+                            {`${result?.user.firstName} ${result?.user.lastName || ""}`.trim()}
+                          </b>
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-1">
+                          Food Truck Name: <b>{result.user.foodTruck?.name}</b>
+                        </p>
+                        <p className="text-sm text-muted-foreground mb-1">
+                          Type:{" "}
+                          <b className="capitalize">
+                            {result.user.foodTruck?.infoType || "-"}
+                          </b>
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Completed:{" "}
+                          <b className="capitalize">
+                            {result.user.foodTruck?.completed ? "Yes" : "No"}
+                          </b>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex justify-between w-full mt-2">
+                      <Status
+                        status={(result?.user.requestStatus || "PENDING") as any}
+                        className={"!py-1.5" as any}
+                      />
+                      <p className="text-sm text-muted-foreground flex items-center">
+                        Featured:{" "}
+                        <Switch
+                          checked={isFeatured}
+                          disabled={result.user.requestStatus !== "APPROVED"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setChangeFeature(result.user);
+                          }}
+                          title={
+                            result.user.requestStatus !== "APPROVED"
+                              ? "It will be enabled after the request approved"
+                              : ""
                           }
                         />
-                      </svg>
-
-                      <div className="text-3xl font-semibold">
-                        {reviewStats?.reviewStats?.avgRate || 0}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {result?.user?.requestStatus === "REJECTED" &&
+                  result?.user?.reasonForRejection?.trim()?.length && (
+                    <div className="p-3 rounded-md bg-red-100 border border-red-200 h-fit w-fit max-w-full">
+                      <div className="text-base font-semibold text-red-700 mb-2">
+                        Reason for the Rejection:
+                      </div>
+                      <div className="text-sm text-red-800">
+                        {result?.user.reasonForRejection || "-"}
                       </div>
                     </div>
-                    <div className="flex w-full items-center flex-col mt-6">
-                      <div className="text-xl">
-                        {reviewStats?.reviewStats?.totalReviews || 0}
-                      </div>
-                      <div className="text-md text-gray-500">Reviews</div>
+                  )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="details">
+              <div className="flex items-center gap-3 mt-3">
+                <div className="whitespace-nowrap font-semibold text-xl">
+                  Cuisines
+                </div>
+                <div className="border-b w-full"></div>
+              </div>
+              <div className="pt-2 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 5xl:grid-cols-4 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
+                  {result.user.foodTruck?.cuisine.map((item: any, i: number) => (
+                    <div
+                      key={`${i}-cui`}
+                      className="border rounded-md px-3 py-2 flex items-center gap-2"
+                    >
+                      <Soup size={20} className="text-primary" />
+                      {item.name}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="gallery">
+              <div className="pt-2 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="col-span-1">
+                    <div className="rounded-lg overflow-hidden border shadow-sm">
+                      {result.user.foodTruck?.logo ? (
+                        <PhotoViewer src={result.user.foodTruck.logo}>
+                          <img
+                            src={result.user.foodTruck.logo}
+                            alt="Food Truck Logo"
+                            className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105 cursor-pointer"
+                          />
+                        </PhotoViewer>
+                      ) : (
+                        <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+                          No Logo uploaded yet
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="border-l pl-6 flex flex-col w-full pr-2 gap-1">
-                    <div className="flex justify-between gap-3 w-full">
-                      <ReviewStar rate={5} />
-                      <div className="text-md text-gray-600">
-                        {reviewStats?.reviewStats?.star5 || 0}
+                  <div className="col-span-3">
+                    {((result.user.foodTruck?.photos?.length ?? 0) > 0) ? (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {(result.user.foodTruck?.photos ?? []).map((photo: string, i: number) => (
+                          <div
+                            key={`${i}-truck-photo`}
+                            className="rounded-lg overflow-hidden border shadow-sm"
+                          >
+                            <PhotoViewer src={photo}>
+                              <img
+                                src={photo}
+                                alt={`Food Truck Photo ${i + 1}`}
+                                className="w-full h-40 object-cover transition-transform duration-300 hover:scale-105 cursor-pointer"
+                              />
+                            </PhotoViewer>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-gray-400 text-sm">No Photos uploaded yet</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="menu-categories">
+              <div className="flex items-center gap-3 mt-3">
+                <div className="whitespace-nowrap font-semibold text-xl">
+                  Menu Category
+                </div>
+                <div className="border-b w-full"></div>
+              </div>
+              <div className="pt-2 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
+                  {(result.categoryList || [])?.map((item: any, i: number) => (
+                    <div
+                      key={`${i}-category`}
+                      className="border rounded-md px-3 py-2 flex items-center"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="truncate">{item.name}</div>
                       </div>
                     </div>
-                    <div className="flex justify-between gap-3 w-full">
-                      <ReviewStar rate={4} />
-                      <div className="text-md text-gray-600">
-                        {reviewStats?.reviewStats?.star4 || 0}
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="menu-items">
+              <div className="flex items-center gap-3 mt-3">
+                <div className="whitespace-nowrap font-semibold text-xl">Menu</div>
+                <div className="border-b w-full"></div>
+              </div>
+              <div className="pt-2 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
+                  {(result.menuList || [])?.map((item: MenuItem, i: number) => (
+                    <div
+                      key={`${i}-availability`}
+                      className="border rounded-md p-3 flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="rounded-md w-[130px] h-[130px] flex items-center justify-center bg-gray-100 overflow-hidden">
+                          {!!item.imgUrls.length && (
+                            <PhotoViewer src={item.imgUrls[0]}>
+                              <img
+                                src={item.imgUrls[0]}
+                                className="h-full w-full object-cover transition-all hover:scale-105 aspect-square cursor-pointer"
+                              />
+                            </PhotoViewer>
+                          )}
+                        </div>
+                        <div className="h-full w-full max-w-full">
+                          <div className="truncate font-bold text-xl capitalize">
+                            {item.name}
+                          </div>
+                          <div
+                            className="line-clamp-2"
+                            title={item.description || "-"}
+                          >
+                            {item.description || "-"}
+                          </div>
+                          <div className="truncate w-fit">
+                            Type:{" "}
+                            {item.itemType === "INDIVIDUAL" ? (
+                              <b>Individual</b>
+                            ) : (
+                              <b>Combo</b>
+                            )}
+                          </div>
+                          <div className="truncate">
+                            item.price Price:{" "}
+                            <b>
+                              {item.price
+                                ? `$${Number(item.price).toFixed(2)}`
+                                : "$0.00"}
+                            </b>
+                          </div>
+                          <div className="truncate">
+                            Discount:{" "}
+                            <b>
+                              {item.discount
+                                ? `${item?.discountType === "PERCENTAGE" ? "%" : "$"}${Number(item.discount).toFixed(2)}`
+                                : "-"}
+                            </b>
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        className={`rounded-full w-5 h-5 flex items-center justify-center text-white ${item.available ? "bg-green-500" : "bg-gray-500"}`}
+                      >
+                        {item.available ? (
+                          <Check strokeWidth={3} size={16} />
+                        ) : (
+                          <X strokeWidth={3} size={16} />
+                        )}
                       </div>
                     </div>
-                    <div className="flex justify-between gap-3 w-full">
-                      <ReviewStar rate={3} />
-                      <div className="text-md text-gray-600">
-                        {reviewStats?.reviewStats?.star3 || 0}
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="bank">
+              <div className="flex items-center gap-3 mt-3">
+                <div className="whitespace-nowrap font-semibold text-xl">
+                  Bank Account Information
+                </div>
+                <div className="border-b w-full"></div>
+              </div>
+              <BankDetailsDisplay userData={result?.user} />
+            </TabsContent>
+
+            <TabsContent value="locations">
+              <div className="flex items-center gap-3 mt-3">
+                <div className="whitespace-nowrap font-semibold text-xl">
+                  Locations
+                </div>
+                <div className="border-b w-full"></div>
+              </div>
+              <div className="pt-2 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
+                  {result.user.foodTruck?.locations.map((item: any, i: number) => (
+                    <div
+                      key={`${i}-location`}
+                      className="border rounded-md px-3 py-2 flex items-center gap-3"
+                    >
+                      <div>
+                        <MapPin className="text-primary" />
+                      </div>
+                      <div className="w-full pr-[24px]">
+                        <div className="font-semibold truncate">{item.title}</div>
+                        <div className="font-medium text-sm truncate">
+                          {item.address}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex justify-between gap-3 w-full">
-                      <ReviewStar rate={2} />
-                      <div className="text-md text-gray-600">
-                        {reviewStats?.reviewStats?.star2 || 0}
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="availability">
+              <div className="flex items-center gap-3 mt-3">
+                <div className="whitespace-nowrap font-semibold text-xl">
+                  Availability
+                </div>
+                <div className="border-b w-full"></div>
+              </div>
+              <div className="pt-2 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
+                  {result.user.foodTruck?.availability.map((item: any, i: number) => (
+                    <div
+                      key={`${i}-availability`}
+                      className="border rounded-md px-3 py-2 flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-full bg-primary w-[50px] h-[50px] flex items-center justify-center text-white font-semibold capitalize">
+                          {item.day}
+                        </div>
+                        <div>
+                          <div className="truncate">
+                            Location:{" "}
+                            <span className="font-semibold">
+                              {locations[item.locationId]}
+                            </span>
+                          </div>
+                          <div className="flex gap-4">
+                            <div>
+                              Start{" "}
+                              <span className="font-semibold">
+                                {dayjs(`0000-00-00 ${item.startTime}:00`).format(
+                                  "hh:mm A",
+                                )}
+                              </span>
+                            </div>
+                            <div>
+                              Close{" "}
+                              <span className="font-semibold">
+                                {dayjs(`0000-00-00 ${item.endTime}:00`).format(
+                                  "hh:mm A",
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        className={`rounded-full w-5 h-5 flex items-center justify-center text-white ${item.available ? "bg-green-500" : "bg-gray-500"}`}
+                      >
+                        {item.available ? (
+                          <Check strokeWidth={3} size={16} />
+                        ) : (
+                          <X strokeWidth={3} size={16} />
+                        )}
                       </div>
                     </div>
-                    <div className="flex justify-between gap-3 w-full">
-                      <ReviewStar rate={1} />
-                      <div className="text-md text-gray-600">
-                        {reviewStats?.reviewStats?.star1 || 0}
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="business-hours">
+              <div className="flex items-center gap-3 mt-3">
+                <div className="whitespace-nowrap font-semibold text-xl">
+                  Business hours
+                </div>
+                <div className="border-b w-full"></div>
+              </div>
+              <div className="pt-2 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
+                  {result.user.foodTruck?.businessHours?.map((item: any, i: number) => (
+                    <div
+                      key={`${i}-availability`}
+                      className="border rounded-md px-3 py-2 flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="truncate">
+                            Location:{" "}
+                            <span className="font-semibold">
+                              {locations[item.locationId]}
+                            </span>
+                          </div>
+                          <div className="flex gap-4">
+                            <div>
+                              Start{" "}
+                              <span className="font-semibold">
+                                {dayjs(`0000-00-00 ${item.startTime}:00`).format(
+                                  "hh:mm A",
+                                )}
+                              </span>
+                            </div>
+                            <div>
+                              Close{" "}
+                              <span className="font-semibold">
+                                {dayjs(`0000-00-00 ${item.endTime}:00`).format(
+                                  "hh:mm A",
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
+                      <div
+                        className={`rounded-full w-5 h-5 flex items-center justify-center text-white ${item.available ? "bg-green-500" : "bg-gray-500"}`}
+                      >
+                        {item.available ? (
+                          <Check strokeWidth={3} size={16} />
+                        ) : (
+                          <X strokeWidth={3} size={16} />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="reviews">
+              <div className="flex items-center gap-3 mt-3">
+                <div className="whitespace-nowrap font-semibold text-xl">
+                  Review
+                </div>
+                <div className="border-b w-full"></div>
+              </div>
+              <div className="review-stats flex gap-6 items-center pt-4 w-full border-t mt-4">
+                <div className="flex flex-col items-center min-w-[5rem]">
+                  <div className="flex gap-2 items-center">
+                    <svg
+                      width="36"
+                      height="34"
+                      viewBox="0 0 36 34"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M17.9991 28.4835L9.2738 33.6812C8.88834 33.9237 8.48536 34.0277 8.06487 33.993C7.64437 33.9584 7.27644 33.8198 6.96106 33.5772C6.64569 33.3347 6.4004 33.0318 6.22519 32.6687C6.04999 32.3055 6.01495 31.898 6.12007 31.4462L8.4328 21.6225L0.706174 15.0214C0.35576 14.7095 0.137101 14.354 0.0501985 13.9548C-0.0367042 13.5556 -0.0107737 13.1662 0.12799 12.7864C0.266754 12.4066 0.477003 12.0947 0.758735 11.8508C1.04047 11.6068 1.42592 11.4509 1.9151 11.383L12.1121 10.4994L16.0543 1.24745C16.2295 0.831634 16.5014 0.519771 16.8701 0.311862C17.2387 0.103954 17.6151 0 17.9991 0C18.3832 0 18.7595 0.103954 19.1281 0.311862C19.4968 0.519771 19.7687 0.831634 19.9439 1.24745L23.8861 10.4994L34.0831 11.383C34.5737 11.4523 34.9591 11.6082 35.2395 11.8508C35.5198 12.0933 35.73 12.4052 35.8702 12.7864C36.0104 13.1675 36.037 13.5577 35.9501 13.9569C35.8632 14.3561 35.6438 14.7109 35.292 15.0214L27.5654 21.6225L29.8781 31.4462C29.9833 31.8966 29.9482 32.3041 29.773 32.6687C29.5978 33.0332 29.3525 33.3361 29.0371 33.5772C28.7218 33.8184 28.3538 33.957 27.9333 33.993C27.5128 34.0291 27.1099 33.9251 26.7244 33.6812L17.9991 28.4835Z"
+                        fill={
+                          (reviewStats?.reviewStats?.avgRate || 0) >= 1
+                            ? "#FFCC00"
+                            : "#8E8E93"
+                        }
+                      />
+                    </svg>
+
+                    <div className="text-3xl font-semibold">
+                      {reviewStats?.reviewStats?.avgRate || 0}
+                    </div>
+                  </div>
+                  <div className="flex w-full items-center flex-col mt-6">
+                    <div className="text-xl">
+                      {reviewStats?.reviewStats?.totalReviews || 0}
+                    </div>
+                    <div className="text-md text-gray-500">Reviews</div>
+                  </div>
+                </div>
+
+                <div className="border-l pl-6 flex flex-col w-full pr-2 gap-1">
+                  <div className="flex justify-between gap-3 w-full">
+                    <ReviewStar rate={5} />
+                    <div className="text-md text-gray-600">
+                      {reviewStats?.reviewStats?.star5 || 0}
+                    </div>
+                  </div>
+                  <div className="flex justify-between gap-3 w-full">
+                    <ReviewStar rate={4} />
+                    <div className="text-md text-gray-600">
+                      {reviewStats?.reviewStats?.star4 || 0}
+                    </div>
+                  </div>
+                  <div className="flex justify-between gap-3 w-full">
+                    <ReviewStar rate={3} />
+                    <div className="text-md text-gray-600">
+                      {reviewStats?.reviewStats?.star3 || 0}
+                    </div>
+                  </div>
+                  <div className="flex justify-between gap-3 w-full">
+                    <ReviewStar rate={2} />
+                    <div className="text-md text-gray-600">
+                      {reviewStats?.reviewStats?.star2 || 0}
+                    </div>
+                  </div>
+                  <div className="flex justify-between gap-3 w-full">
+                    <ReviewStar rate={1} />
+                    <div className="text-md text-gray-600">
+                      {reviewStats?.reviewStats?.star1 || 0}
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-            {result?.user?.requestStatus === "REJECTED" &&
-              result?.user?.reasonForRejection?.trim()?.length && (
-                <div className="p-3 rounded-md bg-red-100 border border-red-200 h-fit w-fit max-w-full">
-                  <div className="text-base font-semibold text-red-700 mb-2">
-                    Reason for the Rejection:
-                  </div>
-                  <div className="text-sm text-red-800">
-                    {result?.user.reasonForRejection || "-"}
-                  </div>
-                </div>
-              )}
-          </div>
-          <div className="flex gap-4 pt-2 pb-4">
-            <div className="space-y-3 w-[190px]">
-              <span data-state="closed">
-                <div className="overflow-hidden rounded-md">
-                  {result.user.foodTruck?.logo ? (
-                    <div className="border rounded overflow-hidden">
-                      <PhotoViewer src={result.user.foodTruck?.logo}>
-                        <img
-                          alt="React Rendezvous"
-                          loading="lazy"
-                          width="190"
-                          height="250"
-                          decoding="async"
-                          data-nimg="1"
-                          className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-[3/4] cursor-pointer"
-                          src={result.user.foodTruck?.logo}
-                        />
-                      </PhotoViewer>
-                    </div>
-                  ) : (
-                    <div className="text-center text-muted-foreground py-8">
-                      {result.user.foodTruck?.photos?.length === 0
-                        ? "No Logo uploaded yet"
-                        : ""}
-                    </div>
-                  )}
-                </div>
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {result.user.foodTruck?.photos?.map((item, i) => (
-                <div className="space-y-3 w-[100px]" key={`${i}-truck-photo`}>
-                  <span data-state="closed">
-                    <div className="overflow-hidden rounded-md border">
-                      <PhotoViewer src={item}>
-                        <img
-                          loading="lazy"
-                          width="150"
-                          height="150"
-                          decoding="async"
-                          data-nimg="1"
-                          className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square cursor-pointer"
-                          src={item}
-                        />
-                      </PhotoViewer>
-                    </div>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Bank Account Information */}
-          <div className="flex items-center gap-3 mt-3">
-            <div className="whitespace-nowrap font-semibold text-xl">
-              Bank Account Information
-            </div>
-            <div className="border-b w-full"></div>
-          </div>
-          <BankDetailsDisplay userData={result?.user} />
-
-          <div className="flex items-center gap-3 mt-3">
-            <div className="whitespace-nowrap font-semibold text-xl">
-              Cuisines
-            </div>
-            <div className="border-b w-full"></div>
-          </div>
-          <div className="pt-2 pb-4">
-            {/*<div className="py-2 text-xl font-semibold">Cuisines</div>*/}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 5xl:grid-cols-4 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
-              {result.user.foodTruck?.cuisine.map((item, i) => (
-                <div
-                  key={`${i}-cui`}
-                  className="border rounded-md px-3 py-2 flex items-center gap-2"
-                >
-                  <Soup size={20} className="text-primary" />
-                  {item.name}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-3 mt-3">
-            <div className="whitespace-nowrap font-semibold text-xl">
-              Locations
-            </div>
-            <div className="border-b w-full"></div>
-          </div>
-          <div className="pt-2 pb-4">
-            {/*<div className="py-2 text-xl font-semibold">Locations</div>*/}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
-              {result.user.foodTruck?.locations.map((item, i) => (
-                <div
-                  key={`${i}-location`}
-                  className="border rounded-md px-3 py-2 flex items-center gap-3"
-                >
-                  <div>
-                    <MapPin className="text-primary" />
-                  </div>
-                  <div className="w-full pr-[24px]">
-                    <div className="font-semibold truncate">{item.title}</div>
-                    <div className="font-medium text-sm truncate">
-                      {item.address}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-3 mt-3">
-            <div className="whitespace-nowrap font-semibold text-xl">
-              Availability
-            </div>
-            <div className="border-b w-full"></div>
-          </div>
-          <div className="pt-2 pb-4">
-            {/*<div className="py-2 text-xl font-semibold">Availability</div>*/}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
-              {result.user.foodTruck?.availability.map((item, i) => (
-                <div
-                  key={`${i}-availability`}
-                  className="border rounded-md px-3 py-2 flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-full bg-primary w-[50px] h-[50px] flex items-center justify-center text-white font-semibold capitalize">
-                      {item.day}
-                    </div>
-                    <div>
-                      <div className="truncate">
-                        Location:{" "}
-                        <span className="font-semibold">
-                          {locations[item.locationId]}
-                        </span>
-                      </div>
-                      <div className="flex gap-4">
-                        <div>
-                          Start{" "}
-                          <span className="font-semibold">
-                            {dayjs(`0000-00-00 ${item.startTime}:00`).format(
-                              "hh:mm A",
-                            )}
-                          </span>
-                        </div>
-                        <div>
-                          Close{" "}
-                          <span className="font-semibold">
-                            {dayjs(`0000-00-00 ${item.endTime}:00`).format(
-                              "hh:mm A",
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className={`rounded-full w-5 h-5 flex items-center justify-center text-white ${item.available ? "bg-green-500" : "bg-gray-500"}`}
-                  >
-                    {item.available ? (
-                      <Check strokeWidth={3} size={16} />
-                    ) : (
-                      <X strokeWidth={3} size={16} />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Business hours */}
-          <div className="flex items-center gap-3 mt-3">
-            <div className="whitespace-nowrap font-semibold text-xl">
-              Business hours
-            </div>
-            <div className="border-b w-full"></div>
-          </div>
-          <div className="pt-2 pb-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
-              {result.user.foodTruck?.businessHours?.map((item, i) => (
-                <div
-                  key={`${i}-availability`}
-                  className="border rounded-md px-3 py-2 flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <div className="truncate">
-                        Location:{" "}
-                        <span className="font-semibold">
-                          {locations[item.locationId]}
-                        </span>
-                      </div>
-                      <div className="flex gap-4">
-                        <div>
-                          Start{" "}
-                          <span className="font-semibold">
-                            {dayjs(`0000-00-00 ${item.startTime}:00`).format(
-                              "hh:mm A",
-                            )}
-                          </span>
-                        </div>
-                        <div>
-                          Close{" "}
-                          <span className="font-semibold">
-                            {dayjs(`0000-00-00 ${item.endTime}:00`).format(
-                              "hh:mm A",
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className={`rounded-full w-5 h-5 flex items-center justify-center text-white ${item.available ? "bg-green-500" : "bg-gray-500"}`}
-                  >
-                    {item.available ? (
-                      <Check strokeWidth={3} size={16} />
-                    ) : (
-                      <X strokeWidth={3} size={16} />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 mt-3">
-            <div className="whitespace-nowrap font-semibold text-xl">
-              Menu Category
-            </div>
-            <div className="border-b w-full"></div>
-          </div>
-          <div className="pt-2 pb-4">
-            {/*<div className="py-2 text-xl font-semibold">Availability</div>*/}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
-              {(result.categoryList || [])?.map((item, i) => (
-                <div
-                  key={`${i}-category`}
-                  className="border rounded-md px-3 py-2 flex items-center"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="truncate">{item.name}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-3 mt-3">
-            <div className="whitespace-nowrap font-semibold text-xl">Menu</div>
-            <div className="border-b w-full"></div>
-          </div>
-          <div className="pt-2 pb-4">
-            {/*<div className="py-2 text-xl font-semibold">Availability</div>*/}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
-              {(result.menuList || [])?.map((item: MenuItem, i) => (
-                <div
-                  key={`${i}-availability`}
-                  className="border rounded-md p-3 flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-md w-[130px] h-[130px] flex items-center justify-center bg-gray-100 overflow-hidden">
-                      {!!item.imgUrls.length && (
-                        <PhotoViewer src={item.imgUrls[0]}>
-                          <img
-                            src={item.imgUrls[0]}
-                            className="h-full w-full object-cover transition-all hover:scale-105 aspect-square cursor-pointer"
-                          />
-                        </PhotoViewer>
-                      )}
-                    </div>
-                    <div className="h-full w-full max-w-full">
-                      <div className="truncate font-bold text-xl capitalize">
-                        {item.name}
-                      </div>
+              <div className="pt-2 pb-4 w-full">
+                <div className="w-full flex flex-col gap-3">
+                  {reviewList.map((itm) => {
+                    const boundedRate = Math.max(0, Math.min(5, itm.rate || 0)) as 0 | 1 | 2 | 3 | 4 | 5;
+                    return (
                       <div
-                        className="line-clamp-2"
-                        title={item.description || "-"}
+                        key={`rev-${itm._id}`}
+                        className="cust-review p-3 flex gap-3 items-start border rounded-lg"
                       >
-                        {item.description || "-"}
-                      </div>
-                      <div className="truncate w-fit">
-                        Type:{" "}
-                        {item.itemType === "INDIVIDUAL" ? (
-                          <b>Individual</b>
-                        ) : (
-                          <b>Combo</b>
-                        )}
-                      </div>
-                      <div className="truncate">
-                        item.price Price:{" "}
-                        <b>
-                          {item.price
-                            ? `$${Number(item.price).toFixed(2)}`
-                            : "$0.00"}
-                        </b>
-                      </div>
-                      <div className="truncate">
-                        Discount:{" "}
-                        <b>
-                          {item.discount
-                            ? `${item?.discountType === "PERCENTAGE" ? "%" : "$"}${Number(item.discount).toFixed(2)}`
-                            : "-"}
-                        </b>
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className={`rounded-full w-5 h-5 flex items-center justify-center text-white ${item.available ? "bg-green-500" : "bg-gray-500"}`}
-                  >
-                    {item.available ? (
-                      <Check strokeWidth={3} size={16} />
-                    ) : (
-                      <X strokeWidth={3} size={16} />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-3 mt-3">
-            <div className="whitespace-nowrap font-semibold text-xl">
-              Review
-            </div>
-            <div className="border-b w-full"></div>
-          </div>
-          <div className="pt-2 pb-4 w-full">
-            <div className="w-full flex flex-col gap-3">
-              {reviewList.map((itm) => (
-                <div
-                  key={`rev-${itm._id}`}
-                  className="cust-review p-3 flex gap-3 items-start border rounded-lg"
-                >
-                  <div className="h-[60px] w-[60px] rounded-md overflow-hidden bg-gray-200">
-                    {!!itm.user?.profilePic ? (
-                      <PhotoViewer src={itm.user?.profilePic}>
-                        <img
-                          alt="React Rendezvous"
-                          loading="lazy"
-                          decoding="async"
-                          data-nimg="1"
-                          className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-[1/1] cursor-pointer"
-                          src={itm.user?.profilePic}
-                        />
-                      </PhotoViewer>
-                    ) : (
-                      <div className="flex w-full h-full items-center justify-center">
-                        {StringHelper.getInitials(itm.user?.firstName || "")}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="flex gap-2 items-end">
-                      <div className="cust-name text-lg font-medium">
-                        {itm.user?.firstName} {itm.user?.lastName}
-                      </div>
-                      <div className="cust-name text-xs text-gray-500 pb-1">
-                        {dayjs(itm.createdAt).format("DD MMM, YYYY hh:mm A")}
-                      </div>
-                    </div>
-
-                    <ReviewStar rate={itm.rate || 0} />
-
-                    {!!itm.review?.trim().length && (
-                      <div className="text-gray-500 text-sm mt-1">
-                        {itm.review}
-                      </div>
-                    )}
-
-                    {!!itm.images.length && (
-                      <div className="flex gap-3 mt-1">
-                        {itm.images.map((imgUrl, i) => (
-                          <div
-                            key={`${itm._id}-img-${i}`}
-                            className="h-[40px] w-[40px] rounded-md"
-                          >
-                            <PhotoViewer src={imgUrl}>
+                        <div className="h-[60px] w-[60px] rounded-md overflow-hidden bg-gray-200">
+                          {!!itm.user?.profilePic ? (
+                            <PhotoViewer src={itm.user?.profilePic}>
                               <img
                                 alt="React Rendezvous"
                                 loading="lazy"
                                 decoding="async"
                                 data-nimg="1"
                                 className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-[1/1] cursor-pointer"
-                                src={imgUrl}
+                                src={itm.user?.profilePic}
                               />
                             </PhotoViewer>
+                          ) : (
+                            <div className="flex w-full h-full items-center justify-center">
+                              {StringHelper.getInitials(itm.user?.firstName || "")}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <div className="flex gap-2 items-end">
+                            <div className="cust-name text-lg font-medium">
+                              {itm.user?.firstName} {itm.user?.lastName}
+                            </div>
+                            <div className="cust-name text-xs text-gray-500 pb-1">
+                              {dayjs(itm.createdAt).format("DD MMM, YYYY hh:mm A")}
+                            </div>
                           </div>
-                        ))}
+
+                          <ReviewStar rate={boundedRate} />
+
+                          {!!itm.review?.trim().length && (
+                            <div className="text-gray-500 text-sm mt-1">
+                              {itm.review}
+                            </div>
+                          )}
+
+                          {!!itm.images.length && (
+                            <div className="flex gap-3 mt-1">
+                              {itm.images.map((imgUrl, i) => (
+                                <div
+                                  key={`${itm._id}-img-${i}`}
+                                  className="h-[40px] w-[40px] rounded-md"
+                                >
+                                  <PhotoViewer src={imgUrl}>
+                                    <img
+                                      alt="React Rendezvous"
+                                      loading="lazy"
+                                      decoding="async"
+                                      data-nimg="1"
+                                      className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-[1/1] cursor-pointer"
+                                      src={imgUrl}
+                                    />
+                                  </PhotoViewer>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
+                    );
+                  })}
+                  {showMore && (
+                    <Button
+                      onClick={() =>
+                        getMoreReview(result?.user?.foodTruck?._id || "", page)
+                      }
+                    >
+                      Load more
+                    </Button>
+                  )}
                 </div>
-              ))}
-              {showMore && (
-                <Button
-                  onClick={() =>
-                    getMoreReview(result?.user?.foodTruck?._id || "", page)
-                  }
-                >
-                  Load more
-                </Button>
-              )}
-            </div>
-          </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </>
       )}
 

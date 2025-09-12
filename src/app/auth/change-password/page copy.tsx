@@ -1,0 +1,148 @@
+"use client";
+import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { Controller, useForm } from "react-hook-form";
+import * as z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { userApiService } from "@/services/user-api-service";
+import { toast } from "sonner";
+import { LoadingButton } from "@/components/loading-button";
+
+export default function Page() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+  const [loadingPassword, setLoadingPassword] = useState<boolean>(false);
+
+  const passwordFormSchema = z
+    .object({
+      password: z.string().min(8, "Password must be at least 8 characters"),
+      confirmPassword: z.string(),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: "Passwords don't match",
+      path: ["confirmPassword"],
+    });
+
+   const {
+    register: passwordRegister,
+    handleSubmit: handleSubmitPassword,
+    formState: formStatePassword,
+    getValues: getValuePassword,
+  } = useForm<z.infer<typeof passwordFormSchema>>({
+    resolver: zodResolver(passwordFormSchema),
+  });
+
+  const onSubmitPassword = (data: z.infer<typeof passwordFormSchema>) => {
+    const { password, confirmPassword } = data;
+    console.log(data);
+    setLoadingPassword(true);
+    if (!token) {
+      toast.error("Invalid or missing token.");
+      return;
+    }
+    
+    userApiService
+    .changePassword({
+      password: data.password,
+      token: token
+    })
+      .then((res) => {
+        const message = res.data?.message || "Password updated.";
+        toast.success(message);
+        // toast.success("Password updated.");
+      })
+      .catch((e) => {
+        console.log(e);
+        const errorMsg = e.response?.data?.message || "Something went wrong";
+        toast.error(errorMsg);
+        // toast.error("Something went wrong");
+      })
+      .finally(() => {
+        setLoadingPassword(false);
+      });
+  };
+
+  return (
+    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+      <div className="w-full max-w-sm">
+        <div className={cn("flex flex-col gap-6")}>
+          <Card className="overflow-hidden rounded-md">
+            <CardHeader className="p-0">
+              <CardTitle className="text-2xl px-6 pt-9 pb-5 rounded-b-3xl bg-primary flex justify-center">
+                <svg
+                  width="175"
+                  height="15"
+                  viewBox="0 0 175 15"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12.163 14.336H9.80299C9.33632 13.576 8.86966 12.8093 8.40299 12.036C7.62966 10.796 7.16966 10.1427 7.02299 10.076C6.94299 10.1293 6.50966 10.4627 5.72299 11.076C3.26966 13.0227 1.44966 14.1093 0.262988 14.336V0.0160089H11.743C11.823 0.0160089 11.863 0.0493422 11.863 0.116009C11.863 0.862675 11.5697 1.93601 10.983 3.33601C10.5697 4.32268 10.023 5.44934 9.34299 6.71601C8.75632 7.80934 8.46299 8.34934 8.46299 8.33601C8.46299 8.41601 9.69632 10.416 12.163 14.336ZM9.24299 2.15601H2.40299V11.016C3.96299 10.0027 5.36299 8.71601 6.60299 7.15601C7.93632 5.48934 8.81632 3.82268 9.24299 2.15601ZM24.5296 14.356C21.5029 13.356 18.8829 11.5093 16.6696 8.81601C14.4029 6.06934 13.1429 3.13601 12.8896 0.0160089H24.5096V2.13601H15.4496L16.3296 4.27601H24.5096L24.5296 6.27601H17.4296C19.0296 8.80934 21.3963 10.7627 24.5296 12.136V14.356ZM37.7121 0.0160089V2.13601H29.6721C29.2988 2.13601 28.9655 2.22934 28.6721 2.41601C28.3521 2.64268 28.1921 2.93601 28.1921 3.29601C28.1921 3.94934 28.7188 4.27601 29.7721 4.27601H36.8721C37.2855 4.27601 37.4921 4.44934 37.4921 4.79601C37.4921 5.42268 37.0521 6.39601 36.1721 7.71601C34.9988 9.50268 33.5521 10.976 31.8321 12.136C29.9921 13.376 28.0655 14.1027 26.0521 14.316V12.136C26.8921 12.136 27.8455 11.876 28.9121 11.356C29.7921 10.9427 30.8721 10.2293 32.1521 9.21601C33.6988 8.00268 34.4721 7.09601 34.4721 6.49601C34.4721 6.41601 34.4321 6.34268 34.3521 6.27601H28.9721C28.1721 6.27601 27.4855 5.97601 26.9121 5.37601C26.3388 4.77601 26.0521 4.06934 26.0521 3.25601C26.0521 2.41601 26.3721 1.66934 27.0121 1.01601C27.6521 0.349342 28.3988 0.0160089 29.2521 0.0160089H37.7121ZM50.4844 14.356C47.4577 13.356 44.8377 11.5093 42.6244 8.81601C40.3577 6.06934 39.0977 3.13601 38.8444 0.0160089H50.4644V2.13601H41.4044L42.2844 4.27601H50.4644L50.4844 6.27601H43.3844C44.9844 8.80934 47.351 10.7627 50.4844 12.136V14.356ZM61.6869 2.13601H57.8069L57.8269 14.316H55.6869V2.13601H51.8069V0.0160089H61.6869V2.13601ZM81.904 0.0160089C80.5707 5.10934 77.5574 8.86268 72.864 11.276V14.336H70.764V0.0160089H81.904ZM78.924 2.15601H72.864V8.87601C74.144 8.14268 75.3174 7.17601 76.384 5.97601C77.464 4.77601 78.3107 3.50268 78.924 2.15601ZM94.7489 14.316H92.6289V6.25601H86.2489C85.5289 8.20268 85.1756 10.8893 85.1889 14.316H83.0289V12.156C83.0289 10.4893 83.3023 8.75601 83.8489 6.95601C84.3823 5.20934 85.1156 3.60934 86.0489 2.15601H83.0889V0.0160089H94.7489V14.316ZM92.6289 4.27601V2.15601H88.6689C88.3223 2.46268 88.0489 2.80268 87.8489 3.17601C87.6489 3.53601 87.4489 3.90268 87.2489 4.27601H92.6289ZM108.33 0.0160089V2.13601H100.29C99.9171 2.13601 99.5837 2.22934 99.2904 2.41601C98.9704 2.64268 98.8104 2.93601 98.8104 3.29601C98.8104 3.94934 99.3371 4.27601 100.39 4.27601H107.49C107.904 4.27601 108.11 4.44934 108.11 4.79601C108.11 5.42268 107.67 6.39601 106.79 7.71601C105.617 9.50268 104.17 10.976 102.45 12.136C100.61 13.376 98.6837 14.1027 96.6704 14.316V12.136C97.5104 12.136 98.4637 11.876 99.5304 11.356C100.41 10.9427 101.49 10.2293 102.77 9.21601C104.317 8.00268 105.09 7.09601 105.09 6.49601C105.09 6.41601 105.05 6.34268 104.97 6.27601H99.5904C98.7904 6.27601 98.1037 5.97601 97.5304 5.37601C96.9571 4.77601 96.6704 4.06934 96.6704 3.25601C96.6704 2.41601 96.9904 1.66934 97.6304 1.01601C98.2704 0.349342 99.0171 0.0160089 99.8704 0.0160089H108.33ZM121.523 0.0160089V2.13601H113.483C113.109 2.13601 112.776 2.22934 112.483 2.41601C112.163 2.64268 112.003 2.93601 112.003 3.29601C112.003 3.94934 112.529 4.27601 113.583 4.27601H120.683C121.096 4.27601 121.303 4.44934 121.303 4.79601C121.303 5.42268 120.863 6.39601 119.983 7.71601C118.809 9.50268 117.363 10.976 115.643 12.136C113.803 13.376 111.876 14.1027 109.863 14.316V12.136C110.703 12.136 111.656 11.876 112.723 11.356C113.603 10.9427 114.683 10.2293 115.963 9.21601C117.509 8.00268 118.283 7.09601 118.283 6.49601C118.283 6.41601 118.243 6.34268 118.163 6.27601H112.783C111.983 6.27601 111.296 5.97601 110.723 5.37601C110.149 4.77601 109.863 4.06934 109.863 3.25601C109.863 2.41601 110.183 1.66934 110.823 1.01601C111.463 0.349342 112.209 0.0160089 113.063 0.0160089H121.523ZM136.675 0.0160089V14.316H134.555C132.715 12.7293 131.282 11.0827 130.255 9.37601C129.122 11.376 127.562 13.0227 125.575 14.316H123.455L123.475 0.0160089H125.595V11.536C127.422 10.136 128.582 8.64268 129.075 7.05601C128.222 4.93601 127.782 2.58934 127.755 0.0160089H129.855V0.316009C129.828 2.28934 130.248 4.31601 131.115 6.39601C131.982 8.46268 133.128 10.1827 134.555 11.556L134.535 0.0160089H136.675ZM148.05 4.77601C148.05 6.08268 147.584 7.20934 146.65 8.15601C145.717 9.08934 144.597 9.55601 143.29 9.55601C141.984 9.55601 140.857 9.08934 139.91 8.15601C138.977 7.20934 138.51 6.08268 138.51 4.77601C138.51 3.45601 138.977 2.33601 139.91 1.41601C140.844 0.482675 141.97 0.0160089 143.29 0.0160089C144.61 0.0160089 145.73 0.482675 146.65 1.41601C147.584 2.33601 148.05 3.45601 148.05 4.77601ZM147.65 14.316H138.91V12.196H147.65V14.316ZM145.93 4.77601C145.93 4.05601 145.67 3.43601 145.15 2.91601C144.63 2.38268 144.01 2.11601 143.29 2.11601C142.57 2.11601 141.95 2.37601 141.43 2.89601C140.91 3.41601 140.65 4.04268 140.65 4.77601C140.65 5.49601 140.91 6.11601 141.43 6.63601C141.95 7.15601 142.57 7.41601 143.29 7.41601C144.01 7.41601 144.63 7.15601 145.15 6.63601C145.67 6.10268 145.93 5.48268 145.93 4.77601ZM161.198 14.316H158.878L155.758 8.67601C154.625 9.67601 153.378 10.5227 152.018 11.216V14.316H149.878V0.0160089H161.038C160.212 2.73601 158.972 5.07601 157.318 7.03601L161.198 14.316ZM158.038 2.13601H152.018V8.83601C154.698 7.28934 156.705 5.05601 158.038 2.13601ZM174.534 0.0160089C174.214 3.14934 172.947 6.06934 170.734 8.77601C168.534 11.4827 165.934 13.3293 162.934 14.316V0.0160089H174.534ZM171.974 2.13601H165.034V11.016C166.781 9.96268 168.214 8.69601 169.334 7.21601C170.401 5.82934 171.281 4.13601 171.974 2.13601Z"
+                    fill="white"
+                  />
+                </svg>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-center p-4">
+                <img src="/logo-tree.png" className="w-[120px]"/>
+              </div>
+              <form  onSubmit={handleSubmitPassword(onSubmitPassword)}>
+              <div className="flex flex-col gap-6">
+                  <div className="grid gap-2">
+                    <div className="flex items-center">
+                      <Label htmlFor="password">New Password</Label>
+                    </div> 
+                    <Input
+                      type="password"
+                      required
+                      {...passwordRegister("password")}
+                      placeholder="New Password"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <div className="flex items-center">
+                      <Label htmlFor="password">Confirm Password</Label>
+                    </div>
+                    <Input
+                      type="password"
+                      required
+                      {...passwordRegister("confirmPassword")}
+                      placeholder="Confirm Password"
+                    />
+                  </div>
+                  <LoadingButton
+                    isLoading={loadingPassword}
+                    disabled={!formStatePassword.isValid || loadingPassword}
+                    type="submit"
+                  >
+                    Reset Password
+                  </LoadingButton>
+                  {/* <Button type="submit" variant="default" className="w-full">
+                    Reset Password
+                  </Button> */}
+                </div>
+                {/* <div className="mt-4 text-center text-sm">
+                  Go to{" "}
+                  <a
+                    className="underline underline-offset-4 cursor-pointer"
+                    onClick={() => router.push("/auth")}
+                  >
+                    Login
+                  </a>
+                </div> */}
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}

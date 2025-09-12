@@ -78,6 +78,22 @@ class UserApiService extends BaseAPI {
       },
     );
   }
+
+  
+
+  forgotPassword(data: { email: string; userType: string; forFe?: boolean }) {
+    return this.post<IResponse<boolean>>(`${APIEndpoint.AUTH}/forgot-password`, data);
+  }
+
+  changePassword(data: { password: string; token: string }) {
+    return this.post<IResponse<boolean>>(`${APIEndpoint.AUTH}/change-password`, data);
+  }
+
+  checkToken(data: { token: string }) {
+    return this.get<IResponse<boolean>>(`${APIEndpoint.AUTH}/validate-change-password-token`, {
+      params: data, // <--- send as query
+    });
+  }
 }
 
 export const userApiService = new UserApiService();

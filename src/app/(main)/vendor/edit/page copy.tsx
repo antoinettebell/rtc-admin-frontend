@@ -3,8 +3,6 @@ import { ArrowLeft, SquareUserRound } from "lucide-react";
 import * as React from "react";
 import { useState } from "react";
 import { userApiService } from "@/services/user-api-service";
-import { fileApiService } from "@/services/file-api-service";
-
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -39,10 +37,7 @@ export default function VendorDetail() {
   const [vendorLoading, setVendorLoading] = useState<boolean>(false);
   const [loadingFT, setLoadingFT] = useState<boolean>(false);
   const [loadingPassword, setLoadingPassword] = useState<boolean>(false);
-  const [previewFtLogo, setPreviewFtLogo] = useState<string>("");
-  const [ftFile, setFtFile] = useState<File | null>(null);
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [previewPhotos, setPreviewPhotos] = useState<string[]>([]);
+
   if (!id) {
     return 404;
   }
@@ -64,9 +59,6 @@ export default function VendorDetail() {
   const ftFormSchema = z.object({
     name: z.string().min(2),
     infoType: z.string().min(1),
-    logo: z.string().optional(),
-    ssn: z.string().optional(),
-    ein: z.string().optional(),
   });
 
   // const passwordFormSchema = z
@@ -149,111 +141,23 @@ export default function VendorDetail() {
       });
   };
 
-
-  const onSubmitFT = async (data: z.infer<typeof ftFormSchema>) => {
+  const onSubmitFT = (data: z.infer<typeof ftFormSchema>) => {
     if (!result?.user?.foodTruck?._id) return;
-
-    const { name, infoType,ssn,ein } = data;
+    const { name, infoType } = data;
     setLoadingFT(true);
-
-    try {
-      let logoUrl = null;
-      if (ftFile) {
-        const uploadRes = await fileApiService.upload(ftFile);
-        logoUrl = uploadRes?.data?.data?.file || uploadRes?.path;
-      }
-
-      // ✅ Upload new photos
-      let newPhotoUrls: string[] = [];
-      if (photos.length > 0) {
-        const uploaded = await Promise.all(
-          photos.map((file) => fileApiService.upload(file))
-        );
-        newPhotoUrls = uploaded
-          .map((u) => u?.data?.data?.file || u?.path)
-          .filter(Boolean);
-      }
-      let existingPhotos: string[] = [];
-      if (result?.user?.foodTruck?.photos?.length) {
-        // Keep only those that are still in previewPhotos (not removed)
-        existingPhotos = result.user.foodTruck.photos.filter((p: string) =>
-          previewPhotos.includes(p)
-        );
-      } else {
-        // No existing photos, use previewPhotos as base
-        existingPhotos = [...previewPhotos];
-      }
-      // ✅ Merge existing + newly uploaded
-      const finalPhotos = [...existingPhotos, ...newPhotoUrls];
-      console.log("finalPhotos", finalPhotos);
-      await foodTruckApiService.update(result?.user?.foodTruck?._id.toString(), {
-        name,
-        infoType,
-        ssn,
-        ein,
-        ...(logoUrl ? { logo: logoUrl } : {}),
-        photos: finalPhotos,
+    foodTruckApiService
+      .update(result?.user?.foodTruck?._id?.toString(), { name, infoType })
+      .then((res) => {
+        toast.success("Food truck details updated.");
+      })
+      .catch((e) => {
+        console.log(e);
+        toast.error("Something went wrong");
+      })
+      .finally(() => {
+        setLoadingFT(false);
       });
-
-      toast.success("Food truck details updated.");
-      refetch();
-    } catch (e) {
-      console.error(e);
-      toast.error("Something went wrong");
-    } finally {
-      setLoadingFT(false);
-    }
   };
-  // const onSubmitFT = async (data: z.infer<typeof ftFormSchema>) => {
-  //   if (!result?.user?.foodTruck?._id) return;
-  
-  //   const { name, infoType } = data;
-  //   setLoadingFT(true);
-  
-  //   try {
-  //     let logoUrl = null;
-  
-  //     if (ftFile) {
-  //       const uploadRes = await fileApiService.upload(ftFile);
-  //       logoUrl = uploadRes?.data?.data?.file || uploadRes?.path;
-  //     }
-  
-  //     // ✅ Update food truck details
-  //     await foodTruckApiService.update(result?.user?.foodTruck?._id.toString(), {
-  //       name,
-  //       infoType,
-  //       ...(logoUrl ? { logo: logoUrl } : {}),
-  //     });
-  
-  //     toast.success("Food truck details updated.");
-  //     // Optionally refetch updated data
-  //     refetch();
-  //   } catch (e) {
-  //     console.error(e);
-  //     toast.error("Something went wrong");
-  //   } finally {
-  //     setLoadingFT(false);
-  //   }
-  // };
-  
-
-  // const onSubmitFT = (data: z.infer<typeof ftFormSchema>) => {
-  //   if (!result?.user?.foodTruck?._id) return;
-  //   const { name, infoType ,logo} = data;
-  //   setLoadingFT(true);
-  //   foodTruckApiService
-  //     .update(result?.user?.foodTruck?._id?.toString(), { name,infoType })
-  //     .then((res) => {
-  //       toast.success("Food truck details updated.");
-  //     })
-  //     .catch((e) => {
-  //       console.log(e);
-  //       toast.error("Something went wrong");
-  //     })
-  //     .finally(() => {
-  //       setLoadingFT(false);
-  //     });
-  // };
 
   // const onSubmitPassword = (data: z.infer<typeof passwordFormSchema>) => {
   //   const { password, confirmPassword } = data;
@@ -279,7 +183,7 @@ export default function VendorDetail() {
         userType: data.userType,
         forFe: true,
       }).then(() => {
-        toast.success("Password reset link has been sent to vendor registered email.");
+        toast.success("Password reset link has been sent to your registered email.");
       }).catch((e) => {
         console.error(e);
         toast.error("Unable to send password reset link. Please try again later.");
@@ -322,14 +226,7 @@ export default function VendorDetail() {
         setValueFT({
           name: userRes?.data?.data?.user?.foodTruck?.name,
           infoType: userRes?.data?.data?.user?.foodTruck?.infoType,
-          logo: userRes?.data?.data?.user?.foodTruck?.logo || "",
-          ssn: userRes?.data?.data?.user?.foodTruck?.ssn,
-          ein: userRes?.data?.data?.user?.foodTruck?.ein,
-
-
-
         });
-        setPreviewPhotos(userRes?.data?.data?.user?.foodTruck?.photos || []);
         return {
           ...(userRes?.data.data || {}),
           // categoryList: categoryRes.data.data.records,
@@ -484,141 +381,6 @@ export default function VendorDetail() {
             </div>
             <form onSubmit={handleSubmitFT(onSubmitFT)}>
               <div className="px-1 pt-2 w-full">
-
-
-              <div className="mb-6 mt-4">
-              <p className="text-sm font-semibold mb-2">Change Logo</p>
-              <div className="flex items-center gap-4">
-                <div className="w-[100px] h-[100px] rounded-full overflow-hidden border">
-                  {previewFtLogo ? (
-                    <img
-                      src={previewFtLogo}
-                      alt="logo"
-                      className="w-full h-full object-cover"
-                      suppressHydrationWarning
-                    />
-                  ) : result?.user?.foodTruck?.logo ? (
-                    <img
-                      src={result.user.foodTruck.logo}
-                      alt="logo"
-                      className="w-full h-full object-cover"
-                      suppressHydrationWarning
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400">
-                      <SquareUserRound size={40} />
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    id="logoUpload"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setFtFile(e.target.files[0]);
-                        setPreviewFtLogo(URL.createObjectURL(e.target.files[0]));
-                      }
-                    }}
-                  />
-                  <label
-                    htmlFor="logoUpload"
-                    className="px-4 py-2 border rounded-lg flex items-center gap-2 cursor-pointer hover:bg-gray-50"
-                  >
-                    Upload Logo
-                  </label>
-                </div>
-              </div>
-            </div>
-              {/* <div className="flex items-center gap-3 mb-4">
-                    <div className="w-[100px] h-[100px] rounded-full overflow-hidden border">
-                      {previewFtLogo ? (
-                        <img
-                          src={previewFtLogo}
-                          alt="logo"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : result.user.foodTruck?.logo ? (
-                        <img
-                          src={result.user.foodTruck?.logo}
-                          alt="logo"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-gray-400">
-                          <SquareUserRound size={40} />
-                        </div>
-                      )}
-                    </div>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setFtFile(e.target.files[0]); // store file
-                            setPreviewFtLogo(URL.createObjectURL(e.target.files[0])); // show preview
-                          }
-                        }}
-                      />
-                  </div> */}
-                  <div className="mb-6">
-              <p className="text-sm font-semibold mb-2">Change Food Truck Photos</p>
-              <div className="flex items-center gap-3 flex-wrap">
-                {previewPhotos.map((photo, idx) => (
-                  <div
-                    key={idx}
-                    className="relative w-[90px] h-[90px] rounded-md overflow-hidden border"
-                  >
-                    <img
-                      src={photo}
-                      alt={`photo-${idx}`}
-                      className="w-full h-full object-cover"
-                      suppressHydrationWarning
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPreviewPhotos((prev) => prev.filter((_, i) => i !== idx));
-                        setPhotos((prev) =>
-                          prev.filter((_, i) => i !== idx - (result?.user?.foodTruck?.photos?.length || 0))
-                        );
-                      }}
-                      className="absolute top-1 right-1 bg-orange-500 rounded-full p-1 text-white text-xs"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-                <div className="w-[90px] h-[90px] flex items-center justify-center border rounded-md cursor-pointer hover:bg-gray-50">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    id="photoUpload"
-                    onChange={(e) => {
-                      if (e.target.files) {
-                        const files = Array.from(e.target.files);
-                        setPhotos((prev) => [...prev, ...files]);
-                        setPreviewPhotos((prev) => [
-                          ...prev,
-                          ...files.map((f) => URL.createObjectURL(f)),
-                        ]);
-                      }
-                    }}
-                  />
-                  <label
-                    htmlFor="photoUpload"
-                    className="text-orange-500 text-2xl font-bold cursor-pointer"
-                  >
-                    +
-                  </label>
-                </div>
-              </div>
-            </div>  
                 <div className="w-full flex gap-3">
                   <div className="w-full mb-2">
                     <div className="text-sm font-semibold pb-1">Name</div>
@@ -646,17 +408,6 @@ export default function VendorDetail() {
                         </Select>
                       )}
                     />
-                  </div>
-                  </div>
-                  <div className="w-full flex gap-3">
-
-                  <div className="w-full mb-2">
-                    <div className="text-sm font-semibold pb-1">Ssn</div>
-                    <Input placeholder="ssn" {...ftRegister("ssn")} />
-                  </div>
-                  <div className="w-full mb-2">
-                    <div className="text-sm font-semibold pb-1">Ein</div>
-                    <Input placeholder="ein" {...ftRegister("ein")} />
                   </div>
                 </div>
                 <div className="w-full flex justify-end mt-2">
