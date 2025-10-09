@@ -6,6 +6,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import {
+  UtensilsCrossed,
   Cog,
   Home,
   ListOrdered,
@@ -47,6 +48,12 @@ const navMain = [
     title: "Diets",
     url: "/diet",
     icon: Salad,
+    items: [],
+  },
+   {
+    title: "Categories",
+    url: "/categories",
+    icon: UtensilsCrossed,
     items: [],
   },
   {
