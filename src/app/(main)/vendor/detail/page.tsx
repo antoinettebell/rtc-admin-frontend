@@ -137,6 +137,12 @@ export default function VendorDetail() {
                 "accountNumber",
                 "routingNumber",
                 "accountType",
+                "remittanceEmail",
+                "currency",
+                "swiftCode",
+                "iban",
+                "paymentMethod",
+
               ] as (keyof typeof userAny.bankDetail)[],
               secretKey,
             );

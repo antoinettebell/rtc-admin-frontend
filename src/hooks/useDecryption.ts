@@ -8,6 +8,11 @@ export interface BankDetails {
   bankName: string;
   accountNumber: string;
   routingNumber: string;
+  remittanceEmail: string;
+  currency: string;
+  swiftCode: string;
+  iban: string;
+  paymentMethod: string;
   accountType: "CHECKING" | "SAVINGS";
   createdAt?: string;
   updatedAt?: string;
@@ -82,6 +87,11 @@ export function useBankDetailsDecryption(bankDetails: BankDetails | null) {
     "accountNumber",
     "routingNumber",
     "accountType",
+    "remittanceEmail",
+    "currency",
+    "swiftCode",
+    "iban",
+    "paymentMethod",
   ];
 
   return useDecryption(bankDetails, fieldsToDecrypt, secretKey);
