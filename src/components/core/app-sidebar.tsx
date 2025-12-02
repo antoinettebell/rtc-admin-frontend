@@ -14,6 +14,8 @@ import {
   Soup,
   SquareUserRound,
   TicketPercent,
+  TrendingUp ,
+  ReceiptText ,
   User2,
 } from "lucide-react";
 import { NavMain } from "@/components/core/nav-main";
@@ -60,6 +62,12 @@ const navMain = [
     title: "Orders",
     url: "/order",
     icon: ListOrdered,
+    items: [],
+  },
+   {
+    title: "Payment Transactions",
+    url: "/transactions",
+    icon: ReceiptText  ,
     items: [],
   },
   {
