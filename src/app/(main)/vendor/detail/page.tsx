@@ -284,7 +284,7 @@ export default function VendorDetail() {
               <TabsTrigger value="gallery" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Photo Gallery</TabsTrigger>
               <TabsTrigger value="menu-categories" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Menu Categories</TabsTrigger>
               <TabsTrigger value="menu-items" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Menu Items</TabsTrigger>
-              <TabsTrigger value="bank" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Bank Details</TabsTrigger>
+              {/* <TabsTrigger value="bank" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Bank Details</TabsTrigger> */}
               <TabsTrigger value="locations" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Locations</TabsTrigger>
               <TabsTrigger value="availability" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Availability</TabsTrigger>
               <TabsTrigger value="business-hours" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Business Hours</TabsTrigger>
