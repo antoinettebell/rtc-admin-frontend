@@ -33,6 +33,7 @@ export default function Transactions() {
   const [searchTerm, setSearchTerm] = useState("");
   const [status, setStatus] = useState<any>(null);
   const [exporting, setExporting] = useState(false);
+  const [transactionsType, setTransactionType] = useState<any>(null);
 
   const [startDate, setStartDate] = useState<any>(null);
   const [endDate, setEndDate] = useState<any>(null);
@@ -40,13 +41,16 @@ export default function Transactions() {
   // --- INIT FROM URL ---
   useEffect(() => {
     const st = searchParams.get("status");
+    const TT = searchParams.get("transactionsType");
+
     const sd = searchParams.get("startDate");
     const ed = searchParams.get("endDate");
 
     if (st === "true") setStatus(true);
     else if (st === "false") setStatus(false);
     else setStatus(null);
-
+    
+    setTransactionType(TT === "ALL" || TT === null ? null : TT);
     setStartDate(sd || null);
     setEndDate(ed || null);
   }, [searchParams]);
@@ -60,9 +64,10 @@ export default function Transactions() {
     if (status !== null) params.set("status", String(status));
     if (startDate) params.set("startDate", startDate);
     if (endDate) params.set("endDate", endDate);
+     params.set("transactionsType", transactionsType ?? "ALL");
 
     router.replace(`/transactions?${params.toString()}`);
-  }, [pagination, status, startDate, endDate]);
+  }, [pagination, status,transactionsType, startDate, endDate]);
 
   // --- API CALL ---
   const { data: result, isFetching } = useQuery({
@@ -72,6 +77,7 @@ export default function Transactions() {
       pagination.limit,
       searchTerm,
       status,
+      transactionsType,
       startDate,
       endDate,
     ],
@@ -81,6 +87,7 @@ export default function Transactions() {
         pagination.page,
         pagination.limit,
         status,
+        transactionsType,
         startDate,
         endDate
       ),
@@ -111,14 +118,16 @@ export default function Transactions() {
       .then((res) => {
         const rows = res.data.data.records;
         const data = rows.map((x) => ({
-          userId:  x.userId,
+          userId:  x?.userId,
           Customer: `${x?.user?.firstName || ""} ${x?.user?.lastName || ""}`,
           Email: x?.user?.email,
           Amount: x.amount,
-          Invoice: x.invoiceNumber,
+          Invoice: x?.invoiceNumber ||"N/A",
           OrderId: x.orderId || "N/A",
           transactionId: x.transactionId || "N/A",
-          Method: x.paymentMethod,
+          TransactionType:getTypeLabel(x.type),
+          RefundID:(x.type === "REFUND" ? x.uniqueId + (" (" + x.response_type + ")") : "-"),
+          Method: x?.paymentMethod || "N/A",
           Status: x.success ? "SUCCESS" : "FAILED",
           Error: x.success ? "-" : x.errorMessage,
           CreatedAt: dayjs(x.createdAt).format("YYYY-MM-DD HH:mm"),
@@ -132,56 +141,26 @@ export default function Transactions() {
       .finally(() => setExporting(false));
   };
 
-  // --- TABLE COLUMNS ---
-  // const columns: Column<any>[] = [
-  //   {
-  //     header: "Customer",
-  //     accessor: (d) => (
-  //       <NameDetail
-  //         name={`${d?.user?.firstName || ""} ${d?.user?.lastName || ""}`}
-  //         email={d?.user?.email}
-  //         imgSrc={d?.user?.profilePic}
-  //       />
-  //     ),
-  //   },
-  //   { header: "Amount", accessor: (d) => `$${d.amount}` },
-  //   { header: "Invoice Number", accessor: (d) => d.invoiceNumber },
-  //   { header: "Transaction Id", accessor: (d) => d.transactionId || "N/A" },
-  //   { header: "Order ID", accessor: (d) => d.orderId || "N/A" },
-  //   { header: "Method", accessor: (d) => d.paymentMethod },
+  const typeColor = {
+  CHECKOUT: "bg-blue-600",
+  REFUND: "bg-orange-600",
+  VOID: "bg-red-600",
+  NONE: "bg-gray-500",
+};
+  const getTypeLabel = (type) => {
+  return type === "CHECKOUT" ? "PAYOUT" : type;
+};
 
-  //   {
-  //     header: "Status",
-  //     accessor: (d) => (
-  //       <span
-  //         className={`px-2 py-1 rounded text-white text-sm ${
-  //           d.success ? "bg-green-600" : "bg-red-600"
-  //         }`}
-  //       >
-  //         {d.success ? "SUCCESS" : "FAILED"}
-  //       </span>
-  //     ),
-  //   },
 
-  //   {
-  //     header: "Error",
-  //     accessor: (d) =>
-  //       d.success ? "-" : `(${d?.errorCode || ""}) ${d?.errorMessage || "-"}`,
-  //   },
 
-  //   {
-  //     header: "Created",
-  //     accessor: (d) => dayjs(d.createdAt).format("YYYY-MM-DD HH:mm"),
-  //   },
-  // ]; 
   const columns: Column<any>[] = [
       {
         header: "Name",
         fieldName: "firstName",
         accessor: (d) => (
           <NameDetail
-            name={`${d.user.firstName} ${d.user.lastName || ""}`}
-            email={d.user.email}
+            name={`${d?.user?.firstName|| ""} ${d?.user?.lastName || ""}`}
+            email={d?.user?.email||""}
             imgSrc={d?.user?.profilePic}
             avatarClassName={"object-contain"}
           />
@@ -193,7 +172,7 @@ export default function Transactions() {
       {
         header: "Invoice Number",
         fieldName: "invoiceNumber",
-        accessor: (d) => `${d.invoiceNumber}`,
+        accessor: (d) => d.invoiceNumber || "N/A",
       },
      { header: "Transaction Id",
         fieldName: "transactionId",
@@ -211,13 +190,29 @@ export default function Transactions() {
         fieldName: "amount",
         accessor: (d) => `$${d.amount}`,
       },
-  
       {
         header: "Method",
         fieldName: "paymentMethod",
-        accessor: (d) => d.paymentMethod,
+        accessor: (d) =>  (d.paymentMethod ? d.paymentMethod : "N/A"),
       },
-  
+       {
+        header: "Transactions Type",
+        fieldName: "type",
+        accessor: (d) => (
+          <span
+            className={`px-2 py-1 rounded text-white text-sm ${
+              typeColor[d.type] || "bg-gray-500"
+            }`}
+          >
+            {getTypeLabel(d.type)}
+          </span>
+        ),
+      },
+        {
+        header: "Refund ID (Type)",
+        fieldName: "paymentMethod",
+        accessor: (d) =>  (d.type === "REFUND" ? d.uniqueId + (" (" + d.response_type + ")") : "-"),
+      },
       {
         header: "Status",
         fieldName: "success",
@@ -267,9 +262,31 @@ export default function Transactions() {
 
       <SelectContent>
         <SelectGroup>
-          <SelectItem value="null">All</SelectItem>
+          <SelectItem value="null">All Status</SelectItem>
           <SelectItem value="true">Success</SelectItem>
           <SelectItem value="false">Failed</SelectItem>
+        </SelectGroup>
+      </SelectContent>
+    </Select>
+  );
+
+ const transactionSelect = () => (
+    <Select
+      value={transactionsType === null ? "ALL" : transactionsType}
+      onValueChange={(val) => {
+        setTransactionType(val === "ALL" ? null : val);
+        setPagination((p) => ({ ...p, page: 1 }));
+      }}
+    >
+      <SelectTrigger className="!h-10 min-w-[140px] bg-gray-100">
+        <SelectValue placeholder="Type" />
+      </SelectTrigger>
+
+      <SelectContent>
+        <SelectGroup>
+          <SelectItem value="ALL">All Transactions</SelectItem>
+          <SelectItem value="CHECKOUT">Payout</SelectItem>
+          <SelectItem value="REFUND">Refund</SelectItem>
         </SelectGroup>
       </SelectContent>
     </Select>
@@ -537,6 +554,10 @@ const SmallGaugeChart = ({ success = 0, failed = 0 }) => {
             <div className="flex flex-col">
               {/* <label className="text-sm text-gray-600 mb-1">Status</label> */}
               {statusSelect()}
+            </div>
+             <div className="flex flex-col">
+              {/* <label className="text-sm text-gray-600 mb-1">Status</label> */}
+              {transactionSelect()}
             </div>
 
             {/* DATE FILTERS */}

@@ -11,7 +11,7 @@ class TransactionApiService extends BaseAPI {
     );
   }
 
- list(search: string, page: number, limit = 10, status: any, startDate: any, endDate: any) {
+ list(search: string, page: number, limit = 10, status: any,transactionsType:any, startDate: any, endDate: any) {
   return this.getPaginated<OrderItem>(
     `${APIEndpoint.TRANSACTION}/transaction-list`,
     "TransactionsList",
@@ -27,6 +27,9 @@ class TransactionApiService extends BaseAPI {
         // Status allow true/false/null
         ...(status !== null
           ? { status }
+          : {}),
+          ...(transactionsType !== null
+          ? { transactionsType }
           : {}),
 
         // Start date
