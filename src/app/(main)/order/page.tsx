@@ -80,17 +80,42 @@ export default function Orders() {
                   <td
                     className={`capitalize p-1 pr-1 font-semibold min-w-[100px] truncate ${inx + 1 === d.items.length ? "" : "border-b"} border-r`}
                   >
-                    {item.menuItem.name}
+                    {item?.menuItem?.name}
                   </td>
                   <td
                     className={`capitalize p-1 min-w-[100px] ${inx + 1 === d.items.length ? "" : "border-b"} border-r`}
                   >
-                    ${Number(item.menuItem.price).toFixed(2)} * {item.qty}
+                    {item?.menuItem?.discountType === "BOGOHO" ? (
+                      <div>
+                        <div>${Number(item?.menuItem?.price).toFixed(2)} * {item?.qty}</div>
+                        {item?.menuItem?.bogoItems?.map((bogoItem, bogoInx) => (
+                          <div key={bogoInx} className="text-sm text-gray-600">
+                            + ${Number(bogoItem.halfPrice).toFixed(2)} * {bogoItem.qty} (Half Price)
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span>${Number(item?.menuItem?.price).toFixed(2)} * {item?.qty}</span>
+                    )}
                   </td>
                   <td
                     className={`capitalize p-1 ${inx + 1 === d.items.length ? "" : "border-b"}`}
                   >
-                    ${Number(item.total).toFixed(2)}
+                    {item?.menuItem?.discountType === "BOGOHO" ? (
+                      <div>
+                        <div>${Number(item.total).toFixed(2)}</div>
+                        <div className="text-xs text-gray-500">
+                           + ${
+                            Number(item?.menuItem?.bogoItems?.reduce((sum, bogoItem) => sum + (bogoItem.total || 0), 0) || 0).toFixed(2)
+                          }
+                          {/* (${Number(item?.menuItem?.price * item?.qty).toFixed(2)} + ${
+                            Number(item?.menuItem?.bogoItems?.reduce((sum, bogoItem) => sum + (bogoItem.total || 0), 0) || 0).toFixed(2)
+                          }) */}
+                        </div>
+                      </div>
+                    ) : (
+                      <span>${Number(item.total).toFixed(2)}</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -105,6 +130,14 @@ export default function Orders() {
       className: "w-[150px]",
       accessor: (d) => (
         <span className="font-semibold">${Number(d.subTotal).toFixed(2)}</span>
+      ),
+    },
+     {
+      header: "Payment Processing Fee",
+      fieldName: "paymentProcessingFee",
+      className: "w-[150px]",
+      accessor: (d) => (
+        <span className="font-semibold">${Number(d?.paymentProcessingFee).toFixed(2)}</span>
       ),
     },
     {

@@ -220,99 +220,235 @@ export default function OrderDetail() {
             <div className="border-b w-full"></div>
           </div>
           <div className="pt-2 pb-4">
-            <table className="w-full">
-              <thead>
-                <tr>
-                  <th className="bg-gray-100 w-[50%] text-start p-2 pl-4">
-                    Item
-                  </th>
-                  <th className="bg-gray-100 p-2">Price</th>
-                  <th className="bg-gray-100 p-2">Quantity</th>
-                  <th className="bg-gray-100 w-[230px] pr-4 text-end">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.items.map((item, inx) => (
-                  <tr key={`orderItem-${inx}`}>
-                    <td className="text-start w-[50%] p-2 border-b pl-4">
-                      <div className="flex w-full gap-3">
-                        <div className="h-12 w-12 border rounded overflow-hidden flex items-center justify-center">
-                          {!!item.menuItem?.imgUrls[0] ? (
-                            <PhotoViewer src={item.menuItem?.imgUrls[0]}>
-                              <img
-                                className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square cursor-pointer"
-                                src={item.menuItem?.imgUrls[0]}
-                              />
-                            </PhotoViewer>
-                          ) : (
-                            <CookingPot size={30} />
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="font-medium leading-none mt-1 mb-1 w-auto truncate">
-                            <b>{item.menuItem?.name}</b>
-                          </h3>
-                          <p className="text-sm text-muted-foreground mb-1 truncate">
-                            {item.menuItem?.description}
-                          </p>
+            {result.items.map((item, inx) => (
+              <div key={`orderItem-${inx}`} className="mb-6 border rounded-lg p-4 bg-gray-50">
+                {/* Main Item Header */}
+                <div className="flex items-center gap-2 mb-3">
+                  <h4 className="font-semibold text-lg">Main Item</h4>
+                  {item.menuItem?.discountType && (
+                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">
+                      {item.menuItem.discountType} Offer
+                    </span>
+                  )}
+                </div>
+                
+                {/* Main Item */}
+                <div className="bg-white rounded-md p-3 mb-3">
+                  <div className="flex justify-between items-center">
+                    <div className="flex gap-3 flex-1">
+                      <div className="h-12 w-12 border rounded overflow-hidden flex items-center justify-center">
+                        {!!item.menuItem?.imgUrls[0] ? (
+                          <PhotoViewer src={item.menuItem?.imgUrls[0]}>
+                            <img
+                              className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square cursor-pointer"
+                              src={item.menuItem?.imgUrls[0]}
+                            />
+                          </PhotoViewer>
+                        ) : (
+                          <CookingPot size={30} />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium leading-none mt-1 mb-1">
+                          <b>{item.menuItem?.name}</b>
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-1">
+                          {item.menuItem?.description}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-8 items-center">
+                      <div className="text-center">
+                        <div className="text-sm text-gray-500">Price</div>
+                        <div className="font-medium">${Number(item.price).toFixed(2)}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm text-gray-500">Qty</div>
+                        <div className="font-medium">{item.qty}</div>
+                      </div>
+                      <div className="text-center min-w-[80px]">
+                        <div className="text-sm text-gray-500">Total</div>
+                        <div className="font-medium">${Number(item.total).toFixed(2)}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* BOGO/BOGOHO Items Section */}
+                {(item.menuItem?.discountType === 'BOGO' || item.menuItem?.discountType === 'BOGOHO') && item.menuItem?.bogoItems?.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h5 className="font-medium text-green-700">
+                        {item.menuItem.discountType === 'BOGO' ? 'Free Items (Buy One Get One)' : 'Half Price Items (Buy One Get One Half Off)'}
+                      </h5>
+                    </div>
+                    {item?.menuItem?.bogoItems.map((bogoItem, bogoInx) => (
+                      <div key={`bogoItem-${inx}-${bogoInx}`} className="bg-green-50 border border-green-200 rounded-md p-3 mb-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex gap-3 flex-1">
+                            <div className="h-12 w-12 border rounded overflow-hidden flex items-center justify-center">
+                              {!!bogoItem.imgUrls?.[0] ? (
+                                <PhotoViewer src={bogoItem.imgUrls[0]}>
+                                  <img
+                                    className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square cursor-pointer"
+                                    src={bogoItem.imgUrls[0]}
+                                  />
+                                </PhotoViewer>
+                              ) : (
+                                <CookingPot size={30} />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-medium leading-none mt-1 mb-1">
+                                <b>{bogoItem.name}</b>
+                              </h3>
+                              <p className="text-sm text-muted-foreground mb-1">
+                                {bogoItem.description}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-8 items-center">
+                            <div className="text-center">
+                              <div className="text-sm text-gray-500">Price</div>
+                              <div className="font-medium text-green-600">
+                                {item?.menuItem?.discountType === 'BOGO' ? '$0.00' : `$${Number(bogoItem?.halfPrice || bogoItem.price / 2).toFixed(2)}`}
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-sm text-gray-500">Qty</div>
+                              <div className="font-medium">{bogoItem.qty}</div>
+                            </div>
+                            <div className="text-center min-w-[80px]">
+                              <div className="text-sm text-gray-500">Total</div>
+                              <div className="font-medium text-green-600">
+                                {item?.menuItem?.discountType === 'BOGO' ? '$0.00' : `$${Number(bogoItem?.total || (bogoItem?.halfPrice || bogoItem?.price / 2) * bogoItem.qty).toFixed(2)}`}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </td>
-                    <td className="p-2 border-b text-center">
-                      ${Number(item.price).toFixed(2)}
-                    </td>
-                    <td className="p-2 border-b text-center">{item.qty}</td>
-                    <td className="p-2 border-b w-[230px] text-end pr-4">
-                      ${Number(item.total).toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-                <tr>
-                  <td colSpan={3}></td>
-                  <td className="p-2 border-b w-[230px] font-medium text-end pr-4">
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            
+            {/* Order Summary */}
+            <div className="border-t pt-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Payment Information */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-lg mb-3">Payment Information</h4>
+                  <div className="space-y-2">
                     <div className="flex justify-between">
-                      Subtotal:{" "}
-                      <b className="ml-2">
-                        ${Number(result.subTotal || 0).toFixed(2)}
-                      </b>
+                      <span className="text-gray-600">Payment Method:</span>
+                      <span className="font-medium capitalize">{result.paymentMethod || 'N/A'}</span>
                     </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td colSpan={3}></td>
-                  <td className="p-2 border-b w-[230px] font-medium text-end pr-4">
+                    {result.paymentMethod !== 'COD' && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Payment Status:</span>
+                          <span className={`font-medium capitalize ${
+                            result.paymentStatus === 'PAID' ? 'text-green-600' : 
+                            result.paymentStatus === 'PENDING' ? 'text-yellow-600' : 
+                            result.paymentStatus === 'REFUNDED' ? 'text-orange-600' : 'text-red-600'
+                          }`}>
+                            {result.paymentStatus || 'N/A'}
+                          </span>
+                        </div>
+                        {result.transactionId && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Transaction ID:</span>
+                            <span className="font-medium text-sm">{result.transactionId}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* Refund Information */}
+                  {result.paymentStatus === 'REFUNDED' && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <h5 className="font-medium text-orange-700 mb-2">Refund Details</h5>
+                      <div className="space-y-2 text-sm">
+                        {result.refundTransactionId && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Refund Transaction ID:</span>
+                            <span className="font-medium">{result.refundTransactionId}</span>
+                          </div>
+                        )}
+                        {result.refundDateTime && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Refund Date:</span>
+                            <span className="font-medium">{dayjs(result.refundDateTime).format("DD MMM, YYYY hh:mm A")}</span>
+                          </div>
+                        )}
+                        {result.refundStatus && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Refund Status:</span>
+                            <span className={`font-medium ${
+                              result.refundStatus === 'SUCCESS' ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {result.refundStatus}
+                            </span>
+                          </div>
+                        )}
+                        {result.refundMode && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Refund Mode:</span>
+                            <span className="font-medium">{result.refundMode}</span>
+                          </div>
+                        )}
+                        {result.refundReason && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Reason:</span>
+                            <span className="font-medium">{result.refundReason}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Order Total Breakdown */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-lg mb-3">Order Summary</h4>
+                  <div className="space-y-2">
                     <div className="flex justify-between">
-                      Discount:{" "}
-                      <b className="ml-2">
-                        ${Number(result.discount || 0).toFixed(2)}
-                      </b>
+                      <span className="text-gray-600">Subtotal:</span>
+                      <span className="font-medium">${Number(result.subTotal || 0).toFixed(2)}</span>
                     </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td colSpan={3}></td>
-                  <td className="p-2 border-b w-[230px] font-medium text-end pr-4">
+                    {/* {result.discount > 0 && ( */}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Discount:</span>
+                        <div className="text-right">
+                          <span className="font-medium text-green-600">-${Number(result.discount || 0).toFixed(2)}</span>
+                          {result.discountType && (
+                            <div className="text-xs text-green-600 capitalize">{result.discountType} Applied</div>
+                          )}
+                        </div>
+                      </div>
+                    {/* // )} */}
                     <div className="flex justify-between">
-                      Tax:{" "}
-                      <b className="ml-2">
-                        ${Number(result.taxAmount || 0).toFixed(2)}
-                      </b>
+                      <span className="text-gray-600">Tax:</span>
+                      <span className="font-medium">${Number(result.taxAmount || 0).toFixed(2)}</span>
                     </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td colSpan={3}></td>
-                  <td className="p-2 border-b w-[230px] font-medium text-end pr-4">
-                    <div className="flex justify-between">
-                      Total:{" "}
-                      <b className="ml-2">
-                        ${Number(result.total || 0).toFixed(2)}
-                      </b>
+                    {result.paymentProcessingFee > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Processing Fee:</span>
+                        <span className="font-medium">${Number(result.paymentProcessingFee || 0).toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="border-t pt-2 mt-2">
+                      <div className="flex justify-between">
+                        <span className="font-semibold text-lg">Total:</span>
+                        <span className="font-semibold text-lg">${Number(result.total || 0).toFixed(2)}</span>
+                      </div>
                     </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </>
       )}
