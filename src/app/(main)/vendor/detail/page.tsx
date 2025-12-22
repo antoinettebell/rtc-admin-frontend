@@ -293,7 +293,7 @@ export default function VendorDetail() {
 
             <TabsContent value="profile">
               <div className="flex flex-wrap gap-4 mb-4">
-                <div
+                 {/* <div
                   className="border w-fit rounded-xl p-1"
                   style={
                     planColor
@@ -359,7 +359,165 @@ export default function VendorDetail() {
                       </p>
                     </div>
                   </div>
+                </div> */}
+                <div className="relative overflow-hidden rounded-xl border shadow-lg bg-white">
+                  {/* Plan Header */}
+                  <div 
+                    className="px-4 py-2 text-center"
+                    style={{
+                      background: planColor || '#6B7280',
+                    }}
+                  >
+                    <div className="text-lg font-bold text-white">
+                      {result?.user.foodTruck?.plan?.name || "No Plan"}
+                    </div>
+                  </div>
+                  
+                  {/* Main Content */}
+                  <div className="p-4">
+                    <div className="flex gap-4">
+                      {/* Avatar Section */}
+                      <div className="flex-shrink-0">
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-md">
+                          <SquareUserRound size={32} className="text-white" />
+                        </div>
+                      </div>
+                      
+                      {/* Info Section */}
+                      <div className="flex-1 min-w-0">
+                        <div className="mb-3">
+                          <h3 className="text-xl font-bold text-gray-900 mb-1">
+                            {`${result?.user.firstName || ""} ${result?.user.lastName || ""}`.trim() || "N/A"}
+                          </h3>
+                          <p className="text-sm text-gray-500">Vendor</p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <span className="text-sm text-gray-600">Food Truck:</span>
+                            <span className="text-sm font-semibold text-gray-900">
+                              {result.user.foodTruck?.name || "N/A"}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <span className="text-sm text-gray-600">Type:</span>
+                            <span className="text-sm font-semibold text-gray-900 capitalize">
+                              {result.user.foodTruck?.infoType || "-"}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${result.user.foodTruck?.completed ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                            <span className="text-sm text-gray-600">Status:</span>
+                            <span className={`text-sm font-semibold capitalize ${
+                              result.user.foodTruck?.completed ? 'text-green-700' : 'text-orange-700'
+                            }`}>
+                              {result.user.foodTruck?.completed ? "Completed" : "Incomplete"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Bottom Section */}
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                      <Status
+                        status={(result?.user.requestStatus || "PENDING") as any}
+                        className={"!py-1.5" as any}
+                      />
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Featured:</span>
+                        <Switch
+                          checked={isFeatured}
+                          disabled={result.user.requestStatus !== "APPROVED"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setChangeFeature(result.user);
+                          }}
+                          title={
+                            result.user.requestStatus !== "APPROVED"
+                              ? "It will be enabled after the request approved"
+                              : ""
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
+                
+                {result?.user.foodTruck?.plan && (
+                  <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 shadow-sm h-fit w-fit max-w-full">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="text-lg font-bold text-blue-700">
+                        Purchase Plan Details
+                      </div>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-blue-700 min-w-[80px]">Plan:</span>
+                        <span className="bg-blue-200 px-2 py-1 rounded-full text-blue-800 font-medium">
+                          {result.user.foodTruck.plan.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-blue-700 min-w-[80px]">Rate:</span>
+                        <span className="text-blue-800 font-medium">
+                          {result.user.foodTruck.plan.rate}% {result.user.foodTruck.plan.rateType}
+                        </span>
+                      </div>
+                      {result.user.foodTruck.plan.details && result.user.foodTruck.plan.details.length > 0 && (
+                        <div className="mt-3">
+                          <span className="font-semibold text-blue-700 block mb-2">Features:</span>
+                          <div className="bg-white/50 rounded-md p-3">
+                            <ul className="space-y-1">
+                              {result.user.foodTruck.plan.details.map((detail: string, index: number) => (
+                                <li key={index} className="flex items-start gap-2 text-blue-800">
+                                  <span className="text-blue-500 mt-1">✓</span>
+                                  <span>{detail}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {result?.user.foodTruck?.addOns && result.user.foodTruck.addOns.length > 0 && (
+                  <div className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100 border border-green-200 shadow-sm h-fit w-fit max-w-full">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" />
+                        </svg>
+                      </div>
+                      <div className="text-lg font-bold text-green-700">
+                        Add-Ons ({result.user.foodTruck.addOns.length})
+                      </div>
+                    </div>
+                    <div className="bg-white/50 rounded-md p-3">
+                      <div className="space-y-2">
+                        {result.user.foodTruck.addOns.map((addOn: any, index: number) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-white rounded border border-green-200">
+                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <span className="text-green-800 font-medium">{addOn.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 {result?.user?.requestStatus === "REJECTED" &&
                   result?.user?.reasonForRejection?.trim()?.length && (
                     <div className="p-3 rounded-md bg-red-100 border border-red-200 h-fit w-fit max-w-full">
