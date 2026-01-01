@@ -89,6 +89,16 @@ class UserApiService extends BaseAPI {
     return this.post<IResponse<boolean>>(`${APIEndpoint.AUTH}/change-password`, data);
   }
 
+  adminChangePassword(id: string, currentPassword: string, newPassword: string) {
+    return this.put<IResponse<boolean>>(
+      `${APIEndpoint.USER}/${id}/change-password`,
+      {
+        newPassword,
+        currentPassword,
+      },
+    );
+  }
+
   checkToken(data: { token: string }) {
     return this.get<IResponse<boolean>>(`${APIEndpoint.AUTH}/validate-change-password-token`, {
       params: data, // <--- send as query

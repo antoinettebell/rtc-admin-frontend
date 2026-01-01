@@ -19,7 +19,7 @@ export default function DeleteAccountInfoPage() {
             <div className="flex gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               <AlertTriangle className="h-5 w-5 mt-0.5" />
               <p>
-                Deleting your account is permanent. All your data will be removed
+                Deleting your account is permanent. All your data will be removed 
                 and cannot be recovered.
               </p>
             </div>

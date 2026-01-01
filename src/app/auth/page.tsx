@@ -104,14 +104,14 @@ export default function Page() {
                       error={errors.password?.message}
                       {...register("password")}
                     />
-                    {/*<div className="flex justify-end items-center">*/}
-                    {/*  <a*/}
-                    {/*    onClick={() => router.push("/auth/forgot-password")}*/}
-                    {/*    className="ml-auto inline-block text-sm underline-offset-4 hover:underline cursor-pointer"*/}
-                    {/*  >*/}
-                    {/*    Forgot your password?*/}
-                    {/*  </a>*/}
-                    {/*</div>*/}
+                    <div className="flex justify-end items-center">
+                      <a
+                        onClick={() => router.push("/auth/forgot-password")}
+                        className="ml-auto inline-block text-sm underline-offset-4 hover:underline cursor-pointer"
+                      >
+                        Forgot your password?
+                      </a>
+                    </div>
                   </div>
                   <Button
                     type="submit"
