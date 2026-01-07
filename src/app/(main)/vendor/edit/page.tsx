@@ -4,6 +4,7 @@ import * as React from "react";
 import { useState } from "react";
 import { userApiService } from "@/services/user-api-service";
 import { fileApiService } from "@/services/file-api-service";
+import { publicApiService } from "@/services/public-api-service";
 
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -39,10 +40,13 @@ export default function VendorDetail() {
   const [vendorLoading, setVendorLoading] = useState<boolean>(false);
   const [loadingFT, setLoadingFT] = useState<boolean>(false);
   const [loadingPassword, setLoadingPassword] = useState<boolean>(false);
+  const [loadingPlan, setLoadingPlan] = useState<boolean>(false);
   const [previewFtLogo, setPreviewFtLogo] = useState<string>("");
   const [ftFile, setFtFile] = useState<File | null>(null);
   const [photos, setPhotos] = useState<File[]>([]);
   const [previewPhotos, setPreviewPhotos] = useState<string[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<string>("");
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   if (!id) {
     return 404;
   }
@@ -288,6 +292,25 @@ export default function VendorDetail() {
       });
   };
 
+  const onUpdatePlan = async () => {
+    if (!result?.user?.foodTruck?._id || !selectedPlan) return;
+    
+    setLoadingPlan(true);
+    try {
+      await foodTruckApiService.update(result.user.foodTruck._id.toString(), {
+        planId: selectedPlan,
+        addOns: selectedAddons
+      });
+      toast.success("Plan and addons updated successfully.");
+      refetch();
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to update plan and addons.");
+    } finally {
+      setLoadingPlan(false);
+    }
+  };
+
   const {
     data: result,
     isFetching,
@@ -297,9 +320,11 @@ export default function VendorDetail() {
     queryFn: () =>
       Promise.all([
         userApiService.getById(id?.toString() || ""),
-        // categoryApiService.list("", 1, 100, { userId: id?.toString() }),
-        // menuApiService.list("", 1, 100, { userId: id?.toString() }),
-      ]).then(([userRes, categoryRes, menuRes]) => {
+        
+      publicApiService.getPlanList("", 1, 100),
+      publicApiService.getAddOnsList("", 1, 100),
+// categoryApiService.list("", 1, 100, { userId: id?.toString() }),
+      ]).then(([userRes, planRes, addonRes]) => {
         if (userRes.data?.data.user.foodTruck?.plan) {
           setPlanColor(
             userRes.data?.data.user.foodTruck?.plan?.titleColor || "",
@@ -325,15 +350,15 @@ export default function VendorDetail() {
           logo: userRes?.data?.data?.user?.foodTruck?.logo || "",
           ssn: userRes?.data?.data?.user?.foodTruck?.ssn,
           ein: userRes?.data?.data?.user?.foodTruck?.ein,
-
-
-
         });
         setPreviewPhotos(userRes?.data?.data?.user?.foodTruck?.photos || []);
+        setSelectedPlan(userRes?.data?.data?.user?.foodTruck?.planId || "");
+        setSelectedAddons(userRes?.data?.data?.user?.foodTruck?.addOns?.map((addon: any) => addon._id) || []);
+        console.log("addonRes",addonRes);
         return {
           ...(userRes?.data.data || {}),
-          // categoryList: categoryRes.data.data.records,
-          // menuList: menuRes.data.data.records,
+          planList: planRes?.data?.data?.planList || [],
+          addonList: addonRes.data.data?.addonsList || [],
         };
       }),
     staleTime: 0,
@@ -671,7 +696,6 @@ export default function VendorDetail() {
               </div>
             </form>
           </div>
-
           <div className="border rounded-xl p-4 mt-9">
             <div className="relative">
               <div className="absolute bottom-1 whitespace-nowrap font-semibold text-xl w-fit bg-white pr-2 pl-1">
@@ -730,6 +754,123 @@ export default function VendorDetail() {
               </div>
             </form> */}
           </div>
+          <div className="border rounded-xl p-4 mt-9">
+            <div className="relative">
+              <div className="absolute bottom-1 whitespace-nowrap font-semibold text-xl w-fit bg-white pr-2 pl-1">
+                Plan & Add-ons Management
+              </div>
+            </div>
+            <div className="px-1 pt-2 w-full">
+              <div className="mb-4">
+                <h4 className="text-sm font-semibold mb-2">Current Plan</h4>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div 
+                      className="w-4 h-4 rounded" 
+                      style={{ backgroundColor: result?.user?.foodTruck?.plan?.titleColor || '#gray' }}
+                    ></div>
+                    <span className="font-medium text-lg">{result?.user?.foodTruck?.plan?.name || 'No plan assigned'}</span>
+                    <span className="text-sm text-gray-600">({result?.user?.foodTruck?.plan?.slug})</span>
+                  </div>
+                  {result?.user?.foodTruck?.plan && (
+                    <div className="space-y-2">
+                      <div className="text-sm">
+                        <span className="font-medium">Rate:</span> {result.user.foodTruck.plan.rate}% {result.user.foodTruck.plan.rateType}
+                      </div>
+                      {result.user.foodTruck.plan.details && (
+                        <div>
+                          <span className="font-medium text-sm">Features:</span>
+                          <ul className="list-disc list-inside text-sm text-gray-600 mt-1">
+                            {result.user.foodTruck.plan.details.map((detail: string, idx: number) => (
+                              <li key={idx}>{detail}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <h4 className="text-sm font-semibold mb-2">Current Add-ons</h4>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  {result?.user?.foodTruck?.addOns?.length > 0 ? (
+                    <div className="space-y-2">
+                      {result.user.foodTruck.addOns.map((addon: any, idx: number) => (
+                        <div key={idx} className="p-2 bg-blue-50 border border-blue-200 rounded">
+                          <div className="font-medium text-blue-800">{addon.name}</div>
+                          <div className="text-xs text-gray-500">Added: {new Date(addon.createdAt).toLocaleDateString()}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-gray-500">No add-ons assigned</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="w-full flex gap-3 mb-4">
+                <div className="w-full">
+                  <div className="text-sm font-semibold pb-1">Select Plan</div>
+                  <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                    <SelectTrigger className="!h-10 bg-[#D9D9D933]">
+                      <SelectValue placeholder="Select a plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {result?.planList?.map((plan: any) => (
+                          <SelectItem key={plan._id} value={plan._id}>
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded" 
+                                style={{ backgroundColor: plan.titleColor || '#gray' }}
+                              ></div>
+                              {plan.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <div className="text-sm font-semibold pb-2">Select Add-ons (Multiple)</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {result?.addonList?.map((addon: any) => (
+                    <label key={addon._id} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={selectedAddons.includes(addon._id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedAddons(prev => [...prev, addon._id]);
+                          } else {
+                            setSelectedAddons(prev => prev.filter(id => id !== addon._id));
+                          }
+                        }}
+                      />
+                      <span className="text-sm">{addon.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="w-full flex justify-end mt-4">
+                <LoadingButton
+                  isLoading={loadingPlan}
+                  disabled={!selectedPlan || loadingPlan}
+                  onClick={onUpdatePlan}
+                >
+                  Update Plan & Add-ons
+                </LoadingButton>
+              </div>
+            </div>
+          </div>
+
+          
         </>
       )}
     </>

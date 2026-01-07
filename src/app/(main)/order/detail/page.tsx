@@ -439,6 +439,12 @@ export default function OrderDetail() {
                         <span className="font-medium">${Number(result.paymentProcessingFee || 0).toFixed(2)}</span>
                       </div>
                     )}
+                    {result?.tipsAmount > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Tips Amount:</span>
+                        <span className="font-medium">${Number(result?.tipsAmount || 0).toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="border-t pt-2 mt-2">
                       <div className="flex justify-between">
                         <span className="font-semibold text-lg">Total:</span>
