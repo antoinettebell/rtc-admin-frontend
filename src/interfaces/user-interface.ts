@@ -227,3 +227,13 @@ export interface ReviewStats {
     star5: number;
   };
 }
+
+export interface Notification {
+  _id: string;
+  title: string;
+  description: string;
+  recipientType: "ALL_USERS" | "ALL_VENDORS" | "ALL_CUSTOMERS";
+  sentTo: string[];
+  createdAt: string;
+  updatedAt: string;
+}

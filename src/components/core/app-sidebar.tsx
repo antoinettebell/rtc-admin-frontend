@@ -17,6 +17,7 @@ import {
   TrendingUp ,
   ReceiptText ,
   User2,
+  Bell,
 } from "lucide-react";
 import { NavMain } from "@/components/core/nav-main";
 
@@ -74,6 +75,12 @@ const navMain = [
     title: "Banners",
     url: "/banner",
     icon: TicketPercent,
+    items: [],
+  },
+  {
+    title: "Notifications",
+    url: "/notification",
+    icon: Bell,
     items: [],
   },
   {

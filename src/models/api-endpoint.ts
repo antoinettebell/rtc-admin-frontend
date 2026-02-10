@@ -17,7 +17,7 @@ enum APIPath {
   REVIEW = "review",
   PUBLIC = "public",
   TRANSACTION = "order/admin",
-
+  NOTIFICATION = "user/admin",
 }
 
 export enum APIEndpoint {
@@ -36,6 +36,7 @@ export enum APIEndpoint {
   FOOD_TRUCK = `${APIVersion.V1}/${APIPath.FOOD_TRUCK}`,
   REVIEW = `${APIVersion.V1}/${APIPath.REVIEW}`,
   TRANSACTION = `${APIVersion.V1}/${APIPath.TRANSACTION}`,
+  NOTIFICATION = `${APIVersion.V1}/${APIPath.NOTIFICATION}`,
   PUBLIC = `${APIVersion.V1}/${APIPath.PUBLIC}`,
   PUBLIC_PRIVACY_POLICY = `${APIVersion.V1}/${APIPath.PUBLIC}/privacy-policy`,
 }
