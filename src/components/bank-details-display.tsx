@@ -125,6 +125,46 @@ export const BankDetailsDisplay: React.FC<Props> = ({ userData }) => {
               {decryptedBankDetails.accountType || "-"}
             </div>
           </div>
+        </div>  
+        <div className="border rounded-md px-3 py-2 flex items-center gap-3">
+          <div className="w-full">
+            <div className="text-sm text-muted-foreground">Remittance Email</div>
+            <div className="font-semibold truncate capitalize">
+              {decryptedBankDetails.remittanceEmail || "-"}
+            </div>
+          </div>
+        </div>
+        <div className="border rounded-md px-3 py-2 flex items-center gap-3">
+          <div className="w-full">
+            <div className="text-sm text-muted-foreground">Currency</div>
+            <div className="font-semibold truncate capitalize">
+              {decryptedBankDetails.currency || "-"}
+            </div>
+          </div>
+        </div>
+        <div className="border rounded-md px-3 py-2 flex items-center gap-3">
+          <div className="w-full">
+            <div className="text-sm text-muted-foreground">Swift Code</div>
+            <div className="font-semibold truncate capitalize">
+              {decryptedBankDetails.swiftCode || "-"}
+            </div>
+          </div>
+        </div>
+        <div className="border rounded-md px-3 py-2 flex items-center gap-3">
+          <div className="w-full">
+            <div className="text-sm text-muted-foreground">IBAN</div>
+            <div className="font-semibold truncate capitalize">
+              {decryptedBankDetails.iban || "-"}
+            </div>
+          </div>
+        </div>
+        <div className="border rounded-md px-3 py-2 flex items-center gap-3">
+          <div className="w-full">
+            <div className="text-sm text-muted-foreground">Payment Method</div>
+            <div className="font-semibold truncate capitalize">
+              {decryptedBankDetails.paymentMethod || "-"}
+            </div>
+          </div>
         </div>
       </div>
     </div>

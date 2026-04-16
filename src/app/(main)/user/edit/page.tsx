@@ -3,6 +3,7 @@ import { ArrowLeft, User2 } from "lucide-react";
 import * as React from "react";
 import { useState } from "react";
 import { userApiService } from "@/services/user-api-service";
+import { fileApiService } from "@/services/file-api-service";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,9 @@ export default function UserDetail() {
 
   const [userLoading, setUserLoading] = useState<boolean>(false);
   const [loadingPassword, setLoadingPassword] = useState<boolean>(false);
+  const [loadingImage, setLoadingImage] = useState<boolean>(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
 
   if (!id) {
     return 404;
@@ -43,75 +47,90 @@ export default function UserDetail() {
     phone: z.string().min(8),
     firstName: z.string().min(2),
     lastName: z.string().min(2),
+    profilePic: z.string().optional(),
   });
 
-  const passwordFormSchema = z
-    .object({
-      password: z.string().min(8, "Password must be at least 8 characters"),
-      confirmPassword: z.string(),
-    })
-    .refine((data) => data.password === data.confirmPassword, {
-      message: "Passwords don't match",
-      path: ["confirmPassword"],
-    });
+  const passwordFormSchema = z.object({
+    email: z.string().email(),
+    userType: z.string().min(1),
+  });
 
   const {
     register: userRegister,
     handleSubmit: handleUserSubmit,
     formState: formStateUser,
-    getValues: getUserValue,
     reset: setUserValue,
     control: userControl,
+    getValues: getUserValues,
+    setValue,
   } = useForm<z.infer<typeof userFormSchema>>({
     resolver: zodResolver(userFormSchema),
   });
 
   const {
-    register: passwordRegister,
     handleSubmit: handleSubmitPassword,
-    formState: formStatePassword,
-    getValues: getValuePassword,
+    reset: setPasswordForm,
   } = useForm<z.infer<typeof passwordFormSchema>>({
     resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      email: "",
+      userType: "CUSTOMER",
+    },
   });
 
-  const onUserSubmit = (data: z.infer<typeof userFormSchema>) => {
+  const onUserSubmit = async (data: z.infer<typeof userFormSchema>) => {
     const { firstName, lastName, phone } = data;
     const p = StringHelper.getPhoneCodeAndNumber(phone);
+
     setUserLoading(true);
-    userApiService
-      .update(id?.toString(), {
+    try {
+      let profilePicUrl = data.profilePic;
+
+        if (file) {
+        setLoadingImage(true);
+        const uploadRes = await fileApiService.upload(file);
+        profilePicUrl = uploadRes.data.data.file;
+        setValue("profilePic", profilePicUrl);
+        setFile(null);
+        setPreview(null);
+        setLoadingImage(false);
+      }
+
+      await userApiService.update(id?.toString(), {
         firstName,
         lastName,
         countryCode: p.countryCode,
         mobileNumber: p.mobileNumber,
-      })
-      .then((res) => {
-        toast.success("User details updated.");
-      })
-      .catch((e) => {
-        console.log(e);
-        toast.error("Something went wrong");
-      })
-      .finally(() => {
-        setUserLoading(false);
+        profilePic: profilePicUrl,
       });
+
+      toast.success("User details updated.");
+      refetch(); // refresh data
+    } catch (e) {
+      console.log(e);
+      toast.error("Something went wrong");
+    } finally {
+      setUserLoading(false);
+    }
   };
 
-  const onSubmitPassword = (data: z.infer<typeof passwordFormSchema>) => {
-    const { password, confirmPassword } = data;
+  const onSubmitPassword = async (data: z.infer<typeof passwordFormSchema>) => {
     setLoadingPassword(true);
     userApiService
-      .update(id?.toString(), { password })
-      .then((res) => {
-        toast.success("Password updated.");
+      .forgotPassword({
+        email: data.email,
+        userType: data.userType,
+        forFe: true,
+      })
+      .then(() => {
+        toast.success("Password reset link has been sent to your registered email.");
       })
       .catch((e) => {
-        console.log(e);
-        toast.error("Something went wrong");
+        console.error(e);
+        toast.error("Unable to send password reset link. Please try again later.");
       })
       .finally(() => {
-        setUserLoading(false);
+        setLoadingPassword(false);
       });
   };
 
@@ -120,30 +139,32 @@ export default function UserDetail() {
     isFetching,
     refetch,
   } = useQuery({
-    queryKey: ["user-detail"],
+    queryKey: ["user-detail", id],
     queryFn: () =>
-      Promise.all([userApiService.getById(id?.toString() || "")]).then(
-        ([userRes, categoryRes, menuRes]) => {
-          console.log("==========userRes?.data?.data", userRes?.data?.data);
+      userApiService.getById(id?.toString() || "").then((userRes) => {
+        const u = userRes?.data?.data?.user;
+        console.log("==========userRes?.data?.data", userRes?.data?.data);
 
-          setUserValue({
-            email: userRes?.data?.data?.user?.email,
-            phone:
-              (userRes?.data?.data?.user?.countryCode
-                ? `${userRes?.data?.data?.user?.countryCode}`
-                : "") + userRes?.data?.data?.user?.mobileNumber,
-            firstName: userRes?.data?.data?.user?.firstName,
-            lastName: userRes?.data?.data?.user?.lastName,
-          });
+        setUserValue({
+          email: u?.email,
+          phone: (u?.countryCode ? `${u?.countryCode}` : "") + u?.mobileNumber,
+          firstName: u?.firstName,
+          lastName: u?.lastName,
+          profilePic: u?.profilePic || "",
+        });
 
-          return {
-            ...(userRes?.data.data || {}),
-          };
-        },
-      ),
+        setPasswordForm({
+          email: u?.email,
+          userType: u?.userType,
+        });
+
+        return userRes?.data.data;
+      }),
     staleTime: 0,
     refetchOnWindowFocus: false,
   });
+
+  const user = result?.user;
 
   return (
     <>
@@ -166,28 +187,97 @@ export default function UserDetail() {
         </div>
       )}
 
-      {!!result?.user && !isFetching && (
+      {!!user && !isFetching && (
         <>
-          <div className="flex flex-wrap gap-4 mb-4">
-            <div className="border w-fit rounded-xl p-1">
-              <div className="p-2 rounded-md w-fit min-w-[350px] bg-white">
-                <div className="flex gap-3">
-                  <div className="border rounded p-2 h-fit">
-                    <User2 size={30} />
-                  </div>
-                  <div className="w-full">
-                    <h3 className="font-medium leading-none mt-1 mb-1 w-auto">
-                      First Name: <b>{result?.user.firstName}</b>
-                    </h3>
-                    <h3 className="font-medium leading-none mt-1 mb-1 w-auto">
-                      Last Name: <b>{result?.user.lastName}</b>
-                    </h3>
-                  </div>
+          {/* Profile Section */}
+          {/* <div className="flex flex-wrap gap-4 mb-4">
+            <div className="border w-fit rounded-xl p-4">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-[120px] h-[120px] rounded-full overflow-hidden border">
+                  {preview ? (
+                    <img
+                      src={preview}
+                      alt="preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : user?.profilePic ? (
+                    <img
+                      src={user.profilePic}
+                      alt="profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400">
+                      <User2 size={50} />
+                    </div>
+                  )}
                 </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  id="profileUpload"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setFile(e.target.files[0]);
+                      setPreview(URL.createObjectURL(e.target.files[0]));
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="profileUpload"
+                  className="cursor-pointer text-sm text-blue-600"
+                >
+                  Change Profile
+                </label>
+              </div>
+            </div>
+          </div> */}
+          <div className="flex justify-center mb-4">
+            <div className="border w-fit rounded-xl p-4">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-[120px] h-[120px] rounded-full overflow-hidden border">
+                  {preview ? (
+                    <img
+                      src={preview}
+                      alt="preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : user?.profilePic ? (
+                    <img
+                      src={user.profilePic}
+                      alt="profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400">
+                      <User2 size={50} />
+                    </div>
+                  )}
+                </div>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  id="profileUpload"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setFile(e.target.files[0]);
+                      setPreview(URL.createObjectURL(e.target.files[0]));
+                    }
+                  }}
+                />
+
+                <label
+                  htmlFor="profileUpload"
+                  className="cursor-pointer text-sm text-blue-600"
+                >
+                  Change Profile
+                </label>
               </div>
             </div>
           </div>
-
           <div className="border rounded-xl p-4 mt-9">
             <div className="relative">
               <div className="absolute bottom-1 whitespace-nowrap font-semibold text-xl w-fit bg-white pr-2 pl-1">
@@ -232,7 +322,7 @@ export default function UserDetail() {
                 </div>
                 <div className="w-full flex justify-end mt-2">
                   <LoadingButton
-                    isLoading={userLoading}
+                    isLoading={userLoading || loadingImage}
                     disabled={!formStateUser.isValid || userLoading}
                     type="submit"
                   >
@@ -251,34 +341,14 @@ export default function UserDetail() {
             </div>
             <form onSubmit={handleSubmitPassword(onSubmitPassword)}>
               <div className="px-1 pt-2 w-full">
-                <div className="w-full flex gap-3">
-                  <div className="w-full mb-2">
-                    <div className="text-sm font-semibold pb-1">Password</div>
-                    <Input
-                      type="password"
-                      placeholder="Password"
-                      {...passwordRegister("password")}
-                    />
-                  </div>
-
-                  <div className="w-full mb-2">
-                    <div className="text-sm font-semibold pb-1">
-                      Confirm Password
-                    </div>
-                    <Input
-                      type="password"
-                      placeholder="Confirm Password"
-                      {...passwordRegister("confirmPassword")}
-                    />
-                  </div>
-                </div>
-                <div className="w-full flex justify-end mt-2">
-                  <LoadingButton
-                    isLoading={loadingPassword}
-                    disabled={!formStatePassword.isValid || loadingPassword}
-                    type="submit"
-                  >
-                    Save
+                <div className="flex justify-between items-center mt-2 text-sm text-gray-600">
+                  <p>
+                    If you change the password, click on the{" "}
+                    <span className="font-semibold">Send Link</span> button.  
+                    The link will be shared on user registered email.
+                  </p>
+                  <LoadingButton isLoading={loadingPassword} type="submit">
+                    Send Link
                   </LoadingButton>
                 </div>
               </div>

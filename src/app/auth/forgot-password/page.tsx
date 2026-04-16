@@ -4,10 +4,53 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {useRouter} from "next/navigation";
+import { useRouter } from "next/navigation";
+import * as z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { userApiService } from "@/services/user-api-service";
+import { toast } from "sonner";
+import { LoaderCircle } from "lucide-react";
+
+const passwordFormSchema = z.object({
+  email: z.string().email({ message: "Invalid email format." }),
+  userType: z.string(),
+});
 
 export default function Page() {
   const router = useRouter();
+  const [loadingPassword, setLoadingPassword] = useState<boolean>(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<z.infer<typeof passwordFormSchema>>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      userType: "SUPER_ADMIN",
+    },
+  });
+
+  const onSubmitPassword = async (data: z.infer<typeof passwordFormSchema>) => {
+    setLoadingPassword(true);
+    userApiService.forgotPassword({
+        email: data.email,
+        userType: data.userType,
+        forFe: true,
+      }).then(() => {
+        toast.success("Password reset link has been sent to registered email.");
+        setTimeout(() => {
+          router.push("/auth");
+        }, 3000);
+      }).catch((e) => {
+        console.error(e);
+        toast.error("Unable to send password reset link. Please try again later.");
+      }).finally(() => {
+        setLoadingPassword(false);
+      });
+  };
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
@@ -33,19 +76,20 @@ export default function Page() {
               <div className="flex justify-center p-4">
                 <img src="/logo-tree.png" className="w-[120px]"/>
               </div>
-              <form>
+              <form onSubmit={handleSubmit(onSubmitPassword)}>
               <div className="flex flex-col gap-6">
                   <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
-                        id="email"
                         type="email"
                         placeholder="m@example.com"
-                        required
+                        error={errors.email?.message}
+                        {...register("email")}
                     />
                   </div>
-                  <Button type="submit" variant="default" className="w-full">
+                  <Button type="submit" disabled={loadingPassword} variant="default" className="w-full">
                     Send
+                    {loadingPassword && <LoaderCircle className="animate-spin" />}
                   </Button>
                 </div>
                 <div className="mt-4 text-center text-sm">

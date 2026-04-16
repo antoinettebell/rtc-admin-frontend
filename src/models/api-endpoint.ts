@@ -12,9 +12,12 @@ enum APIPath {
   BANNER = "banner",
   FILE = "file",
   DIET = "diet",
+  CATEGORIES = "categories",
   FOOD_TRUCK = "food-truck",
   REVIEW = "review",
   PUBLIC = "public",
+  TRANSACTION = "order/admin",
+  NOTIFICATION = "user/admin",
 }
 
 export enum APIEndpoint {
@@ -29,7 +32,11 @@ export enum APIEndpoint {
   BANNER = `${APIVersion.V1}/${APIPath.BANNER}`,
   FILE = `${APIVersion.V1}/${APIPath.FILE}`,
   DIET = `${APIVersion.V1}/${APIPath.DIET}`,
+  CATEGORIES = `${APIVersion.V1}/${APIPath.CATEGORIES}`,
   FOOD_TRUCK = `${APIVersion.V1}/${APIPath.FOOD_TRUCK}`,
   REVIEW = `${APIVersion.V1}/${APIPath.REVIEW}`,
+  TRANSACTION = `${APIVersion.V1}/${APIPath.TRANSACTION}`,
+  NOTIFICATION = `${APIVersion.V1}/${APIPath.NOTIFICATION}`,
+  PUBLIC = `${APIVersion.V1}/${APIPath.PUBLIC}`,
   PUBLIC_PRIVACY_POLICY = `${APIVersion.V1}/${APIPath.PUBLIC}/privacy-policy`,
 }

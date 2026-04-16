@@ -31,6 +31,13 @@ export interface Diet {
   createdAt?: string;
   updatedAt?: string;
 }
+export interface Categoriess {
+  _id: string;
+  name: string;
+  deletedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface Plan {
   _id: string;
@@ -219,4 +226,14 @@ export interface ReviewStats {
     star4: number;
     star5: number;
   };
+}
+
+export interface Notification {
+  _id: string;
+  title: string;
+  description: string;
+  recipientType: "ALL_USERS" | "ALL_VENDORS" | "ALL_CUSTOMERS";
+  sentTo: string[];
+  createdAt: string;
+  updatedAt: string;
 }

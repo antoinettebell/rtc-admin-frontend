@@ -6,6 +6,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import {
+  UtensilsCrossed,
   Cog,
   Home,
   ListOrdered,
@@ -13,7 +14,10 @@ import {
   Soup,
   SquareUserRound,
   TicketPercent,
+  TrendingUp ,
+  ReceiptText ,
   User2,
+  Bell,
 } from "lucide-react";
 import { NavMain } from "@/components/core/nav-main";
 
@@ -49,16 +53,34 @@ const navMain = [
     icon: Salad,
     items: [],
   },
+   {
+    title: "Categories",
+    url: "/categories",
+    icon: UtensilsCrossed,
+    items: [],
+  },
   {
     title: "Orders",
     url: "/order",
     icon: ListOrdered,
     items: [],
   },
+   {
+    title: "Payment Transactions",
+    url: "/transactions",
+    icon: ReceiptText  ,
+    items: [],
+  },
   {
     title: "Banners",
     url: "/banner",
     icon: TicketPercent,
+    items: [],
+  },
+  {
+    title: "Notifications",
+    url: "/notification",
+    icon: Bell,
     items: [],
   },
   {

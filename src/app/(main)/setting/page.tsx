@@ -3,6 +3,8 @@ import * as React from "react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { settingApiService } from "@/services/setting-api-service";
+import { userApiService } from "@/services/user-api-service";
+
 import {
   Accordion,
   AccordionContent,
@@ -14,13 +16,22 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/hooks/use-user";
 
 export default function Settings() {
+  const router = useRouter();
+  const { user } = useUser();
   const [loading, setLoading] = useState<boolean>(false);
+  const [passwordLoading, setPasswordLoading] = useState<boolean>(false);
 
   const [freeDessertAmount, setFreeDessertAmount] = useState<string>("");
   const [freeDessertOrderCount, setFreeDessertOrderCount] = useState<string>("");
   const [isFreeDessertEnabled, setIsFreeDessertEnabled] = useState<boolean>(false);
+
+  const [currentPassword, setCurrentPassword] = useState<string>("");
+  const [newPassword, setNewPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
 
   const {
     data: result,
@@ -99,6 +110,46 @@ export default function Settings() {
       });
   };
 
+  const onChangePassword = () => {
+    if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+      toast.error("Please fill in all password fields");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    if (!user?._id) {
+      toast.error("User not found");
+      return;
+    }
+
+    setPasswordLoading(true);
+    userApiService
+      .adminChangePassword(user._id, currentPassword, newPassword)
+      .then(() => {
+        toast.success("Password changed successfully. Logging out...");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setTimeout(() => {
+          localStorage.clear();
+          sessionStorage.clear();
+          router.push("/auth");
+        }, 2000);
+      })
+      .catch((e) => {
+        toast.error(e.response?.data?.message || "Error while changing password");
+      })
+      .finally(() => {
+        setPasswordLoading(false);
+      });
+  };
+
   return (
     <>
       {isFetching ? (
@@ -110,6 +161,50 @@ export default function Settings() {
         </div>
       ) : (
         <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="change-password">
+            <AccordionTrigger>
+              <div className="font-semibold text-[20px] my-2">Change Password</div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid gap-3 p-2 max-w-md">
+                <div className="flex flex-col gap-2">
+                  <label>Current Password</label>
+                  <Input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label>New Password</label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label>Confirm Password</label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                  />
+                </div>
+                <div>
+                  <Button
+                    disabled={passwordLoading}
+                    onClick={onChangePassword}
+                  >
+                    {passwordLoading ? "Changing..." : "Change Password"}
+                  </Button>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
           <AccordionItem value="free-dessert">
             <AccordionTrigger>
               <div className="font-semibold text-[20px] my-2">Free Dessert</div>
