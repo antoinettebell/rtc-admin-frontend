@@ -7,8 +7,10 @@ export class BaseAPI {
   protected api: AxiosInstance;
 
   constructor(baseURL?: string) {
+    const resolvedBaseURL = baseURL ?? process.env.NEXT_PUBLIC_API_BASE_URL;
+
     this.api = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_BASE_URL, // fallback to env variable
+      baseURL: resolvedBaseURL,
       headers: {
         "Content-Type": "application/json",
       },

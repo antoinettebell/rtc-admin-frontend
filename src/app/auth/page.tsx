@@ -12,6 +12,7 @@ import { useState } from "react";
 import { authApiService } from "@/services/auth-api-service";
 import { toast } from "sonner";
 import { LoaderCircle } from "lucide-react";
+import axios from "axios";
 
 export default function Page() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function Page() {
       .login(email, password)
       .then((res) => {
         if (res.data.data.user.userType !== "SUPER_ADMIN") {
-          toast.error("Invalid credentials");
+          toast.error("This account does not have admin portal access.");
           return;
         }
 
@@ -52,8 +53,25 @@ export default function Page() {
           router.replace("/");
         }
       })
-      .catch(() => {
-        toast.error("Invalid credentials");
+      .catch((error) => {
+        if (axios.isAxiosError(error)) {
+          const apiMessage =
+            typeof error.response?.data?.message === "string"
+              ? error.response.data.message
+              : undefined;
+
+          if (apiMessage) {
+            toast.error(apiMessage);
+            return;
+          }
+
+          if (!error.response) {
+            toast.error("Unable to reach the admin API. Check the deployed API base URL.");
+            return;
+          }
+        }
+
+        toast.error("Login failed. Please try again.");
       })
       .finally(() => setIsLoading(false));
   };
