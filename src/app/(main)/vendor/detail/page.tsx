@@ -45,6 +45,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BankDetailsDisplay } from "@/components/bank-details-display";
 import { decryptFields } from "@/utils/encryption";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VendorMenuCsvImport } from "@/components/vendor-menu-csv-import";
 
 export default function VendorDetail() {
   const router = useRouter();
@@ -142,7 +143,6 @@ export default function VendorDetail() {
                 "swiftCode",
                 "iban",
                 "paymentMethod",
-
               ] as (keyof typeof userAny.bankDetail)[],
               secretKey,
             );
@@ -279,21 +279,66 @@ export default function VendorDetail() {
         <>
           <Tabs defaultValue="profile" className="w-full">
             <TabsList className="sticky top-[64px] z-20 bg-white dark:bg-background border-b mb-4 flex flex-wrap gap-2">
-              <TabsTrigger value="profile" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Profile</TabsTrigger>
-              <TabsTrigger value="details" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Cusines</TabsTrigger>
-              <TabsTrigger value="gallery" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Photo Gallery</TabsTrigger>
-              <TabsTrigger value="menu-categories" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Menu Categories</TabsTrigger>
-              <TabsTrigger value="menu-items" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Menu Items</TabsTrigger>
+              <TabsTrigger
+                value="profile"
+                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+              >
+                Profile
+              </TabsTrigger>
+              <TabsTrigger
+                value="details"
+                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+              >
+                Cusines
+              </TabsTrigger>
+              <TabsTrigger
+                value="gallery"
+                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+              >
+                Photo Gallery
+              </TabsTrigger>
+              <TabsTrigger
+                value="menu-categories"
+                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+              >
+                Menu Categories
+              </TabsTrigger>
+              <TabsTrigger
+                value="menu-items"
+                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+              >
+                Menu Items
+              </TabsTrigger>
               {/* <TabsTrigger value="bank" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Bank Details</TabsTrigger> */}
-              <TabsTrigger value="locations" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Locations</TabsTrigger>
-              <TabsTrigger value="availability" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Availability</TabsTrigger>
-              <TabsTrigger value="business-hours" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Business Hours</TabsTrigger>
-              <TabsTrigger value="reviews" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Reviews</TabsTrigger>
+              <TabsTrigger
+                value="locations"
+                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+              >
+                Locations
+              </TabsTrigger>
+              <TabsTrigger
+                value="availability"
+                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+              >
+                Availability
+              </TabsTrigger>
+              <TabsTrigger
+                value="business-hours"
+                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+              >
+                Business Hours
+              </TabsTrigger>
+              <TabsTrigger
+                value="reviews"
+                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+              >
+                Reviews
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="profile">
               <div className="flex flex-wrap gap-4 mb-4">
-                 {/* <div
+                {/* <div
                   className="border w-fit rounded-xl p-1"
                   style={
                     planColor
@@ -362,17 +407,17 @@ export default function VendorDetail() {
                 </div> */}
                 <div className="relative overflow-hidden rounded-xl border shadow-lg bg-white">
                   {/* Plan Header */}
-                  <div 
+                  <div
                     className="px-4 py-2 text-center"
                     style={{
-                      background: planColor || '#6B7280',
+                      background: planColor || "#6B7280",
                     }}
                   >
                     <div className="text-lg font-bold text-white">
                       {result?.user.foodTruck?.plan?.name || "No Plan"}
                     </div>
                   </div>
-                  
+
                   {/* Main Content */}
                   <div className="p-4">
                     <div className="flex gap-4">
@@ -382,25 +427,28 @@ export default function VendorDetail() {
                           <SquareUserRound size={32} className="text-white" />
                         </div>
                       </div>
-                      
+
                       {/* Info Section */}
                       <div className="flex-1 min-w-0">
                         <div className="mb-3">
                           <h3 className="text-xl font-bold text-gray-900 mb-1">
-                            {`${result?.user.firstName || ""} ${result?.user.lastName || ""}`.trim() || "N/A"}
+                            {`${result?.user.firstName || ""} ${result?.user.lastName || ""}`.trim() ||
+                              "N/A"}
                           </h3>
                           <p className="text-sm text-gray-500">Vendor</p>
                         </div>
-                        
+
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                            <span className="text-sm text-gray-600">Food Truck:</span>
+                            <span className="text-sm text-gray-600">
+                              Food Truck:
+                            </span>
                             <span className="text-sm font-semibold text-gray-900">
                               {result.user.foodTruck?.name || "N/A"}
                             </span>
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-green-500"></div>
                             <span className="text-sm text-gray-600">Type:</span>
@@ -408,24 +456,36 @@ export default function VendorDetail() {
                               {result.user.foodTruck?.infoType || "-"}
                             </span>
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${result.user.foodTruck?.completed ? 'bg-green-500' : 'bg-orange-500'}`}></div>
-                            <span className="text-sm text-gray-600">Status:</span>
-                            <span className={`text-sm font-semibold capitalize ${
-                              result.user.foodTruck?.completed ? 'text-green-700' : 'text-orange-700'
-                            }`}>
-                              {result.user.foodTruck?.completed ? "Completed" : "Incomplete"}
+                            <div
+                              className={`w-2 h-2 rounded-full ${result.user.foodTruck?.completed ? "bg-green-500" : "bg-orange-500"}`}
+                            ></div>
+                            <span className="text-sm text-gray-600">
+                              Status:
+                            </span>
+                            <span
+                              className={`text-sm font-semibold capitalize ${
+                                result.user.foodTruck?.completed
+                                  ? "text-green-700"
+                                  : "text-orange-700"
+                              }`}
+                            >
+                              {result.user.foodTruck?.completed
+                                ? "Completed"
+                                : "Incomplete"}
                             </span>
                           </div>
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Bottom Section */}
                     <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
                       <Status
-                        status={(result?.user.requestStatus || "PENDING") as any}
+                        status={
+                          (result?.user.requestStatus || "PENDING") as any
+                        }
                         className={"!py-1.5" as any}
                       />
                       <div className="flex items-center gap-2">
@@ -448,12 +508,16 @@ export default function VendorDetail() {
                     </div>
                   </div>
                 </div>
-                
+
                 {result?.user.foodTruck?.plan && (
                   <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 shadow-sm h-fit w-fit max-w-full">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
                           <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
@@ -463,61 +527,88 @@ export default function VendorDetail() {
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-blue-700 min-w-[80px]">Plan:</span>
+                        <span className="font-semibold text-blue-700 min-w-[80px]">
+                          Plan:
+                        </span>
                         <span className="bg-blue-200 px-2 py-1 rounded-full text-blue-800 font-medium">
                           {result.user.foodTruck.plan.name}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-blue-700 min-w-[80px]">Rate:</span>
+                        <span className="font-semibold text-blue-700 min-w-[80px]">
+                          Rate:
+                        </span>
                         <span className="text-blue-800 font-medium">
-                          {result.user.foodTruck.plan.rate}% {result.user.foodTruck.plan.rateType}
+                          {result.user.foodTruck.plan.rate}%{" "}
+                          {result.user.foodTruck.plan.rateType}
                         </span>
                       </div>
-                      {result.user.foodTruck.plan.details && result.user.foodTruck.plan.details.length > 0 && (
-                        <div className="mt-3">
-                          <span className="font-semibold text-blue-700 block mb-2">Features:</span>
-                          <div className="bg-white/50 rounded-md p-3">
-                            <ul className="space-y-1">
-                              {result.user.foodTruck.plan.details.map((detail: string, index: number) => (
-                                <li key={index} className="flex items-start gap-2 text-blue-800">
-                                  <span className="text-blue-500 mt-1">✓</span>
-                                  <span>{detail}</span>
-                                </li>
-                              ))}
-                            </ul>
+                      {result.user.foodTruck.plan.details &&
+                        result.user.foodTruck.plan.details.length > 0 && (
+                          <div className="mt-3">
+                            <span className="font-semibold text-blue-700 block mb-2">
+                              Features:
+                            </span>
+                            <div className="bg-white/50 rounded-md p-3">
+                              <ul className="space-y-1">
+                                {result.user.foodTruck.plan.details.map(
+                                  (detail: string, index: number) => (
+                                    <li
+                                      key={index}
+                                      className="flex items-start gap-2 text-blue-800"
+                                    >
+                                      <span className="text-blue-500 mt-1">
+                                        ✓
+                                      </span>
+                                      <span>{detail}</span>
+                                    </li>
+                                  ),
+                                )}
+                              </ul>
+                            </div>
                           </div>
+                        )}
+                    </div>
+                  </div>
+                )}
+
+                {result?.user.foodTruck?.addOns &&
+                  result.user.foodTruck.addOns.length > 0 && (
+                    <div className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100 border border-green-200 shadow-sm h-fit w-fit max-w-full">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                          <svg
+                            className="w-4 h-4 text-white"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" />
+                          </svg>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
-                {result?.user.foodTruck?.addOns && result.user.foodTruck.addOns.length > 0 && (
-                  <div className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100 border border-green-200 shadow-sm h-fit w-fit max-w-full">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" />
-                        </svg>
+                        <div className="text-lg font-bold text-green-700">
+                          Add-Ons ({result.user.foodTruck.addOns.length})
+                        </div>
                       </div>
-                      <div className="text-lg font-bold text-green-700">
-                        Add-Ons ({result.user.foodTruck.addOns.length})
-                      </div>
-                    </div>
-                    <div className="bg-white/50 rounded-md p-3">
-                      <div className="space-y-2">
-                        {result.user.foodTruck.addOns.map((addOn: any, index: number) => (
-                          <div key={index} className="flex items-center gap-2 p-2 bg-white rounded border border-green-200">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            <span className="text-green-800 font-medium">{addOn.name}</span>
-                          </div>
-                        ))}
+                      <div className="bg-white/50 rounded-md p-3">
+                        <div className="space-y-2">
+                          {result.user.foodTruck.addOns.map(
+                            (addOn: any, index: number) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-2 p-2 bg-white rounded border border-green-200"
+                              >
+                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                <span className="text-green-800 font-medium">
+                                  {addOn.name}
+                                </span>
+                              </div>
+                            ),
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-                
+                  )}
+
                 {result?.user?.requestStatus === "REJECTED" &&
                   result?.user?.reasonForRejection?.trim()?.length && (
                     <div className="p-3 rounded-md bg-red-100 border border-red-200 h-fit w-fit max-w-full">
@@ -541,15 +632,17 @@ export default function VendorDetail() {
               </div>
               <div className="pt-2 pb-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 5xl:grid-cols-4 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
-                  {result.user.foodTruck?.cuisine.map((item: any, i: number) => (
-                    <div
-                      key={`${i}-cui`}
-                      className="border rounded-md px-3 py-2 flex items-center gap-2"
-                    >
-                      <Soup size={20} className="text-primary" />
-                      {item.name}
-                    </div>
-                  ))}
+                  {result.user.foodTruck?.cuisine.map(
+                    (item: any, i: number) => (
+                      <div
+                        key={`${i}-cui`}
+                        className="border rounded-md px-3 py-2 flex items-center gap-2"
+                      >
+                        <Soup size={20} className="text-primary" />
+                        {item.name}
+                      </div>
+                    ),
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -576,25 +669,29 @@ export default function VendorDetail() {
                   </div>
 
                   <div className="col-span-3">
-                    {((result.user.foodTruck?.photos?.length ?? 0) > 0) ? (
+                    {(result.user.foodTruck?.photos?.length ?? 0) > 0 ? (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {(result.user.foodTruck?.photos ?? []).map((photo: string, i: number) => (
-                          <div
-                            key={`${i}-truck-photo`}
-                            className="rounded-lg overflow-hidden border shadow-sm"
-                          >
-                            <PhotoViewer src={photo}>
-                              <img
-                                src={photo}
-                                alt={`Food Truck Photo ${i + 1}`}
-                                className="w-full h-40 object-cover transition-transform duration-300 hover:scale-105 cursor-pointer"
-                              />
-                            </PhotoViewer>
-                          </div>
-                        ))}
+                        {(result.user.foodTruck?.photos ?? []).map(
+                          (photo: string, i: number) => (
+                            <div
+                              key={`${i}-truck-photo`}
+                              className="rounded-lg overflow-hidden border shadow-sm"
+                            >
+                              <PhotoViewer src={photo}>
+                                <img
+                                  src={photo}
+                                  alt={`Food Truck Photo ${i + 1}`}
+                                  className="w-full h-40 object-cover transition-transform duration-300 hover:scale-105 cursor-pointer"
+                                />
+                              </PhotoViewer>
+                            </div>
+                          ),
+                        )}
                       </div>
                     ) : (
-                      <div className="text-gray-400 text-sm">No Photos uploaded yet</div>
+                      <div className="text-gray-400 text-sm">
+                        No Photos uploaded yet
+                      </div>
                     )}
                   </div>
                 </div>
@@ -626,10 +723,26 @@ export default function VendorDetail() {
 
             <TabsContent value="menu-items">
               <div className="flex items-center gap-3 mt-3">
-                <div className="whitespace-nowrap font-semibold text-xl">Menu</div>
+                <div className="whitespace-nowrap font-semibold text-xl">
+                  Menu
+                </div>
                 <div className="border-b w-full"></div>
               </div>
               <div className="pt-2 pb-4">
+                <div className="mb-4">
+                  <VendorMenuCsvImport
+                    vendorName={
+                      result.user.foodTruck?.name ||
+                      `${result.user.firstName} ${result.user.lastName || ""}`.trim() ||
+                      "this vendor"
+                    }
+                    vendorUserId={result.user._id}
+                    menuItems={result.menuList || []}
+                    onImported={() => {
+                      refetch();
+                    }}
+                  />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
                   {(result.menuList || [])?.map((item: MenuItem, i: number) => (
                     <div
@@ -717,22 +830,26 @@ export default function VendorDetail() {
               </div>
               <div className="pt-2 pb-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
-                  {result.user.foodTruck?.locations.map((item: any, i: number) => (
-                    <div
-                      key={`${i}-location`}
-                      className="border rounded-md px-3 py-2 flex items-center gap-3"
-                    >
-                      <div>
-                        <MapPin className="text-primary" />
-                      </div>
-                      <div className="w-full pr-[24px]">
-                        <div className="font-semibold truncate">{item.title}</div>
-                        <div className="font-medium text-sm truncate">
-                          {item.address}
+                  {result.user.foodTruck?.locations.map(
+                    (item: any, i: number) => (
+                      <div
+                        key={`${i}-location`}
+                        className="border rounded-md px-3 py-2 flex items-center gap-3"
+                      >
+                        <div>
+                          <MapPin className="text-primary" />
+                        </div>
+                        <div className="w-full pr-[24px]">
+                          <div className="font-semibold truncate">
+                            {item.title}
+                          </div>
+                          <div className="font-medium text-sm truncate">
+                            {item.address}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -746,53 +863,55 @@ export default function VendorDetail() {
               </div>
               <div className="pt-2 pb-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
-                  {result.user.foodTruck?.availability.map((item: any, i: number) => (
-                    <div
-                      key={`${i}-availability`}
-                      className="border rounded-md px-3 py-2 flex items-center justify-between gap-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="rounded-full bg-primary w-[50px] h-[50px] flex items-center justify-center text-white font-semibold capitalize">
-                          {item.day}
-                        </div>
-                        <div>
-                          <div className="truncate">
-                            Location:{" "}
-                            <span className="font-semibold">
-                              {locations[item.locationId]}
-                            </span>
-                          </div>
-                          <div className="flex gap-4">
-                            <div>
-                              Start{" "}
-                              <span className="font-semibold">
-                                {dayjs(`0000-00-00 ${item.startTime}:00`).format(
-                                  "hh:mm A",
-                                )}
-                              </span>
-                            </div>
-                            <div>
-                              Close{" "}
-                              <span className="font-semibold">
-                                {dayjs(`0000-00-00 ${item.endTime}:00`).format(
-                                  "hh:mm A",
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                  {result.user.foodTruck?.availability.map(
+                    (item: any, i: number) => (
                       <div
-                        className={`rounded-full w-5 h-5 flex items-center justify-center text-white ${item.available ? "bg-green-500" : "bg-gray-500"}`}
+                        key={`${i}-availability`}
+                        className="border rounded-md px-3 py-2 flex items-center justify-between gap-3"
                       >
-                        {item.available ? (
-                          <Check strokeWidth={3} size={16} />
-                        ) : (
-                          <X strokeWidth={3} size={16} />
-                        )}
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-full bg-primary w-[50px] h-[50px] flex items-center justify-center text-white font-semibold capitalize">
+                            {item.day}
+                          </div>
+                          <div>
+                            <div className="truncate">
+                              Location:{" "}
+                              <span className="font-semibold">
+                                {locations[item.locationId]}
+                              </span>
+                            </div>
+                            <div className="flex gap-4">
+                              <div>
+                                Start{" "}
+                                <span className="font-semibold">
+                                  {dayjs(
+                                    `0000-00-00 ${item.startTime}:00`,
+                                  ).format("hh:mm A")}
+                                </span>
+                              </div>
+                              <div>
+                                Close{" "}
+                                <span className="font-semibold">
+                                  {dayjs(
+                                    `0000-00-00 ${item.endTime}:00`,
+                                  ).format("hh:mm A")}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          className={`rounded-full w-5 h-5 flex items-center justify-center text-white ${item.available ? "bg-green-500" : "bg-gray-500"}`}
+                        >
+                          {item.available ? (
+                            <Check strokeWidth={3} size={16} />
+                          ) : (
+                            <X strokeWidth={3} size={16} />
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -806,50 +925,52 @@ export default function VendorDetail() {
               </div>
               <div className="pt-2 pb-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
-                  {result.user.foodTruck?.businessHours?.map((item: any, i: number) => (
-                    <div
-                      key={`${i}-availability`}
-                      className="border rounded-md px-3 py-2 flex items-center justify-between gap-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div>
-                          <div className="truncate">
-                            Location:{" "}
-                            <span className="font-semibold">
-                              {locations[item.locationId]}
-                            </span>
-                          </div>
-                          <div className="flex gap-4">
-                            <div>
-                              Start{" "}
+                  {result.user.foodTruck?.businessHours?.map(
+                    (item: any, i: number) => (
+                      <div
+                        key={`${i}-availability`}
+                        className="border rounded-md px-3 py-2 flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <div className="truncate">
+                              Location:{" "}
                               <span className="font-semibold">
-                                {dayjs(`0000-00-00 ${item.startTime}:00`).format(
-                                  "hh:mm A",
-                                )}
+                                {locations[item.locationId]}
                               </span>
                             </div>
-                            <div>
-                              Close{" "}
-                              <span className="font-semibold">
-                                {dayjs(`0000-00-00 ${item.endTime}:00`).format(
-                                  "hh:mm A",
-                                )}
-                              </span>
+                            <div className="flex gap-4">
+                              <div>
+                                Start{" "}
+                                <span className="font-semibold">
+                                  {dayjs(
+                                    `0000-00-00 ${item.startTime}:00`,
+                                  ).format("hh:mm A")}
+                                </span>
+                              </div>
+                              <div>
+                                Close{" "}
+                                <span className="font-semibold">
+                                  {dayjs(
+                                    `0000-00-00 ${item.endTime}:00`,
+                                  ).format("hh:mm A")}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
+                        <div
+                          className={`rounded-full w-5 h-5 flex items-center justify-center text-white ${item.available ? "bg-green-500" : "bg-gray-500"}`}
+                        >
+                          {item.available ? (
+                            <Check strokeWidth={3} size={16} />
+                          ) : (
+                            <X strokeWidth={3} size={16} />
+                          )}
+                        </div>
                       </div>
-                      <div
-                        className={`rounded-full w-5 h-5 flex items-center justify-center text-white ${item.available ? "bg-green-500" : "bg-gray-500"}`}
-                      >
-                        {item.available ? (
-                          <Check strokeWidth={3} size={16} />
-                        ) : (
-                          <X strokeWidth={3} size={16} />
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -929,7 +1050,10 @@ export default function VendorDetail() {
               <div className="pt-2 pb-4 w-full">
                 <div className="w-full flex flex-col gap-3">
                   {reviewList.map((itm) => {
-                    const boundedRate = Math.max(0, Math.min(5, itm.rate || 0)) as 0 | 1 | 2 | 3 | 4 | 5;
+                    const boundedRate = Math.max(
+                      0,
+                      Math.min(5, itm.rate || 0),
+                    ) as 0 | 1 | 2 | 3 | 4 | 5;
                     return (
                       <div
                         key={`rev-${itm._id}`}
@@ -949,7 +1073,9 @@ export default function VendorDetail() {
                             </PhotoViewer>
                           ) : (
                             <div className="flex w-full h-full items-center justify-center">
-                              {StringHelper.getInitials(itm.user?.firstName || "")}
+                              {StringHelper.getInitials(
+                                itm.user?.firstName || "",
+                              )}
                             </div>
                           )}
                         </div>
@@ -959,7 +1085,9 @@ export default function VendorDetail() {
                               {itm.user?.firstName} {itm.user?.lastName}
                             </div>
                             <div className="cust-name text-xs text-gray-500 pb-1">
-                              {dayjs(itm.createdAt).format("DD MMM, YYYY hh:mm A")}
+                              {dayjs(itm.createdAt).format(
+                                "DD MMM, YYYY hh:mm A",
+                              )}
                             </div>
                           </div>
 

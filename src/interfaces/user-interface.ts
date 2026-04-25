@@ -139,6 +139,23 @@ export interface MenuItem {
   category: MenuCategory;
 }
 
+export interface MenuCsvImportError {
+  rowNumber: number;
+  menuItemName: string;
+  message: string;
+}
+
+export interface MenuCsvImportSummary {
+  totalRows: number;
+  importedCount: number;
+  createdCount: number;
+  updatedCount: number;
+  categoryCreatedCount: number;
+  uploadedImageCount?: number;
+  failedCount: number;
+  errors: MenuCsvImportError[];
+}
+
 export interface SiteSetting {
   termsConditions: string | null;
   privacyPolicy: string | null;
