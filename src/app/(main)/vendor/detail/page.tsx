@@ -794,6 +794,23 @@ export default function VendorDetail() {
                                 : "-"}
                             </b>
                           </div>
+                          {item.hasFlavors ? (
+                            <div className="mt-1 text-sm">
+                              <div>
+                                Flavors per order:{" "}
+                                <b>{item.flavorsPerOrder || 1}</b>
+                              </div>
+                              <div
+                                className="line-clamp-2"
+                                title={(item.flavors || []).join(", ")}
+                              >
+                                Flavors:{" "}
+                                <b>
+                                  {(item.flavors || []).join(", ") || "-"}
+                                </b>
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                       <div

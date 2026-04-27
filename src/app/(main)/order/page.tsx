@@ -149,6 +149,24 @@ export default function Orders() {
       ),
     },
     {
+      header: "Fees / Tips",
+      fieldName: "deliveryFee",
+      className: "w-[190px]",
+      accessor: (d) => {
+        const driverTip = Number(d.tip ?? d.tips ?? 0);
+        const foodTruckTip = Number(d.tipsAmount || 0);
+        const deliveryFee = Number(d.deliveryFee || 0);
+
+        return (
+          <div className="text-sm leading-6">
+            <div>Delivery: ${deliveryFee.toFixed(2)}</div>
+            <div>Driver Tip: ${driverTip.toFixed(2)}</div>
+            <div>Truck Tip: ${foodTruckTip.toFixed(2)}</div>
+          </div>
+        );
+      },
+    },
+    {
       header: "Total",
       fieldName: "total",
       className: "w-[150px]",

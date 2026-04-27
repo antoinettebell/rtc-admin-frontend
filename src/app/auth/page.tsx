@@ -41,19 +41,28 @@ export default function Page() {
     authApiService
       .login(email, password)
       .then((res) => {
-        if (res.data.data.user.userType !== "SUPER_ADMIN") {
+        const loginData = res.data?.data;
+
+        if (!loginData?.user || !loginData?.authToken) {
+          throw new Error(res.data?.message || "Login response is missing required fields.");
+        }
+
+        if (loginData.user.userType !== "SUPER_ADMIN") {
           toast.error("Invalid credentials");
           return;
         }
 
-        if (res.data.data.authToken) {
-          localStorage.setItem("token", res.data.data.authToken);
-          toast.success("Logged in successfully");
-          router.replace("/");
-        }
+        localStorage.setItem("token", loginData.authToken);
+        toast.success("Logged in successfully");
+        router.replace("/");
       })
-      .catch(() => {
-        toast.error("Invalid credentials");
+      .catch((error: any) => {
+        console.error("Login failed:", error);
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Unable to log in. Please try again.",
+        );
       })
       .finally(() => setIsLoading(false));
   };

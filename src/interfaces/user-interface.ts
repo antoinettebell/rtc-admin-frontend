@@ -121,10 +121,22 @@ export interface MenuItem {
   imgUrls: string[];
   price: number;
   discount: number;
-  discountType: "PERCENTAGE" | "FIXED";
+  discountType: "PERCENTAGE" | "FIXED" | "BOGO" | "BOGOHO" | null;
+  bogoItems?: {
+    name?: string;
+    description?: string;
+    imgUrls?: string[];
+    price?: number;
+    halfPrice?: number;
+    qty: number;
+    total?: number;
+  }[];
   minQty: number;
   maxQty: number;
   available: boolean;
+  hasFlavors?: boolean;
+  flavors?: string[];
+  flavorsPerOrder?: number;
   itemType: "COMBO" | "INDIVIDUAL";
   categoryId: string;
   subItem: {
@@ -170,6 +182,7 @@ export interface OrderItem {
   _id: string;
   foodTruckId: string;
   userId: string;
+  locationId?: string;
   availability: FoodTruckAvailability;
   deliveryTime: string;
   items: {
@@ -177,13 +190,36 @@ export interface OrderItem {
     qty: number;
     price: number;
     total: number;
+    selectedFlavors?: string[];
     _id: string;
     menuItem: MenuItem;
   }[];
   subTotal: number;
+  subtotal?: number;
   discount: number;
   taxAmount: number;
+  tax?: number;
+  deliveryFee?: number;
+  tip?: number;
+  tips?: number;
+  tipsAmount?: number;
+  totalOrderCost?: number;
   total: number;
+  paymentProcessingFee: number;
+  paymentMethod?: "COD" | "APPLE_PAY" | "GOOGLE_PAY" | "CARD" | "STRIPE";
+  paymentStatus?: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  transactionId?: string | null;
+  refundTransactionId?: string | null;
+  refundDateTime?: string | null;
+  refundStatus?: "PENDING" | "SUCCESS" | "FAILED" | null;
+  refundMode?: "VOID" | "REFUND" | null;
+  refundReason?: string | null;
+  discountType?: string;
+  fulfillmentType?: "PICKUP" | "DELIVERY";
+  deliveryAddress?: string | null;
+  shipdayOrderCreatedAt?: string | null;
+  shipdayResponse?: Record<string, unknown> | null;
+  shipdayError?: Record<string, unknown> | null;
   orderNumber?: number;
   orderStatus:
     | "INITIATE"

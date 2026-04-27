@@ -1,30 +1,58 @@
 // lib/BaseAPI.ts
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import { IPaginateResponse } from "@/interfaces/response-interface";
-import { User } from "@/interfaces/user-interface";
 
 export class BaseAPI {
   protected api: AxiosInstance;
 
   constructor(baseURL?: string) {
+    const resolvedBaseURL = (baseURL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "")
+      .trim()
+      .replace(/\/+$/, "");
+
     this.api = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_BASE_URL, // fallback to env variable
+      baseURL: resolvedBaseURL || undefined,
       headers: {
         "Content-Type": "application/json",
       },
     } as any);
 
-    // Optionally add interceptors here (for auth tokens, logging, etc.)
     this.api.interceptors.request.use(
       (config) => {
-        // Example: Attach token
+        if (!config.headers) {
+          config.headers = {};
+        }
+
+        if (typeof window === "undefined") {
+          return config;
+        }
+
         const token = localStorage.getItem("token");
         if (token) {
-          config.headers["Authorization"] = `${token}`;
+          // This backend expects the raw JWT, not a Bearer token.
+          config.headers["Authorization"] = token;
         }
         return config;
       },
       (error) => Promise.reject(error),
+    );
+
+    this.api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (
+          typeof window !== "undefined" &&
+          error?.code === "ERR_NETWORK" &&
+          !error?.response
+        ) {
+          const requestBaseURL =
+            error?.config?.baseURL || resolvedBaseURL || "NEXT_PUBLIC_API_BASE_URL is not set";
+
+          error.message = `Network Error: unable to reach API at ${requestBaseURL}. Check NEXT_PUBLIC_API_BASE_URL and confirm the backend server is running.`;
+        }
+
+        return Promise.reject(error);
+      },
     );
   }
 

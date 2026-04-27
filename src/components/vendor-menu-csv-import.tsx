@@ -50,6 +50,9 @@ export function VendorMenuCsvImport({
           meatId: "",
           preparationTime: 10,
           allowCustomize: "TRUE",
+          hasFlavors: "TRUE",
+          flavors: "Lemon Pepper|Hot|Mild|Habanero",
+          flavorsPerOrder: 2,
           newDish: "FALSE",
           popularDish: "FALSE",
           "diet[0]": "",
@@ -117,6 +120,11 @@ export function VendorMenuCsvImport({
           meatId: anyItem.meatId?._id || anyItem.meatId || "",
           preparationTime: anyItem.preparationTime ?? "",
           allowCustomize: anyItem.allowCustomize ? "TRUE" : "FALSE",
+          hasFlavors: anyItem.hasFlavors ? "TRUE" : "FALSE",
+          flavors: (anyItem.flavors || [])
+            .filter((flavor: string) => flavor !== "Plain")
+            .join("|"),
+          flavorsPerOrder: anyItem.flavorsPerOrder ?? "",
           newDish: anyItem.newDish ? "TRUE" : "FALSE",
           popularDish: anyItem.popularDish ? "TRUE" : "FALSE",
           "diet[0]": dietIds[0] || "",

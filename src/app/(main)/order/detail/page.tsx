@@ -18,6 +18,9 @@ import { OrderItem } from "@/interfaces/user-interface";
 import dayjs from "dayjs";
 import PhotoViewer from "@/components/ui/photo-viewer";
 
+const money = (value?: number | string | null) =>
+  `$${Number(value || 0).toFixed(2)}`;
+
 export default function OrderDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,6 +43,12 @@ export default function OrderDetail() {
     staleTime: 0,
     refetchOnWindowFocus: false,
   });
+
+  const driverTip = Number(result?.tip ?? result?.tips ?? 0);
+  const foodTruckTip = Number(result?.tipsAmount || 0);
+  const deliveryFee = Number(result?.deliveryFee || 0);
+  const isDelivery =
+    result?.fulfillmentType === "DELIVERY" || deliveryFee > 0;
 
   return (
     <>
@@ -212,7 +221,29 @@ export default function OrderDetail() {
                 {result.orderStatus.toLowerCase()}
               </b>
             </div>
+            <div className="text-md">
+              Fulfillment:{" "}
+              <b className="text-primary capitalize">
+                {isDelivery ? "delivery" : "pickup"}
+              </b>
+            </div>
           </div>
+          {isDelivery && (
+            <div className="mb-3 border rounded-md px-3 py-2 max-w-[50rem] bg-gray-50">
+              <div className="font-semibold">Delivery</div>
+              <div className="text-sm text-muted-foreground">
+                {result.deliveryAddress || "Delivery address not available"}
+              </div>
+              {result.shipdayOrderCreatedAt && (
+                <div className="text-sm text-green-700 mt-1">
+                  Shipday order created{" "}
+                  {dayjs(result.shipdayOrderCreatedAt).format(
+                    "DD MMM, YYYY hh:mm A"
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           <div className="flex items-center gap-3 mt-3">
             <div className="whitespace-nowrap font-semibold text-xl">
               Order Items
@@ -255,6 +286,11 @@ export default function OrderDetail() {
                         <p className="text-sm text-muted-foreground mb-1">
                           {item.menuItem?.description}
                         </p>
+                        {!!item.selectedFlavors?.length && (
+                          <p className="text-sm text-muted-foreground mb-1">
+                            Flavors: <b>{item.selectedFlavors.join(", ")}</b>
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-8 items-center">
@@ -416,7 +452,7 @@ export default function OrderDetail() {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Subtotal:</span>
-                      <span className="font-medium">${Number(result.subTotal || 0).toFixed(2)}</span>
+                      <span className="font-medium">{money(result.subTotal)}</span>
                     </div>
                     {/* {result.discount > 0 && ( */}
                       <div className="flex justify-between">
@@ -431,24 +467,42 @@ export default function OrderDetail() {
                     {/* // )} */}
                     <div className="flex justify-between">
                       <span className="text-gray-600">Tax:</span>
-                      <span className="font-medium">${Number(result.taxAmount || 0).toFixed(2)}</span>
+                      <span className="font-medium">{money(result.tax ?? result.taxAmount)}</span>
                     </div>
+                    {isDelivery && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Delivery Fee:</span>
+                          <span className="font-medium">{money(deliveryFee)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Driver Tip:</span>
+                          <span className="font-medium">{money(driverTip)}</span>
+                        </div>
+                      </>
+                    )}
+                    {foodTruckTip > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Food Truck Tip:</span>
+                        <span className="font-medium">{money(foodTruckTip)}</span>
+                      </div>
+                    )}
+                    {Number(result.totalOrderCost || 0) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Order Cost:</span>
+                        <span className="font-medium">{money(result.totalOrderCost)}</span>
+                      </div>
+                    )}
                     {result.paymentProcessingFee > 0 && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">Processing Fee:</span>
-                        <span className="font-medium">${Number(result.paymentProcessingFee || 0).toFixed(2)}</span>
-                      </div>
-                    )}
-                    {result?.tipsAmount > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Tips Amount:</span>
-                        <span className="font-medium">${Number(result?.tipsAmount || 0).toFixed(2)}</span>
+                        <span className="font-medium">{money(result.paymentProcessingFee)}</span>
                       </div>
                     )}
                     <div className="border-t pt-2 mt-2">
                       <div className="flex justify-between">
                         <span className="font-semibold text-lg">Total:</span>
-                        <span className="font-semibold text-lg">${Number(result.total || 0).toFixed(2)}</span>
+                        <span className="font-semibold text-lg">{money(result.total)}</span>
                       </div>
                     </div>
                   </div>
