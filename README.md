@@ -97,7 +97,7 @@ cp .env.example .env
 
 | Variable | Description | Example |
 |---|---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | Base URL of the backend REST API | `http://localhost:3000` |
+| `NEXT_PUBLIC_API_BASE_URL` | Base URL of the backend REST API | `http://localhost:3001` |
 | `NEXT_PUBLIC_ENCRYPTION_SECRET_KEY` | Secret key used for client-side encryption | `your-secret-key` |
 
 > **Note:** All variables prefixed with `NEXT_PUBLIC_` are bundled into the client-side JavaScript at build time. **Never put sensitive server-side secrets in these variables.**
@@ -136,7 +136,7 @@ cp .env.example .env
 Open `.env` and update the values:
 
 ```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
 NEXT_PUBLIC_ENCRYPTION_SECRET_KEY=your-secret-key
 ```
 
@@ -148,7 +148,7 @@ Make sure the backend API server is running at the URL specified in `NEXT_PUBLIC
 npm run dev
 ```
 
-The app starts on **http://localhost:3001** (port `3001` is configured in `package.json`).
+The app starts on **http://localhost:3002** (port `3002` is configured in `package.json`).
 
 > Hot-reloading is enabled out of the box — any file changes will instantly reflect in the browser.
 
@@ -158,7 +158,7 @@ The app starts on **http://localhost:3001** (port `3001` is configured in `packa
 
 | Script | Command | Description |
 |---|---|---|
-| Development | `npm run dev` | Starts dev server on port 3001 with hot-reload |
+| Development | `npm run dev` | Starts dev server on port 3002 with hot-reload |
 | Build | `npm run build` | Creates an optimised static export in the `out/` directory |
 | Start | `npm run start` | Starts the Next.js production server (not applicable for static export) |
 | Lint | `npm run lint` | Runs ESLint across the codebase |
