@@ -36,6 +36,7 @@ export function VendorMenuCsvImport({
     StringHelper.downloadCSV(
       [
         {
+          menuItemId: "",
           name: "Sample Menu Item",
           description: "Short item description",
           imgUrls: "sample-menu-item.jpg",
@@ -106,6 +107,7 @@ export function VendorMenuCsvImport({
           : [];
 
         return {
+          menuItemId: item._id || "",
           name: item.name || "",
           description: item.description || "",
           imgUrls: (item.imgUrls || []).join("|"),
@@ -173,6 +175,23 @@ export function VendorMenuCsvImport({
         };
       }),
       `${vendorName || "vendor"}-current-menu`,
+    );
+  };
+
+  const downloadImportErrors = () => {
+    if (!importSummary?.errors.length) {
+      toast.error("There are no row errors to download.");
+      return;
+    }
+
+    StringHelper.downloadCSV(
+      importSummary.errors.map((error) => ({
+        rowNumber: error.rowNumber,
+        menuItemId: error.menuItemId || "",
+        menuItemName: error.menuItemName || "",
+        message: error.message,
+      })),
+      `${vendorName || "vendor"}-menu-import-errors`,
     );
   };
 
@@ -345,18 +364,41 @@ export function VendorMenuCsvImport({
             </p>
             {importSummary.errors.slice(0, 5).map((error) => (
               <p
-                key={`${error.rowNumber}-${error.menuItemName}-${error.message}`}
+                key={`${error.rowNumber}-${error.menuItemId || error.menuItemName}-${error.message}`}
               >
                 Row {error.rowNumber}
+                {error.menuItemId ? ` [${error.menuItemId}]` : ""}
                 {error.menuItemName ? ` (${error.menuItemName})` : ""}:{" "}
                 {error.message}
               </p>
             ))}
+            {importSummary.errors.length > 0 && (
+              <div className="pt-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={downloadImportErrors}
+                >
+                  <Download />
+                  Download Row Errors
+                </Button>
+              </div>
+            )}
             {importSummary.errors.length > 5 && (
-              <p>
-                {importSummary.errors.length - 5} more row error(s) were
-                returned by the import.
-              </p>
+              <div className="max-h-56 overflow-auto rounded-md border bg-white/60 p-2">
+                {importSummary.errors.slice(5).map((error) => (
+                  <p
+                    key={`${error.rowNumber}-${error.menuItemId || error.menuItemName}-${error.message}-extra`}
+                    className="text-sm"
+                  >
+                    Row {error.rowNumber}
+                    {error.menuItemId ? ` [${error.menuItemId}]` : ""}
+                    {error.menuItemName ? ` (${error.menuItemName})` : ""}:{" "}
+                    {error.message}
+                  </p>
+                ))}
+              </div>
             )}
           </AlertDescription>
         </Alert>

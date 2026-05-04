@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import * as React from "react";
 import { CheckIcon, ChevronsUpDown } from "lucide-react";
@@ -36,15 +36,15 @@ const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
     ({ className, onChange, ...props }, ref) => {
       const [country, setCountry] = React.useState<
         RPNInput.Country | undefined
-      >(props.defaultCountry || props.country);
+      >(props.defaultCountry || (props as any).country);
 
       const [inputValue, setInputValue] = React.useState<RPNInput.Value>(
-        props.value || "",
+        (props.value || "") as RPNInput.Value,
       );
 
       React.useEffect(() => {
         // Keep in sync when value is passed from parent
-        setInputValue(props.value || "");
+        setInputValue((props.value || "") as RPNInput.Value);
       }, [props.value]);
 
       return (
@@ -68,14 +68,14 @@ const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
                     const newValue = RPNInput.formatPhoneNumberIntl(
                       `+${RPNInput.getCountryCallingCode(newCountry)}${nationalNumber}`,
                     );
-                    setInputValue(newValue);
+                    setInputValue(newValue as RPNInput.Value);
                     onChange?.(newValue.replaceAll(" ", "") as RPNInput.Value);
                     return;
                   }
                 }
                 // Otherwise, just reset
                 const newValue = `+${RPNInput.getCountryCallingCode(newCountry)}`;
-                setInputValue(newValue);
+                setInputValue(newValue as RPNInput.Value);
                 onChange?.(newValue.replaceAll(" ", "") as RPNInput.Value);
               }}
             />
@@ -92,7 +92,7 @@ const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
            * @param {E164Number | undefined} value - The entered value
            */
           onChange={(value) => {
-            setInputValue(value || "");
+            setInputValue((value || "") as RPNInput.Value);
             onChange?.(value || ("" as RPNInput.Value));
           }}
           // onChange={(value) => onChange?.(value || ("" as RPNInput.Value))}

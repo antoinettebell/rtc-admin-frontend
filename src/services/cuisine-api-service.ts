@@ -1,11 +1,11 @@
 // services/user-service.ts
 import { BaseAPI } from "./base-api";
 import { APIEndpoint } from "@/models/api-endpoint";
-import { User } from "@/interfaces/user-interface";
+import { Cuisine } from "@/interfaces/user-interface";
 
 class CuisineApiService extends BaseAPI {
   list(search: string, page: number, limit = 10) {
-    return this.getPaginated<User>(`${APIEndpoint.CUISINE}`, "cuisineList", {
+    return this.getPaginated<Cuisine>(`${APIEndpoint.CUISINE}`, "cuisineList", {
       params: {
         page,
         limit,

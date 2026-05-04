@@ -1,17 +1,21 @@
 // services/user-service.ts
 import { BaseAPI } from "./base-api";
 import { APIEndpoint } from "@/models/api-endpoint";
-import { User } from "@/interfaces/user-interface";
+import { Categoriess } from "@/interfaces/user-interface";
 
 class CategoriesApiService extends BaseAPI {
   list(search: string, page: number, limit = 10) {
-    return this.getPaginated<User>(`${APIEndpoint.CATEGORIES}`, "categoriesList", {
-      params: {
-        page,
-        limit,
-        ...(search.trim().length ? { search: search.trim() } : {}),
+    return this.getPaginated<Categoriess>(
+      `${APIEndpoint.CATEGORIES}`,
+      "categoriesList",
+      {
+        params: {
+          page,
+          limit,
+          ...(search.trim().length ? { search: search.trim() } : {}),
+        },
       },
-    });
+    );
   }
   add(name: string) {
     return this.post<boolean>(`${APIEndpoint.CATEGORIES}`, { name });

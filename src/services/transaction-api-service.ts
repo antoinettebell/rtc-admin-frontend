@@ -11,41 +11,38 @@ class TransactionApiService extends BaseAPI {
     );
   }
 
- list(search: string, page: number, limit = 10, status: any,transactionsType:any, startDate: any, endDate: any) {
-  return this.getPaginated<OrderItem>(
-    `${APIEndpoint.TRANSACTION}/transaction-list`,
-    "TransactionsList",
-    {
-      params: {
-        page,
-        limit,
+  list(
+    search: string,
+    page: number,
+    limit = 10,
+    status?: any,
+    transactionsType?: any,
+    startDate?: any,
+    endDate?: any,
+  ) {
+    return this.getPaginated<OrderItem>(
+      `${APIEndpoint.TRANSACTION}/transaction-list`,
+      "TransactionsList",
+      {
+        params: {
+          page,
+          limit,
 
-        ...(search?.trim()?.length
-          ? { search: search.trim() }
-          : {}),
+          ...(search?.trim()?.length ? { search: search.trim() } : {}),
 
-        // Status allow true/false/null
-        ...(status !== null
-          ? { status }
-          : {}),
-          ...(transactionsType !== null
-          ? { transactionsType }
-          : {}),
+          // Status allow true/false/null
+          ...(status !== null ? { status } : {}),
+          ...(transactionsType !== null ? { transactionsType } : {}),
 
-        // Start date
-        ...(startDate
-          ? { startDate }
-          : {}),
+          // Start date
+          ...(startDate ? { startDate } : {}),
 
-        // End date
-        ...(endDate
-          ? { endDate }
-          : {}),
+          // End date
+          ...(endDate ? { endDate } : {}),
+        },
       },
-    }
-  );
-}
-
+    );
+  }
 }
 
 export const transactionApiService = new TransactionApiService();

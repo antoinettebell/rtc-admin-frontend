@@ -1,4 +1,5 @@
 export interface User {
+  [key: string]: any;
   _id: string;
   firstName: string;
   lastName: string;
@@ -7,8 +8,8 @@ export interface User {
   userType: "SUPER_ADMIN" | "VENDOR" | "CUSTOMER";
   requestStatus?: "PENDING" | "APPROVED" | "REJECTED";
   reasonForRejection?: string;
-  countryCode?: boolean;
-  mobileNumber?: boolean;
+  countryCode?: boolean | string;
+  mobileNumber?: boolean | string;
   inactive?: boolean;
   verified?: boolean;
   createdAt?: string;
@@ -68,6 +69,8 @@ export interface FoodTruckLocation {
   address: string;
   lat: string;
   long: string;
+  zipcode?: string;
+  isOrderingOpen?: boolean;
 }
 
 export interface BusinessHours {
@@ -79,6 +82,7 @@ export interface BusinessHours {
 }
 
 export interface FoodTruck {
+  [key: string]: any;
   _id: string;
   userId: string;
   name: string;
@@ -93,6 +97,7 @@ export interface FoodTruck {
   verified: boolean;
   featured?: boolean;
   completed?: boolean;
+  currentLocation?: string | null;
   locations: FoodTruckLocation[];
   availability: FoodTruckAvailability[];
   createdAt: string;
@@ -100,7 +105,7 @@ export interface FoodTruck {
   ssn?: string;
   snn?: string;
   ein?: string;
-  infoType: "truck" | "caterer";
+  infoType: "truck" | "caterer" | string;
   businessHours: BusinessHours[];
 }
 
@@ -153,6 +158,7 @@ export interface MenuItem {
 
 export interface MenuCsvImportError {
   rowNumber: number;
+  menuItemId?: string;
   menuItemName: string;
   message: string;
 }
@@ -179,6 +185,7 @@ export interface SiteSetting {
 }
 
 export interface OrderItem {
+  [key: string]: any;
   _id: string;
   foodTruckId: string;
   userId: string;
@@ -206,8 +213,19 @@ export interface OrderItem {
   totalOrderCost?: number;
   total: number;
   paymentProcessingFee: number;
-  paymentMethod?: "COD" | "APPLE_PAY" | "GOOGLE_PAY" | "CARD" | "STRIPE";
+  paymentMethod?:
+    | "COD"
+    | "CASH"
+    | "APPLE_PAY"
+    | "GOOGLE_PAY"
+    | "CARD"
+    | "TAP_TO_PAY"
+    | "STRIPE";
   paymentStatus?: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  orderSource?: "CUSTOMER_APP" | "VENDOR_POS";
+  guestCustomer?: {
+    phone?: string | null;
+  };
   transactionId?: string | null;
   refundTransactionId?: string | null;
   refundDateTime?: string | null;
@@ -239,6 +257,7 @@ export interface OrderItem {
 }
 
 export interface Banner {
+  [key: string]: any;
   _id: string;
   title: string;
   description: string;
@@ -282,6 +301,7 @@ export interface ReviewStats {
 }
 
 export interface Notification {
+  [key: string]: any;
   _id: string;
   title: string;
   description: string;

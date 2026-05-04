@@ -208,7 +208,10 @@ export const ReadFileProgressModal = ({
 
   return (
     <Dialog open={open} onOpenChange={(e) => !e && onClose && onClose(false)}>
-      <DialogContent className="sm:max-w-[400px] p-6 gap-6" hideCancel={true}>
+      <DialogContent
+        className="sm:max-w-[400px] p-6 gap-6"
+        {...({ hideCancel: true } as any)}
+      >
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold w-full flex justify-center">
             {title || "Please wait. . ."}

@@ -11,8 +11,10 @@ export const Status = ({
     | "INVITED"
     | "PENDING"
     | "APPROVED"
-    | "REJECTED";
-  className: ClassDecorator;
+    | "REJECTED"
+    | string
+    | undefined;
+  className?: string;
 }) => {
   const bg: Record<string, string> = {
     ACTIVE: "bg-[#05CD9933]",

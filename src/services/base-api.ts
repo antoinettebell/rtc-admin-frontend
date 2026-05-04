@@ -6,7 +6,11 @@ export class BaseAPI {
   protected api: AxiosInstance;
 
   constructor(baseURL?: string) {
-    const resolvedBaseURL = (baseURL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "")
+    const resolvedBaseURL = (
+      baseURL ??
+      process.env.NEXT_PUBLIC_API_BASE_URL ??
+      ""
+    )
       .trim()
       .replace(/\/+$/, "");
 
@@ -20,7 +24,7 @@ export class BaseAPI {
     this.api.interceptors.request.use(
       (config) => {
         if (!config.headers) {
-          config.headers = {};
+          config.headers = {} as any;
         }
 
         if (typeof window === "undefined") {
@@ -46,7 +50,9 @@ export class BaseAPI {
           !error?.response
         ) {
           const requestBaseURL =
-            error?.config?.baseURL || resolvedBaseURL || "NEXT_PUBLIC_API_BASE_URL is not set";
+            error?.config?.baseURL ||
+            resolvedBaseURL ||
+            "NEXT_PUBLIC_API_BASE_URL is not set";
 
           error.message = `Network Error: unable to reach API at ${requestBaseURL}. Check NEXT_PUBLIC_API_BASE_URL and confirm the backend server is running.`;
         }
@@ -67,7 +73,7 @@ export class BaseAPI {
     url: string,
     data?: any,
     config?: AxiosRequestConfig,
-  ): Promise<AxiosResponse<T>> {
+  ): Promise<AxiosResponse<T> & any> {
     return this.api.post<T>(url, data, config);
   }
 
@@ -90,7 +96,7 @@ export class BaseAPI {
     url: string,
     resultKey: string,
     config?: AxiosRequestConfig,
-  ): Promise<AxiosResponse<T>> {
+  ): Promise<AxiosResponse<IPaginateResponse<T>>> {
     return this.api.get<IPaginateResponse<T>>(url, config).then((res) => {
       const data = res.data.data;
       const records = data[resultKey];

@@ -24,12 +24,14 @@ import { userApiService } from "@/services/user-api-service";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Status } from "@/components/ui/status";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { categoryApiService } from "@/services/category-api-service";
 import { menuApiService } from "@/services/menu-api-service";
 import {
+  FoodTruckLocation,
   MenuItem,
   Review,
   ReviewStats,
@@ -71,6 +73,17 @@ export default function VendorDetail() {
   const [changeFeature, setChangeFeature] = useState<User | null>(null);
   const [changingFeature, setChangingFeature] = useState<boolean>(false);
   const [isFeatured, setIsFeatured] = useState<boolean>(false);
+  const [changingLocationId, setChangingLocationId] = useState<string | null>(
+    null,
+  );
+  const [addingLocation, setAddingLocation] = useState<boolean>(false);
+  const [newLocation, setNewLocation] = useState({
+    title: "",
+    address: "",
+    lat: "",
+    long: "",
+    zipcode: "",
+  });
 
   const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
   const [reviewList, setReviewList] = useState<Review[]>([]);
@@ -85,6 +98,10 @@ export default function VendorDetail() {
     thu: "Thursday",
     fri: "Friday",
     sat: "Saturday",
+  };
+
+  type LocationPayload = Omit<FoodTruckLocation, "_id"> & {
+    _id?: string;
   };
 
   if (!id) {
@@ -225,6 +242,105 @@ export default function VendorDetail() {
       .finally(() => {
         setChangingFeature(false);
       });
+  };
+
+  const buildLocationPayload = (
+    locationList: FoodTruckLocation[],
+    openLocationId: string | null,
+  ): LocationPayload[] =>
+    locationList.map((loc) => ({
+      ...(loc._id ? { _id: loc._id } : {}),
+      title: loc.title,
+      address: loc.address,
+      lat: String(loc.lat || ""),
+      long: String(loc.long || ""),
+      zipcode: loc.zipcode || "",
+      isOrderingOpen: !!openLocationId && loc._id === openLocationId,
+    }));
+
+  const updateOrderingLocation = async (locationId: string, open: boolean) => {
+    const foodTruck = result?.user?.foodTruck;
+    if (!foodTruck?._id) return;
+
+    if (
+      open &&
+      foodTruck.currentLocation &&
+      foodTruck.currentLocation !== locationId
+    ) {
+      toast.error("Close the currently open location before opening another.");
+      return;
+    }
+
+    const nextCurrentLocation = open ? locationId : null;
+    setChangingLocationId(locationId);
+
+    try {
+      await foodTruckApiService.update(foodTruck._id, {
+        currentLocation: nextCurrentLocation,
+        locations: buildLocationPayload(
+          foodTruck.locations || [],
+          nextCurrentLocation,
+        ),
+      });
+      toast.success(
+        open ? "Location opened for ordering." : "Location closed.",
+      );
+      refetch();
+    } catch (e) {
+      console.error(e);
+      toast.error("Unable to update the location.");
+    } finally {
+      setChangingLocationId(null);
+    }
+  };
+
+  const addLocation = async () => {
+    const foodTruck = result?.user?.foodTruck;
+    if (!foodTruck?._id) return;
+
+    const title = newLocation.title.trim();
+    const address = newLocation.address.trim();
+    const lat = newLocation.lat.trim();
+    const long = newLocation.long.trim();
+
+    if (!title || !address || !lat || !long) {
+      toast.error("Title, address, latitude, and longitude are required.");
+      return;
+    }
+
+    setAddingLocation(true);
+    try {
+      await foodTruckApiService.update(foodTruck._id, {
+        locations: [
+          ...buildLocationPayload(
+            foodTruck.locations || [],
+            foodTruck.currentLocation || null,
+          ),
+          {
+            title,
+            address,
+            lat,
+            long,
+            zipcode: newLocation.zipcode.trim(),
+            isOrderingOpen: false,
+          },
+        ],
+      });
+      setNewLocation({
+        title: "",
+        address: "",
+        lat: "",
+        long: "",
+        zipcode: "",
+      });
+      toast.success("Location added.");
+      refetch();
+    } catch (e) {
+      console.error(e);
+      toast.error("Unable to add the location.");
+    } finally {
+      setAddingLocation(false);
+    }
   };
 
   return (
@@ -805,9 +921,7 @@ export default function VendorDetail() {
                                 title={(item.flavors || []).join(", ")}
                               >
                                 Flavors:{" "}
-                                <b>
-                                  {(item.flavors || []).join(", ") || "-"}
-                                </b>
+                                <b>{(item.flavors || []).join(", ") || "-"}</b>
                               </div>
                             </div>
                           ) : null}
@@ -846,26 +960,123 @@ export default function VendorDetail() {
                 <div className="border-b w-full"></div>
               </div>
               <div className="pt-2 pb-4">
+                <div className="border rounded-md p-3 mb-4">
+                  <div className="font-semibold mb-3">Add Location</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+                    <Input
+                      value={newLocation.title}
+                      placeholder="Title"
+                      onChange={(e) =>
+                        setNewLocation((prev) => ({
+                          ...prev,
+                          title: e.target.value,
+                        }))
+                      }
+                    />
+                    <Input
+                      value={newLocation.address}
+                      placeholder="Address"
+                      onChange={(e) =>
+                        setNewLocation((prev) => ({
+                          ...prev,
+                          address: e.target.value,
+                        }))
+                      }
+                    />
+                    <Input
+                      value={newLocation.lat}
+                      placeholder="Latitude"
+                      onChange={(e) =>
+                        setNewLocation((prev) => ({
+                          ...prev,
+                          lat: e.target.value,
+                        }))
+                      }
+                    />
+                    <Input
+                      value={newLocation.long}
+                      placeholder="Longitude"
+                      onChange={(e) =>
+                        setNewLocation((prev) => ({
+                          ...prev,
+                          long: e.target.value,
+                        }))
+                      }
+                    />
+                    <div className="flex gap-2">
+                      <Input
+                        value={newLocation.zipcode}
+                        placeholder="Zip"
+                        onChange={(e) =>
+                          setNewLocation((prev) => ({
+                            ...prev,
+                            zipcode: e.target.value,
+                          }))
+                        }
+                      />
+                      <Button
+                        type="button"
+                        disabled={addingLocation}
+                        onClick={addLocation}
+                      >
+                        Add
+                        {addingLocation && (
+                          <LoaderCircle size={16} className="animate-spin" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
                   {result.user.foodTruck?.locations.map(
-                    (item: any, i: number) => (
-                      <div
-                        key={`${i}-location`}
-                        className="border rounded-md px-3 py-2 flex items-center gap-3"
-                      >
-                        <div>
-                          <MapPin className="text-primary" />
-                        </div>
-                        <div className="w-full pr-[24px]">
-                          <div className="font-semibold truncate">
-                            {item.title}
+                    (item: FoodTruckLocation, i: number) => {
+                      const isCurrentLocation =
+                        result.user.foodTruck?.currentLocation === item._id;
+                      const anotherLocationIsOpen =
+                        !!result.user.foodTruck?.currentLocation &&
+                        !isCurrentLocation;
+
+                      return (
+                        <div
+                          key={`${i}-location`}
+                          className="border rounded-md px-3 py-2 flex items-center justify-between gap-3"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div>
+                              <MapPin className="text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-semibold truncate">
+                                {item.title}
+                              </div>
+                              <div className="font-medium text-sm truncate">
+                                {item.address}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Normal ordering:{" "}
+                                {isCurrentLocation ? "Open" : "Closed"}
+                              </div>
+                              {anotherLocationIsOpen && (
+                                <div className="text-xs text-muted-foreground">
+                                  Close the open location before opening this
+                                  one.
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="font-medium text-sm truncate">
-                            {item.address}
-                          </div>
+                          <Switch
+                            checked={isCurrentLocation}
+                            disabled={
+                              changingLocationId === item._id ||
+                              anotherLocationIsOpen
+                            }
+                            onCheckedChange={(checked) =>
+                              updateOrderingLocation(item._id, checked)
+                            }
+                          />
                         </div>
-                      </div>
-                    ),
+                      );
+                    },
                   )}
                 </div>
               </div>

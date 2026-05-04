@@ -1,11 +1,11 @@
 // services/user-service.ts
 import { BaseAPI } from "./base-api";
 import { APIEndpoint } from "@/models/api-endpoint";
-import { User } from "@/interfaces/user-interface";
+import { Diet } from "@/interfaces/user-interface";
 
 class DietApiService extends BaseAPI {
   list(search: string, page: number, limit = 10) {
-    return this.getPaginated<User>(`${APIEndpoint.DIET}`, "dietList", {
+    return this.getPaginated<Diet>(`${APIEndpoint.DIET}`, "dietList", {
       params: {
         page,
         limit,

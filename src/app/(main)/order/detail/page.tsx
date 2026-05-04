@@ -21,6 +21,20 @@ import PhotoViewer from "@/components/ui/photo-viewer";
 const money = (value?: number | string | null) =>
   `$${Number(value || 0).toFixed(2)}`;
 
+const paymentMethodLabel = (value?: string | null) => {
+  const labels: Record<string, string> = {
+    COD: "Cash on Pickup",
+    CASH: "Cash",
+    APPLE_PAY: "Apple Pay",
+    GOOGLE_PAY: "Google Pay",
+    CARD: "Card",
+    TAP_TO_PAY: "Tap to Pay",
+    STRIPE: "Stripe",
+  };
+
+  return value ? labels[value] || value.replace(/_/g, " ") : "N/A";
+};
+
 export default function OrderDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -86,7 +100,7 @@ export default function OrderDetail() {
               </div>
               <div className="p-2 flex gap-3 rounded-md w-fit min-w-[350px] bg-white">
                 <div className="h-12 w-12 border rounded overflow-hidden flex items-center justify-center">
-                  {result.user.profilePic ? (
+                  {result.orderSource !== "VENDOR_POS" && result.user.profilePic ? (
                     <PhotoViewer src={result.user.profilePic}>
                       <img
                         className="h-auto w-auto object-cover transition-all hover:scale-105 aspect-square cursor-pointer"
@@ -100,11 +114,15 @@ export default function OrderDetail() {
                 <div className="w-full">
                   <h3 className="font-medium leading-none mt-1 mb-1 w-auto">
                     <b>
-                      {`${result?.user.firstName} ${result?.user.lastName || ""}`.trim()}
+                      {result.orderSource === "VENDOR_POS"
+                        ? "Walk-up Customer"
+                        : `${result?.user.firstName} ${result?.user.lastName || ""}`.trim()}
                     </b>
                   </h3>
                   <p className="text-sm text-muted-foreground mb-1">
-                    {result?.user.email}
+                    {result.orderSource === "VENDOR_POS"
+                      ? result.guestCustomer?.phone || "Guest POS order"
+                      : result?.user.email}
                   </p>
                 </div>
               </div>
@@ -378,8 +396,22 @@ export default function OrderDetail() {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Payment Method:</span>
-                      <span className="font-medium capitalize">{result.paymentMethod || 'N/A'}</span>
+                      <span className="font-medium">{paymentMethodLabel(result.paymentMethod)}</span>
                     </div>
+                    {result.orderSource === 'VENDOR_POS' && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Order Source:</span>
+                          <span className="font-medium">Vendor POS</span>
+                        </div>
+                        {result.guestCustomer?.phone && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Guest Phone:</span>
+                            <span className="font-medium">{result.guestCustomer.phone}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
                     {result.paymentMethod !== 'COD' && (
                       <>
                         <div className="flex justify-between">

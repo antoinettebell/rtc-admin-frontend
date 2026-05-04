@@ -40,6 +40,8 @@ export default function OrderDetail() {
     imageUrl: z.string().optional(),
     fromDate: z.string().optional(),
     toDate: z.string().optional(),
+    file: z.any().optional(),
+    force: z.any().optional(),
   });
 
   const form = useForm<z.infer<typeof bannerSchema>>({

@@ -10,10 +10,11 @@ export interface IPaginateResponse<T> {
   code: number;
   success: boolean;
   data: {
-    records: T[]
+    records: T[];
     total: number;
     page: number;
     totalPages: number;
+    [key: string]: any;
   };
   error: any;
   message: string;

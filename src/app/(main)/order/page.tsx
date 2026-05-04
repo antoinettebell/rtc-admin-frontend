@@ -40,8 +40,16 @@ export default function Orders() {
       fieldName: "user",
       accessor: (d) => (
         <NameDetail
-          name={`${d.user.firstName} ${d.user.lastName || ""}`}
-          email={d.user.email}
+          name={
+            d.orderSource === "VENDOR_POS"
+              ? "Walk-up Customer"
+              : `${d.user.firstName} ${d.user.lastName || ""}`
+          }
+          email={
+            d.orderSource === "VENDOR_POS"
+              ? d.guestCustomer?.phone || "Guest POS order"
+              : d.user.email
+          }
           imgSrc={d.user.profilePic || ""}
           avatarClassName={"object-contain"}
         />
@@ -190,6 +198,15 @@ export default function Orders() {
       accessor: (d) => (
         <span className="text-primary capitalize font-bold">
           {d.orderStatus?.toLowerCase()}
+        </span>
+      ),
+    },
+    {
+      header: "Source",
+      fieldName: "orderSource",
+      accessor: (d) => (
+        <span className="font-medium">
+          {d.orderSource === "VENDOR_POS" ? "Vendor POS" : "Customer App"}
         </span>
       ),
     },
