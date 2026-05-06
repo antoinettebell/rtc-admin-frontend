@@ -1,14 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactStrictMode: false,
+  output: "export",
+  trailingSlash: true,
   typescript: {
     ignoreBuildErrors: true,
   },
-  // distDir: 'build',
-  trailingSlash: true,
-  output: "export",
 };
 
 export default nextConfig;

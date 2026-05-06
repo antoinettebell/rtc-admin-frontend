@@ -178,10 +178,30 @@ export interface SiteSetting {
   termsConditions: string | null;
   privacyPolicy: string | null;
   agreement: string | null;
-  // Free Dessert feature
+  // Free Loyalty Bucks feature
   freeDessertAmount?: number;
   freeDessertOrderCount?: number;
   isFreeDessertEnabled?: boolean;
+}
+
+export interface Coupon {
+  _id: string;
+  code: string;
+  type: "PERCENTAGE" | "FIXED";
+  value: number;
+  maxDiscount?: number | null;
+  usageLimit: "NOLIMIT";
+  fundedBy?: "APP" | "VENDOR";
+  status?: "ACTIVE" | "ARCHIVED";
+  validFrom?: string | null;
+  validTill?: string | null;
+  adminCreated?: boolean;
+  isActive: boolean;
+  archivedAt?: string | null;
+  usageCount?: number;
+  lastUsedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface OrderItem {

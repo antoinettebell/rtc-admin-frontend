@@ -18,6 +18,7 @@ import {
   ReceiptText ,
   User2,
   Bell,
+  BadgeDollarSign,
 } from "lucide-react";
 import { NavMain } from "@/components/core/nav-main";
 
@@ -81,6 +82,12 @@ const navMain = [
     title: "Notifications",
     url: "/notification",
     icon: Bell,
+    items: [],
+  },
+  {
+    title: "Coupons & Rewards",
+    url: "/coupons-rewards",
+    icon: BadgeDollarSign,
     items: [],
   },
   {

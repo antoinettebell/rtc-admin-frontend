@@ -31,7 +31,7 @@ class SettingApiService extends BaseAPI {
     );
   }
 
-  // Free Dessert settings
+  // Free Loyalty Bucks settings
   updateFreeDessert(payload: {
     freeDessertAmount: number;
     freeDessertOrderCount: number;

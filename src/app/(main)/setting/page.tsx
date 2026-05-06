@@ -25,39 +25,16 @@ export default function Settings() {
   const [loading, setLoading] = useState<boolean>(false);
   const [passwordLoading, setPasswordLoading] = useState<boolean>(false);
 
-  const [freeDessertAmount, setFreeDessertAmount] = useState<string>("");
-  const [freeDessertOrderCount, setFreeDessertOrderCount] = useState<string>("");
-  const [isFreeDessertEnabled, setIsFreeDessertEnabled] = useState<boolean>(false);
-
   const [currentPassword, setCurrentPassword] = useState<string>("");
   const [newPassword, setNewPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
 
-  const {
-    data: result,
-    isFetching,
-    refetch,
-  } = useQuery({
+  const { data: result, isFetching, refetch } = useQuery({
     queryKey: ["site-setting"],
     queryFn: () => settingApiService.getFull(),
     staleTime: 0,
     refetchOnWindowFocus: false,
   });
-
-  // Seed Free Dessert local state from fetched settings
-  React.useEffect(() => {
-    const st = result?.data?.data?.setting;
-    if (!st) return;
-    if (typeof st.freeDessertAmount === "number") {
-      setFreeDessertAmount(String(st.freeDessertAmount));
-    }
-    if (typeof st.freeDessertOrderCount === "number") {
-      setFreeDessertOrderCount(String(st.freeDessertOrderCount));
-    }
-    if (typeof st.isFreeDessertEnabled === "boolean") {
-      setIsFreeDessertEnabled(!!st.isFreeDessertEnabled);
-    }
-  }, [result]);
 
   const onSaveTerms = (d: string) => {
     if (!d.trim()) return;
@@ -200,79 +177,6 @@ export default function Settings() {
                     onClick={onChangePassword}
                   >
                     {passwordLoading ? "Changing..." : "Change Password"}
-                  </Button>
-                </div>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-          <AccordionItem value="free-dessert">
-            <AccordionTrigger>
-              <div className="font-semibold text-[20px] my-2">Free Dessert</div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="grid gap-3 p-2">
-                <div className="flex items-center gap-3">
-                  <label className="min-w-[220px]">Enable Free Dessert</label>
-                  <input
-                    type="checkbox"
-                    checked={isFreeDessertEnabled}
-                    onChange={(e) => setIsFreeDessertEnabled(e.target.checked)}
-                  />
-                </div>
-                <div className="flex items-center gap-3">
-                  <label className="min-w-[220px]">Free Dessert Amount ($)</label>
-                  <Input
-                    type="number"
-                    value={freeDessertAmount}
-                    onChange={(e) => setFreeDessertAmount(e.target.value)}
-                    placeholder="10"
-                    className="max-w-[200px]"
-                  />
-                </div>
-                <div className="flex items-center gap-3">
-                  <label className="min-w-[220px]">Order Count Threshold</label>
-                  <Input
-                    type="number"
-                    value={freeDessertOrderCount}
-                    onChange={(e) => setFreeDessertOrderCount(e.target.value)}
-                    placeholder="10"
-                    className="max-w-[200px]"
-                  />
-                </div>
-                <div>
-                  <Button
-                    disabled={loading}
-                    onClick={() => {
-                      const amt = Number(freeDessertAmount);
-                      const cnt = Number(freeDessertOrderCount);
-                      if (isNaN(amt) || amt < 0) {
-                        toast.error("Amount must be 0 or greater");
-                        return;
-                      }
-                      if (isNaN(cnt) || cnt < 1) {
-                        toast.error("Order count must be 1 or greater");
-                        return;
-                      }
-                      setLoading(true);
-                      settingApiService
-                        .updateFreeDessert({
-                          freeDessertAmount: amt,
-                          freeDessertOrderCount: cnt,
-                          isFreeDessertEnabled,
-                        })
-                        .then(() => {
-                          toast.success("Free dessert settings updated");
-                          refetch();
-                        })
-                        .catch((e) =>
-                          toast.error(
-                            e.response?.data?.message || "Error while updating",
-                          ),
-                        )
-                        .finally(() => setLoading(false));
-                    }}
-                  >
-                    Save Settings
                   </Button>
                 </div>
               </div>
