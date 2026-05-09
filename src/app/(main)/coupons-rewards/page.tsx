@@ -20,7 +20,10 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Coupon } from "@/interfaces/user-interface";
-import { couponApiService } from "@/services/coupon-api-service";
+import {
+  CouponPayload,
+  couponApiService,
+} from "@/services/coupon-api-service";
 import { settingApiService } from "@/services/setting-api-service";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback/use-debounced-callback";
 
@@ -153,17 +156,22 @@ export default function CouponsRewards() {
     }
 
     setCouponLoading(true);
+    const couponPayload: CouponPayload = {
+      code,
+      type: couponForm.type,
+      value,
+      usageLimit: "NOLIMIT",
+      fundedBy: "APP",
+      validFrom: couponForm.validFrom || null,
+      validTill: couponForm.validTill || null,
+    };
+
+    if (couponForm.type === "PERCENTAGE") {
+      couponPayload.maxDiscount = maxDiscount;
+    }
+
     couponApiService
-      .create({
-        code,
-        type: couponForm.type,
-        value,
-        maxDiscount,
-        usageLimit: "NOLIMIT",
-        fundedBy: "APP",
-        validFrom: couponForm.validFrom || null,
-        validTill: couponForm.validTill || null,
-      })
+      .create(couponPayload)
       .then(() => {
         toast.success("Coupon created");
         resetCouponForm();
