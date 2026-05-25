@@ -275,13 +275,13 @@ export default function OrderDetail() {
                 render={({ field }) => (
                   <FormItem className="w-full">
                     <FormLabel>
-                      Destination URL <sub>[Optional]</sub>
+                      Ad click-through destination URL <sub>[Optional]</sub>
                     </FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         type="text"
-                        placeholder="https://example.com"
+                        placeholder="https://example.com or https://instagram.com/vendor"
                         className=""
                       />
                     </FormControl>

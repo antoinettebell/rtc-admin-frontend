@@ -28,6 +28,8 @@ import { PhoneInput } from "@/components/phone-input";
 import { toast } from "sonner";
 import { foodTruckApiService } from "@/services/food-truck-api-service";
 import { StringHelper } from "@/models/string-helper-model";
+import { cuisineApiService } from "@/services/cuisine-api-service";
+import { VendorPlanFeatureList } from "@/components/vendor-plan-feature-list";
 
 export default function VendorDetail() {
   const router = useRouter();
@@ -47,6 +49,7 @@ export default function VendorDetail() {
   const [previewPhotos, setPreviewPhotos] = useState<string[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>("");
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
+  const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
   if (!id) {
     return 404;
   }
@@ -309,8 +312,9 @@ export default function VendorDetail() {
       await foodTruckApiService.update(result.user.foodTruck._id.toString(), {
         planId: selectedPlan,
         addOns: selectedAddons,
+        cuisine: selectedCuisines,
       });
-      toast.success("Plan and addons updated successfully.");
+      toast.success("Plan, addons, and cuisines updated successfully.");
       refetch();
     } catch (e) {
       console.error(e);
@@ -332,8 +336,9 @@ export default function VendorDetail() {
 
         publicApiService.getPlanList("", 1, 100),
         publicApiService.getAddOnsList("", 1, 100),
+        cuisineApiService.list("", 1, 100),
         // categoryApiService.list("", 1, 100, { userId: id?.toString() }),
-      ]).then(([userRes, planRes, addonRes]) => {
+      ]).then(([userRes, planRes, addonRes, cuisineRes]) => {
         if (userRes.data?.data.user.foodTruck?.plan) {
           setPlanColor(
             userRes.data?.data.user.foodTruck?.plan?.titleColor || "",
@@ -367,11 +372,17 @@ export default function VendorDetail() {
             (addon: any) => addon._id,
           ) || [],
         );
+        setSelectedCuisines(
+          userRes?.data?.data?.user?.foodTruck?.cuisine?.map(
+            (cuisine: any) => cuisine._id || cuisine,
+          ) || [],
+        );
         console.log("addonRes", addonRes);
         return {
           ...(userRes?.data.data || {}),
           planList: planRes?.data?.data?.planList || [],
           addonList: addonRes.data.data?.addonsList || [],
+          cuisineList: cuisineRes.data.data?.records || [],
         };
       }),
     staleTime: 0,
@@ -805,18 +816,14 @@ export default function VendorDetail() {
                         <span className="font-medium">Rate:</span>{" "}
                         {result.user.foodTruck.plan.rate}%
                       </div>
-                      {result.user.foodTruck.plan.details && (
-                        <div>
-                          <span className="font-medium text-sm">Features:</span>
-                          <ul className="list-disc list-inside text-sm text-gray-600 mt-1">
-                            {result.user.foodTruck.plan.details.map(
-                              (detail: string, idx: number) => (
-                                <li key={idx}>{detail}</li>
-                              ),
-                            )}
-                          </ul>
+                      <div>
+                        <span className="font-medium text-sm">Features:</span>
+                        <div className="mt-2">
+                          <VendorPlanFeatureList
+                            plan={result.user.foodTruck.plan}
+                          />
                         </div>
-                      )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -907,13 +914,45 @@ export default function VendorDetail() {
                 </div>
               </div>
 
+              <div className="mb-4">
+                <div className="text-sm font-semibold pb-2">
+                  Select Cuisines (Multiple)
+                </div>
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                  {result?.cuisineList?.map((cuisine: any) => (
+                    <label
+                      key={cuisine._id}
+                      className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedCuisines.includes(cuisine._id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCuisines((prev) => [
+                              ...prev,
+                              cuisine._id,
+                            ]);
+                          } else {
+                            setSelectedCuisines((prev) =>
+                              prev.filter((id) => id !== cuisine._id),
+                            );
+                          }
+                        }}
+                      />
+                      <span className="text-sm">{cuisine.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               <div className="w-full flex justify-end mt-4">
                 <LoadingButton
                   isLoading={loadingPlan}
                   disabled={!selectedPlan || loadingPlan}
                   onClick={onUpdatePlan}
                 >
-                  Update Plan & Add-ons
+                  Update Plan, Add-ons & Cuisines
                 </LoadingButton>
               </div>
             </div>

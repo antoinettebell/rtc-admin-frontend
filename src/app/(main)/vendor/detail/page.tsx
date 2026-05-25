@@ -48,6 +48,7 @@ import { BankDetailsDisplay } from "@/components/bank-details-display";
 import { decryptFields } from "@/utils/encryption";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VendorMenuCsvImport } from "@/components/vendor-menu-csv-import";
+import { VendorPlanFeatureList } from "@/components/vendor-plan-feature-list";
 
 export default function VendorDetail() {
   const router = useRouter();
@@ -658,31 +659,16 @@ export default function VendorDetail() {
                           {result.user.foodTruck.plan.rate}%
                         </span>
                       </div>
-                      {result.user.foodTruck.plan.details &&
-                        result.user.foodTruck.plan.details.length > 0 && (
-                          <div className="mt-3">
-                            <span className="font-semibold text-blue-700 block mb-2">
-                              Features:
-                            </span>
-                            <div className="bg-white/50 rounded-md p-3">
-                              <ul className="space-y-1">
-                                {result.user.foodTruck.plan.details.map(
-                                  (detail: string, index: number) => (
-                                    <li
-                                      key={index}
-                                      className="flex items-start gap-2 text-blue-800"
-                                    >
-                                      <span className="text-blue-500 mt-1">
-                                        ✓
-                                      </span>
-                                      <span>{detail}</span>
-                                    </li>
-                                  ),
-                                )}
-                              </ul>
-                            </div>
-                          </div>
-                        )}
+                      <div className="mt-3">
+                        <span className="font-semibold text-blue-700 block mb-2">
+                          Features:
+                        </span>
+                        <div className="bg-white/50 rounded-md p-3">
+                          <VendorPlanFeatureList
+                            plan={result.user.foodTruck.plan}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

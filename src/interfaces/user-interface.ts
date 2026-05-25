@@ -47,6 +47,7 @@ export interface Plan {
   slug: string;
   rate: number;
   rateType: string;
+  capabilities?: Record<string, any>;
   isPopular: boolean;
   details: string[];
   deletedAt: string | null;
