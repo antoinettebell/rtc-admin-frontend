@@ -655,8 +655,7 @@ export default function VendorDetail() {
                           Rate:
                         </span>
                         <span className="text-blue-800 font-medium">
-                          {result.user.foodTruck.plan.rate}%{" "}
-                          {result.user.foodTruck.plan.rateType}
+                          {result.user.foodTruck.plan.rate}%
                         </span>
                       </div>
                       {result.user.foodTruck.plan.details &&

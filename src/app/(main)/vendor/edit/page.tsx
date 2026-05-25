@@ -104,7 +104,7 @@ export default function VendorDetail() {
     handleSubmit: handleSubmitFT,
     formState: formStateFT,
     getValues: getValueFT,
-    control:ftControl,
+    control: ftControl,
     reset: setValueFT,
   } = useForm<z.infer<typeof ftFormSchema>>({
     resolver: zodResolver(ftFormSchema),
@@ -153,11 +153,10 @@ export default function VendorDetail() {
       });
   };
 
-
   const onSubmitFT = async (data: z.infer<typeof ftFormSchema>) => {
     if (!result?.user?.foodTruck?._id) return;
 
-    const { name, infoType,ssn,ein } = data;
+    const { name, infoType, ssn, ein } = data;
     setLoadingFT(true);
 
     try {
@@ -171,7 +170,7 @@ export default function VendorDetail() {
       let newPhotoUrls: string[] = [];
       if (photos.length > 0) {
         const uploaded = await Promise.all(
-          photos.map((file) => fileApiService.upload(file))
+          photos.map((file) => fileApiService.upload(file)),
         );
         newPhotoUrls = uploaded
           .map((u) => u?.data?.data?.file || u?.path)
@@ -181,7 +180,7 @@ export default function VendorDetail() {
       if (result?.user?.foodTruck?.photos?.length) {
         // Keep only those that are still in previewPhotos (not removed)
         existingPhotos = result.user.foodTruck.photos.filter((p: string) =>
-          previewPhotos.includes(p)
+          previewPhotos.includes(p),
         );
       } else {
         // No existing photos, use previewPhotos as base
@@ -190,14 +189,17 @@ export default function VendorDetail() {
       // ✅ Merge existing + newly uploaded
       const finalPhotos = [...existingPhotos, ...newPhotoUrls];
       console.log("finalPhotos", finalPhotos);
-      await foodTruckApiService.update(result?.user?.foodTruck?._id.toString(), {
-        name,
-        infoType,
-        ssn,
-        ein,
-        ...(logoUrl ? { logo: logoUrl } : {}),
-        photos: finalPhotos,
-      });
+      await foodTruckApiService.update(
+        result?.user?.foodTruck?._id.toString(),
+        {
+          name,
+          infoType,
+          ssn,
+          ein,
+          ...(logoUrl ? { logo: logoUrl } : {}),
+          photos: finalPhotos,
+        },
+      );
 
       toast.success("Food truck details updated.");
       refetch();
@@ -210,25 +212,25 @@ export default function VendorDetail() {
   };
   // const onSubmitFT = async (data: z.infer<typeof ftFormSchema>) => {
   //   if (!result?.user?.foodTruck?._id) return;
-  
+
   //   const { name, infoType } = data;
   //   setLoadingFT(true);
-  
+
   //   try {
   //     let logoUrl = null;
-  
+
   //     if (ftFile) {
   //       const uploadRes = await fileApiService.upload(ftFile);
   //       logoUrl = uploadRes?.data?.data?.file || uploadRes?.path;
   //     }
-  
+
   //     // ✅ Update food truck details
   //     await foodTruckApiService.update(result?.user?.foodTruck?._id.toString(), {
   //       name,
   //       infoType,
   //       ...(logoUrl ? { logo: logoUrl } : {}),
   //     });
-  
+
   //     toast.success("Food truck details updated.");
   //     // Optionally refetch updated data
   //     refetch();
@@ -239,7 +241,6 @@ export default function VendorDetail() {
   //     setLoadingFT(false);
   //   }
   // };
-  
 
   // const onSubmitFT = (data: z.infer<typeof ftFormSchema>) => {
   //   if (!result?.user?.foodTruck?._id) return;
@@ -278,28 +279,36 @@ export default function VendorDetail() {
 
   const onSubmitPassword = async (data: z.infer<typeof passwordFormSchema>) => {
     setLoadingPassword(true);
-    userApiService.forgotPassword({
+    userApiService
+      .forgotPassword({
         email: data.email,
         userType: data.userType,
         forFe: true,
-      }).then(() => {
-        toast.success("Password reset link has been sent to vendor registered email.");
-      }).catch((e) => {
+      })
+      .then(() => {
+        toast.success(
+          "Password reset link has been sent to vendor registered email.",
+        );
+      })
+      .catch((e) => {
         console.error(e);
-        toast.error("Unable to send password reset link. Please try again later.");
-      }).finally(() => {
+        toast.error(
+          "Unable to send password reset link. Please try again later.",
+        );
+      })
+      .finally(() => {
         setLoadingPassword(false);
       });
   };
 
   const onUpdatePlan = async () => {
     if (!result?.user?.foodTruck?._id || !selectedPlan) return;
-    
+
     setLoadingPlan(true);
     try {
       await foodTruckApiService.update(result.user.foodTruck._id.toString(), {
         planId: selectedPlan,
-        addOns: selectedAddons
+        addOns: selectedAddons,
       });
       toast.success("Plan and addons updated successfully.");
       refetch();
@@ -320,10 +329,10 @@ export default function VendorDetail() {
     queryFn: () =>
       Promise.all([
         userApiService.getById(id?.toString() || ""),
-        
-      publicApiService.getPlanList("", 1, 100),
-      publicApiService.getAddOnsList("", 1, 100),
-// categoryApiService.list("", 1, 100, { userId: id?.toString() }),
+
+        publicApiService.getPlanList("", 1, 100),
+        publicApiService.getAddOnsList("", 1, 100),
+        // categoryApiService.list("", 1, 100, { userId: id?.toString() }),
       ]).then(([userRes, planRes, addonRes]) => {
         if (userRes.data?.data.user.foodTruck?.plan) {
           setPlanColor(
@@ -353,8 +362,12 @@ export default function VendorDetail() {
         });
         setPreviewPhotos(userRes?.data?.data?.user?.foodTruck?.photos || []);
         setSelectedPlan(userRes?.data?.data?.user?.foodTruck?.planId || "");
-        setSelectedAddons(userRes?.data?.data?.user?.foodTruck?.addOns?.map((addon: any) => addon._id) || []);
-        console.log("addonRes",addonRes);
+        setSelectedAddons(
+          userRes?.data?.data?.user?.foodTruck?.addOns?.map(
+            (addon: any) => addon._id,
+          ) || [],
+        );
+        console.log("addonRes", addonRes);
         return {
           ...(userRes?.data.data || {}),
           planList: planRes?.data?.data?.planList || [],
@@ -509,56 +522,56 @@ export default function VendorDetail() {
             </div>
             <form onSubmit={handleSubmitFT(onSubmitFT)}>
               <div className="px-1 pt-2 w-full">
-
-
-              <div className="mb-6 mt-4">
-              <p className="text-sm font-semibold mb-2">Change Logo</p>
-              <div className="flex items-center gap-4">
-                <div className="w-[100px] h-[100px] rounded-full overflow-hidden border">
-                  {previewFtLogo ? (
-                    <img
-                      src={previewFtLogo}
-                      alt="logo"
-                      className="w-full h-full object-cover"
-                      suppressHydrationWarning
-                    />
-                  ) : result?.user?.foodTruck?.logo ? (
-                    <img
-                      src={result.user.foodTruck.logo}
-                      alt="logo"
-                      className="w-full h-full object-cover"
-                      suppressHydrationWarning
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400">
-                      <SquareUserRound size={40} />
+                <div className="mb-6 mt-4">
+                  <p className="text-sm font-semibold mb-2">Change Logo</p>
+                  <div className="flex items-center gap-4">
+                    <div className="w-[100px] h-[100px] rounded-full overflow-hidden border">
+                      {previewFtLogo ? (
+                        <img
+                          src={previewFtLogo}
+                          alt="logo"
+                          className="w-full h-full object-cover"
+                          suppressHydrationWarning
+                        />
+                      ) : result?.user?.foodTruck?.logo ? (
+                        <img
+                          src={result.user.foodTruck.logo}
+                          alt="logo"
+                          className="w-full h-full object-cover"
+                          suppressHydrationWarning
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-gray-400">
+                          <SquareUserRound size={40} />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    id="logoUpload"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setFtFile(e.target.files[0]);
-                        setPreviewFtLogo(URL.createObjectURL(e.target.files[0]));
-                      }
-                    }}
-                  />
-                  <label
-                    htmlFor="logoUpload"
-                    className="px-4 py-2 border rounded-lg flex items-center gap-2 cursor-pointer hover:bg-gray-50"
-                  >
-                    Upload Logo
-                  </label>
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        id="logoUpload"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setFtFile(e.target.files[0]);
+                            setPreviewFtLogo(
+                              URL.createObjectURL(e.target.files[0]),
+                            );
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor="logoUpload"
+                        className="px-4 py-2 border rounded-lg flex items-center gap-2 cursor-pointer hover:bg-gray-50"
+                      >
+                        Upload Logo
+                      </label>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-              {/* <div className="flex items-center gap-3 mb-4">
+                {/* <div className="flex items-center gap-3 mb-4">
                     <div className="w-[100px] h-[100px] rounded-full overflow-hidden border">
                       {previewFtLogo ? (
                         <img
@@ -589,61 +602,71 @@ export default function VendorDetail() {
                         }}
                       />
                   </div> */}
-                  <div className="mb-6">
-              <p className="text-sm font-semibold mb-2">Change Food Truck Photos</p>
-              <div className="flex items-center gap-3 flex-wrap">
-                {previewPhotos.map((photo, idx) => (
-                  <div
-                    key={idx}
-                    className="relative w-[90px] h-[90px] rounded-md overflow-hidden border"
-                  >
-                    <img
-                      src={photo}
-                      alt={`photo-${idx}`}
-                      className="w-full h-full object-cover"
-                      suppressHydrationWarning
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPreviewPhotos((prev) => prev.filter((_, i) => i !== idx));
-                        setPhotos((prev) =>
-                          prev.filter((_, i) => i !== idx - (result?.user?.foodTruck?.photos?.length || 0))
-                        );
-                      }}
-                      className="absolute top-1 right-1 bg-orange-500 rounded-full p-1 text-white text-xs"
-                    >
-                      ×
-                    </button>
+                <div className="mb-6">
+                  <p className="text-sm font-semibold mb-2">
+                    Change Food Truck Photos
+                  </p>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {previewPhotos.map((photo, idx) => (
+                      <div
+                        key={idx}
+                        className="relative w-[90px] h-[90px] rounded-md overflow-hidden border"
+                      >
+                        <img
+                          src={photo}
+                          alt={`photo-${idx}`}
+                          className="w-full h-full object-cover"
+                          suppressHydrationWarning
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPreviewPhotos((prev) =>
+                              prev.filter((_, i) => i !== idx),
+                            );
+                            setPhotos((prev) =>
+                              prev.filter(
+                                (_, i) =>
+                                  i !==
+                                  idx -
+                                    (result?.user?.foodTruck?.photos?.length ||
+                                      0),
+                              ),
+                            );
+                          }}
+                          className="absolute top-1 right-1 bg-orange-500 rounded-full p-1 text-white text-xs"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    <div className="w-[90px] h-[90px] flex items-center justify-center border rounded-md cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        id="photoUpload"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            const files = Array.from(e.target.files);
+                            setPhotos((prev) => [...prev, ...files]);
+                            setPreviewPhotos((prev) => [
+                              ...prev,
+                              ...files.map((f) => URL.createObjectURL(f)),
+                            ]);
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor="photoUpload"
+                        className="text-orange-500 text-2xl font-bold cursor-pointer"
+                      >
+                        +
+                      </label>
+                    </div>
                   </div>
-                ))}
-                <div className="w-[90px] h-[90px] flex items-center justify-center border rounded-md cursor-pointer hover:bg-gray-50">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    id="photoUpload"
-                    onChange={(e) => {
-                      if (e.target.files) {
-                        const files = Array.from(e.target.files);
-                        setPhotos((prev) => [...prev, ...files]);
-                        setPreviewPhotos((prev) => [
-                          ...prev,
-                          ...files.map((f) => URL.createObjectURL(f)),
-                        ]);
-                      }
-                    }}
-                  />
-                  <label
-                    htmlFor="photoUpload"
-                    className="text-orange-500 text-2xl font-bold cursor-pointer"
-                  >
-                    +
-                  </label>
                 </div>
-              </div>
-            </div>  
                 <div className="w-full flex gap-3">
                   <div className="w-full mb-2">
                     <div className="text-sm font-semibold pb-1">Name</div>
@@ -672,9 +695,8 @@ export default function VendorDetail() {
                       )}
                     />
                   </div>
-                  </div>
-                  <div className="w-full flex gap-3">
-
+                </div>
+                <div className="w-full flex gap-3">
                   <div className="w-full mb-2">
                     <div className="text-sm font-semibold pb-1">Ssn</div>
                     <Input placeholder="ssn" {...ftRegister("ssn")} />
@@ -707,13 +729,10 @@ export default function VendorDetail() {
                 <div className="flex justify-between items-center mt-2 text-sm text-gray-600">
                   <p>
                     If you change the password, click on the{" "}
-                    <span className="font-semibold">Send Link</span> button.  
-                    The link will be shared on vendor registered email.
+                    <span className="font-semibold">Send Link</span> button. The
+                    link will be shared on vendor registered email.
                   </p>
-                  <LoadingButton
-                    isLoading={loadingPassword}
-                    type="submit"
-                  >
+                  <LoadingButton isLoading={loadingPassword} type="submit">
                     Send Link
                   </LoadingButton>
                 </div>
@@ -765,25 +784,36 @@ export default function VendorDetail() {
                 <h4 className="text-sm font-semibold mb-2">Current Plan</h4>
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
-                    <div 
-                      className="w-4 h-4 rounded" 
-                      style={{ backgroundColor: result?.user?.foodTruck?.plan?.titleColor || '#gray' }}
+                    <div
+                      className="w-4 h-4 rounded"
+                      style={{
+                        backgroundColor:
+                          result?.user?.foodTruck?.plan?.titleColor || "#gray",
+                      }}
                     ></div>
-                    <span className="font-medium text-lg">{result?.user?.foodTruck?.plan?.name || 'No plan assigned'}</span>
-                    <span className="text-sm text-gray-600">({result?.user?.foodTruck?.plan?.slug})</span>
+                    <span className="font-medium text-lg">
+                      {result?.user?.foodTruck?.plan?.name ||
+                        "No plan assigned"}
+                    </span>
+                    <span className="text-sm text-gray-600">
+                      ({result?.user?.foodTruck?.plan?.slug})
+                    </span>
                   </div>
                   {result?.user?.foodTruck?.plan && (
                     <div className="space-y-2">
                       <div className="text-sm">
-                        <span className="font-medium">Rate:</span> {result.user.foodTruck.plan.rate}% {result.user.foodTruck.plan.rateType}
+                        <span className="font-medium">Rate:</span>{" "}
+                        {result.user.foodTruck.plan.rate}%
                       </div>
                       {result.user.foodTruck.plan.details && (
                         <div>
                           <span className="font-medium text-sm">Features:</span>
                           <ul className="list-disc list-inside text-sm text-gray-600 mt-1">
-                            {result.user.foodTruck.plan.details.map((detail: string, idx: number) => (
-                              <li key={idx}>{detail}</li>
-                            ))}
+                            {result.user.foodTruck.plan.details.map(
+                              (detail: string, idx: number) => (
+                                <li key={idx}>{detail}</li>
+                              ),
+                            )}
                           </ul>
                         </div>
                       )}
@@ -797,12 +827,22 @@ export default function VendorDetail() {
                 <div className="p-3 bg-gray-50 rounded-lg">
                   {result?.user?.foodTruck?.addOns?.length > 0 ? (
                     <div className="space-y-2">
-                      {result.user.foodTruck.addOns.map((addon: any, idx: number) => (
-                        <div key={idx} className="p-2 bg-blue-50 border border-blue-200 rounded">
-                          <div className="font-medium text-blue-800">{addon.name}</div>
-                          <div className="text-xs text-gray-500">Added: {new Date(addon.createdAt).toLocaleDateString()}</div>
-                        </div>
-                      ))}
+                      {result.user.foodTruck.addOns.map(
+                        (addon: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className="p-2 bg-blue-50 border border-blue-200 rounded"
+                          >
+                            <div className="font-medium text-blue-800">
+                              {addon.name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Added:{" "}
+                              {new Date(addon.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ),
+                      )}
                     </div>
                   ) : (
                     <span className="text-gray-500">No add-ons assigned</span>
@@ -822,9 +862,11 @@ export default function VendorDetail() {
                         {result?.planList?.map((plan: any) => (
                           <SelectItem key={plan._id} value={plan._id}>
                             <div className="flex items-center gap-2">
-                              <div 
-                                className="w-3 h-3 rounded" 
-                                style={{ backgroundColor: plan.titleColor || '#gray' }}
+                              <div
+                                className="w-3 h-3 rounded"
+                                style={{
+                                  backgroundColor: plan.titleColor || "#gray",
+                                }}
                               ></div>
                               {plan.name}
                             </div>
@@ -837,18 +879,25 @@ export default function VendorDetail() {
               </div>
 
               <div className="mb-4">
-                <div className="text-sm font-semibold pb-2">Select Add-ons (Multiple)</div>
+                <div className="text-sm font-semibold pb-2">
+                  Select Add-ons (Multiple)
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {result?.addonList?.map((addon: any) => (
-                    <label key={addon._id} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50">
+                    <label
+                      key={addon._id}
+                      className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50"
+                    >
                       <input
                         type="checkbox"
                         checked={selectedAddons.includes(addon._id)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedAddons(prev => [...prev, addon._id]);
+                            setSelectedAddons((prev) => [...prev, addon._id]);
                           } else {
-                            setSelectedAddons(prev => prev.filter(id => id !== addon._id));
+                            setSelectedAddons((prev) =>
+                              prev.filter((id) => id !== addon._id),
+                            );
                           }
                         }}
                       />
@@ -869,8 +918,6 @@ export default function VendorDetail() {
               </div>
             </div>
           </div>
-
-          
         </>
       )}
     </>

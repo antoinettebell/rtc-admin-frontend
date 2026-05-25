@@ -362,6 +362,13 @@ export function VendorMenuCsvImport({
               {importSummary.uploadedImageCount || 0}, failed:{" "}
               {importSummary.failedCount}
             </p>
+            {(importSummary.skippedNewDishHighlightCount || 0) > 0 && (
+              <p>
+                New dish highlights skipped:{" "}
+                {importSummary.skippedNewDishHighlightCount}. This vendor tier
+                does not include dish highlighting.
+              </p>
+            )}
             {importSummary.errors.slice(0, 5).map((error) => (
               <p
                 key={`${error.rowNumber}-${error.menuItemId || error.menuItemName}-${error.message}`}

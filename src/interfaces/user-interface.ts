@@ -170,6 +170,7 @@ export interface MenuCsvImportSummary {
   updatedCount: number;
   categoryCreatedCount: number;
   uploadedImageCount?: number;
+  skippedNewDishHighlightCount?: number;
   failedCount: number;
   errors: MenuCsvImportError[];
 }
