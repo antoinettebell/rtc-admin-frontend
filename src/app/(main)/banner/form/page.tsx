@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { FileSelect } from "@/components/file-select";
 import { LoadingButton } from "@/components/loading-button";
 import { fileApiService } from "@/services/file-api-service";
@@ -38,6 +39,29 @@ export default function OrderDetail() {
     title: z.string().optional(),
     description: z.string().optional(),
     imageUrl: z.string().optional(),
+    adVendorName: z.string().optional(),
+    adDestinationUrl: z
+      .string()
+      .trim()
+      .max(2048)
+      .optional()
+      .refine(
+        (value) => {
+          if (!value) return true;
+          if (/[\u0000-\u001F\u007F\s]/.test(value)) return false;
+          try {
+            const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(value)
+              ? value
+              : `https://${value}`;
+            const parsed = new URL(candidate);
+            return parsed.protocol === "https:" && !!parsed.hostname;
+          } catch {
+            return false;
+          }
+        },
+        { message: "Enter a valid https:// URL or social media URL" },
+      ),
+    isActive: z.boolean().optional(),
     fromDate: z.string().optional(),
     toDate: z.string().optional(),
     file: z.any().optional(),
@@ -58,6 +82,9 @@ export default function OrderDetail() {
           title: res.data.data.banner.title || "",
           description: res.data.data.banner.description || "",
           imageUrl: res.data.data.banner.imageUrl || "",
+          adVendorName: res.data.data.banner.adVendorName || "",
+          adDestinationUrl: res.data.data.banner.adDestinationUrl || "",
+          isActive: res.data.data.banner.isActive ?? true,
           fromDate: res.data.data.banner.fromDate
             ? dayjs(res.data.data.banner.fromDate).format("YYYY-MM-DD")
             : "",
@@ -223,6 +250,48 @@ export default function OrderDetail() {
             </div>
             <div className="flex gap-4">
               <FormField
+                name="adVendorName"
+                control={form.control}
+                render={({ field }) => (
+                  <FormItem className="w-full">
+                    <FormLabel>
+                      Ad vendor name <sub>[Optional]</sub>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="text"
+                        placeholder="Advertiser name"
+                        className=""
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                name="adDestinationUrl"
+                control={form.control}
+                render={({ field }) => (
+                  <FormItem className="w-full">
+                    <FormLabel>
+                      Destination URL <sub>[Optional]</sub>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="text"
+                        placeholder="https://example.com"
+                        className=""
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="flex gap-4">
+              <FormField
                 name="fromDate"
                 control={form.control}
                 render={({ field }) => (
@@ -264,6 +333,22 @@ export default function OrderDetail() {
                 )}
               />
             </div>
+            <FormField
+              name="isActive"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-3">
+                  <FormControl>
+                    <Switch
+                      checked={field.value ?? true}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel className="!m-0">Ad active</FormLabel>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="flex justify-center gap-2 pt-1">
               <Button

@@ -284,6 +284,12 @@ export interface Banner {
   title: string;
   description: string;
   imageUrl: string;
+  adVendorName?: string;
+  adDestinationUrl?: string;
+  adImpressions?: number;
+  adClicks?: number;
+  adClickThroughRate?: number;
+  isActive?: boolean;
   fromDate: string;
   toDate: string;
   deletedAt: string;

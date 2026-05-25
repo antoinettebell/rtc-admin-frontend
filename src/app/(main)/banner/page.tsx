@@ -75,6 +75,49 @@ export default function Banners() {
       accessor: (d) => d.title || "-",
     },
     {
+      header: "Ad Vendor",
+      fieldName: "adVendorName",
+      accessor: (d) => d.adVendorName || "-",
+    },
+    {
+      header: "Destination",
+      fieldName: "adDestinationUrl",
+      accessor: (d) =>
+        d.adDestinationUrl ? (
+          <a
+            href={d.adDestinationUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-primary underline"
+          >
+            Open
+          </a>
+        ) : (
+          "-"
+        ),
+    },
+    {
+      header: "Status",
+      fieldName: "isActive",
+      accessor: (d) => (d.isActive === false ? "Inactive" : "Active"),
+    },
+    {
+      header: "Impressions",
+      fieldName: "adImpressions",
+      accessor: (d) => d.adImpressions || 0,
+    },
+    {
+      header: "Clicks",
+      fieldName: "adClicks",
+      accessor: (d) => d.adClicks || 0,
+    },
+    {
+      header: "CTR",
+      fieldName: "adClickThroughRate",
+      accessor: (d) => `${(d.adClickThroughRate || 0).toFixed(2)}%`,
+    },
+    {
       header: "From Date",
       fieldName: "fromDate",
       accessor: (d) =>
