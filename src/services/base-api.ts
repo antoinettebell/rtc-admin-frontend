@@ -85,6 +85,14 @@ export class BaseAPI {
     return this.api.put<T>(url, data, config);
   }
 
+  protected patch<T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<T>> {
+    return this.api.patch<T>(url, data, config);
+  }
+
   protected delete<T>(
     url: string,
     config?: AxiosRequestConfig,
