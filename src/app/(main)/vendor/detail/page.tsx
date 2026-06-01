@@ -1,11 +1,15 @@
 "use client";
 import {
   ArrowLeft,
+  Archive,
   Check,
+  KeyRound,
   LoaderCircle,
   MapPin,
+  Plus,
   Soup,
   SquareUserRound,
+  Trash2,
   X,
 } from "lucide-react";
 import * as React from "react";
@@ -36,6 +40,7 @@ import {
   Review,
   ReviewStats,
   User,
+  VendorEmployee,
 } from "@/interfaces/user-interface";
 import dayjs from "dayjs";
 import PhotoViewer from "@/components/ui/photo-viewer";
@@ -49,6 +54,7 @@ import { decryptFields } from "@/utils/encryption";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VendorMenuCsvImport } from "@/components/vendor-menu-csv-import";
 import { VendorPlanFeatureList } from "@/components/vendor-plan-feature-list";
+import { vendorEmployeeApiService } from "@/services/vendor-employee-api-service";
 
 export default function VendorDetail() {
   const router = useRouter();
@@ -70,6 +76,19 @@ export default function VendorDetail() {
   const [changing, setChanging] = useState<boolean>(false);
   const [planColor, setPlanColor] = useState<string>("");
   const [locations, setLocations] = useState<Record<string, string>>({});
+  const [employeeTab, setEmployeeTab] = useState<"current" | "archived">(
+    "current",
+  );
+  const [employees, setEmployees] = useState<VendorEmployee[]>([]);
+  const [employeeLoading, setEmployeeLoading] = useState<boolean>(false);
+  const [employeeSaving, setEmployeeSaving] = useState<boolean>(false);
+  const [employeeForm, setEmployeeForm] = useState({
+    first_name: "",
+    last_name: "",
+    zip_code: "",
+    assigned_location_id: "",
+    pin: "",
+  });
 
   const [changeFeature, setChangeFeature] = useState<User | null>(null);
   const [changingFeature, setChangingFeature] = useState<boolean>(false);
@@ -198,6 +217,131 @@ export default function VendorDetail() {
       setShowMore(((res as any).data.data.total as number) > page * 10);
       setPage(p + 1);
     });
+  };
+
+  const loadEmployees = React.useCallback(() => {
+    const vendorUserId = result?.user?._id;
+    const foodTruckId = result?.user?.foodTruck?._id;
+    if (!vendorUserId || !foodTruckId) return;
+
+    setEmployeeLoading(true);
+    vendorEmployeeApiService
+      .list({
+        vendorUserId,
+        foodTruckId,
+        archivedOnly: employeeTab === "archived",
+      })
+      .then((res) => {
+        setEmployees(res.data?.data?.vendoremployeeList || []);
+      })
+      .catch((e) => {
+        console.log(e);
+        toast.error("Could not load employees.");
+      })
+      .finally(() => setEmployeeLoading(false));
+  }, [employeeTab, result?.user?._id, result?.user?.foodTruck?._id]);
+
+  React.useEffect(() => {
+    loadEmployees();
+  }, [loadEmployees]);
+
+  const resetEmployeeForm = () => {
+    setEmployeeForm({
+      first_name: "",
+      last_name: "",
+      zip_code: "",
+      assigned_location_id: "",
+      pin: "",
+    });
+  };
+
+  const addEmployee = () => {
+    const vendorUserId = result?.user?._id;
+    const foodTruckId = result?.user?.foodTruck?._id;
+    if (!vendorUserId || !foodTruckId) return;
+    if (
+      !employeeForm.first_name.trim() ||
+      !employeeForm.last_name.trim() ||
+      !employeeForm.zip_code.trim() ||
+      !employeeForm.assigned_location_id ||
+      !employeeForm.pin.trim()
+    ) {
+      toast.error("Complete all employee fields.");
+      return;
+    }
+
+    setEmployeeSaving(true);
+    vendorEmployeeApiService
+      .create({
+        vendor_user_id: vendorUserId,
+        food_truck_id: foodTruckId,
+        ...employeeForm,
+      })
+      .then(() => {
+        toast.success("Employee added.");
+        resetEmployeeForm();
+        setEmployeeTab("current");
+        loadEmployees();
+      })
+      .catch((e) => {
+        console.log(e);
+        toast.error(e?.response?.data?.message || "Could not add employee.");
+      })
+      .finally(() => setEmployeeSaving(false));
+  };
+
+  const updateEmployee = (
+    employee: VendorEmployee,
+    data: Partial<VendorEmployee>,
+  ) => {
+    vendorEmployeeApiService
+      .update(employee._id, data)
+      .then(() => {
+        toast.success("Employee updated.");
+        loadEmployees();
+      })
+      .catch((e) => {
+        console.log(e);
+        toast.error(e?.response?.data?.message || "Could not update employee.");
+      });
+  };
+
+  const archiveEmployee = (employee: VendorEmployee) => {
+    vendorEmployeeApiService
+      .archive(employee._id)
+      .then(() => {
+        toast.success("Employee archived.");
+        loadEmployees();
+      })
+      .catch((e) => {
+        console.log(e);
+        toast.error(e?.response?.data?.message || "Could not archive employee.");
+      });
+  };
+
+  const removeEmployee = (employee: VendorEmployee) => {
+    vendorEmployeeApiService
+      .remove(employee._id)
+      .then(() => {
+        toast.success("Employee removed.");
+        loadEmployees();
+      })
+      .catch((e) => {
+        console.log(e);
+        toast.error(e?.response?.data?.message || "Could not remove employee.");
+      });
+  };
+
+  const resetEmployeePin = (employee: VendorEmployee) => {
+    vendorEmployeeApiService
+      .resetPin(employee._id)
+      .then(() => {
+        toast.success("Temporary PIN sent to vendor email.");
+      })
+      .catch((e) => {
+        console.log(e);
+        toast.error(e?.response?.data?.message || "Could not reset PIN.");
+      });
   };
 
   const onStatusChange = () => {
@@ -432,6 +576,12 @@ export default function VendorDetail() {
                 className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
               >
                 Locations
+              </TabsTrigger>
+              <TabsTrigger
+                value="employees"
+                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+              >
+                Employees
               </TabsTrigger>
               <TabsTrigger
                 value="availability"
@@ -1065,6 +1215,217 @@ export default function VendorDetail() {
                   )}
                 </div>
               </div>
+            </TabsContent>
+
+            <TabsContent value="employees">
+              <div className="flex items-center gap-3 mt-3">
+                <div className="whitespace-nowrap font-semibold text-xl">
+                  Employees
+                </div>
+                <div className="border-b w-full"></div>
+              </div>
+
+              <div className="border rounded-md p-3 mb-4">
+                <div className="font-semibold mb-3">Add Employee</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
+                  <Input
+                    value={employeeForm.first_name}
+                    placeholder="First name"
+                    onChange={(e) =>
+                      setEmployeeForm((prev) => ({
+                        ...prev,
+                        first_name: e.target.value,
+                      }))
+                    }
+                  />
+                  <Input
+                    value={employeeForm.last_name}
+                    placeholder="Last name"
+                    onChange={(e) =>
+                      setEmployeeForm((prev) => ({
+                        ...prev,
+                        last_name: e.target.value,
+                      }))
+                    }
+                  />
+                  <Input
+                    value={employeeForm.zip_code}
+                    placeholder="Zip"
+                    onChange={(e) =>
+                      setEmployeeForm((prev) => ({
+                        ...prev,
+                        zip_code: e.target.value,
+                      }))
+                    }
+                  />
+                  <select
+                    value={employeeForm.assigned_location_id}
+                    className="border rounded-md px-3 py-2 bg-background"
+                    onChange={(e) =>
+                      setEmployeeForm((prev) => ({
+                        ...prev,
+                        assigned_location_id: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Location</option>
+                    {(result.user.foodTruck?.locations || []).map(
+                      (location: FoodTruckLocation) => (
+                        <option key={location._id} value={location._id}>
+                          {location.title || location.address || "Location"}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                  <Input
+                    value={employeeForm.pin}
+                    placeholder="PIN"
+                    type="password"
+                    onChange={(e) =>
+                      setEmployeeForm((prev) => ({
+                        ...prev,
+                        pin: e.target.value,
+                      }))
+                    }
+                  />
+                  <Button
+                    type="button"
+                    disabled={employeeSaving}
+                    onClick={addEmployee}
+                  >
+                    <Plus size={16} />
+                    Add
+                    {employeeSaving && (
+                      <LoaderCircle size={16} className="animate-spin" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex gap-2 mb-4">
+                <Button
+                  type="button"
+                  variant={employeeTab === "current" ? "default" : "outline"}
+                  onClick={() => setEmployeeTab("current")}
+                >
+                  Current Employees
+                </Button>
+                <Button
+                  type="button"
+                  variant={employeeTab === "archived" ? "default" : "outline"}
+                  onClick={() => setEmployeeTab("archived")}
+                >
+                  Archived Employees
+                </Button>
+              </div>
+
+              {employeeLoading ? (
+                <div className="py-8 flex justify-center">
+                  <LoaderCircle className="animate-spin" />
+                </div>
+              ) : employees.length === 0 ? (
+                <div className="text-sm text-muted-foreground border rounded-md p-4">
+                  No {employeeTab === "archived" ? "archived" : "current"} employees.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                  {employees.map((employee) => {
+                    const assignedLocation = result.user.foodTruck?.locations?.find(
+                      (location: FoodTruckLocation) =>
+                        location._id === employee.assigned_location_id,
+                    );
+                    return (
+                      <div
+                        key={employee._id}
+                        className="border rounded-md p-3 flex flex-col gap-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="font-semibold">
+                              {employee.first_name} {employee.last_name}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {employee.employee_login_id}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {assignedLocation?.title ||
+                                assignedLocation?.address ||
+                                "Unassigned location"}
+                            </div>
+                          </div>
+                          <div className="text-xs rounded-full border px-2 py-1">
+                            {employee.is_archived
+                              ? "Archived"
+                              : employee.is_active
+                                ? "Active"
+                                : "Inactive"}
+                          </div>
+                        </div>
+
+                        {employeeTab === "current" && (
+                          <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={!!employee.is_active}
+                                onCheckedChange={(checked) =>
+                                  updateEmployee(employee, {
+                                    is_active: checked,
+                                    is_working: checked
+                                      ? employee.is_working
+                                      : false,
+                                  })
+                                }
+                              />
+                              <span className="text-sm">Login access</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={!!employee.is_working}
+                                disabled={!employee.is_active}
+                                onCheckedChange={(checked) =>
+                                  updateEmployee(employee, {
+                                    is_working: checked,
+                                  })
+                                }
+                              />
+                              <span className="text-sm">Working</span>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap gap-2">
+                          {employeeTab === "current" && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => archiveEmployee(employee)}
+                            >
+                              <Archive size={16} />
+                              Archive
+                            </Button>
+                          )}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => resetEmployeePin(employee)}
+                          >
+                            <KeyRound size={16} />
+                            Reset PIN
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => removeEmployee(employee)}
+                          >
+                            <Trash2 size={16} />
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="availability">

@@ -110,6 +110,25 @@ export interface FoodTruck {
   businessHours: BusinessHours[];
 }
 
+export interface VendorEmployee {
+  _id: string;
+  employee_internal_id: string;
+  vendor_user_id: string;
+  food_truck_id: string;
+  assigned_location_id: string;
+  first_name: string;
+  last_name: string;
+  zip_code: string;
+  employee_login_id: string;
+  role: "EMPLOYEE";
+  is_active: boolean;
+  is_working: boolean;
+  is_archived: boolean;
+  last_login_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface MenuCategory {
   _id: string;
   name: string;
