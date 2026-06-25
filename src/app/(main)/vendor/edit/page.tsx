@@ -314,11 +314,11 @@ export default function VendorDetail() {
         addOns: selectedAddons,
         cuisine: selectedCuisines,
       });
-      toast.success("Plan, addons, and cuisines updated successfully.");
+      toast.success("Plan, Ad Space, and cuisines updated successfully.");
       refetch();
     } catch (e) {
       console.error(e);
-      toast.error("Failed to update plan and addons.");
+      toast.error("Failed to update plan and Ad Space.");
     } finally {
       setLoadingPlan(false);
     }
@@ -787,7 +787,7 @@ export default function VendorDetail() {
           <div className="border rounded-xl p-4 mt-9">
             <div className="relative">
               <div className="absolute bottom-1 whitespace-nowrap font-semibold text-xl w-fit bg-white pr-2 pl-1">
-                Plan & Add-ons Management
+                Plan & Ad Space Management
               </div>
             </div>
             <div className="px-1 pt-2 w-full">
@@ -830,7 +830,7 @@ export default function VendorDetail() {
               </div>
 
               <div className="mb-4">
-                <h4 className="text-sm font-semibold mb-2">Current Add-ons</h4>
+                <h4 className="text-sm font-semibold mb-2">Current Ad Space</h4>
                 <div className="p-3 bg-gray-50 rounded-lg">
                   {result?.user?.foodTruck?.addOns?.length > 0 ? (
                     <div className="space-y-2">
@@ -852,7 +852,7 @@ export default function VendorDetail() {
                       )}
                     </div>
                   ) : (
-                    <span className="text-gray-500">No add-ons assigned</span>
+                    <span className="text-gray-500">No Ad Space assigned</span>
                   )}
                 </div>
               </div>
@@ -887,7 +887,7 @@ export default function VendorDetail() {
 
               <div className="mb-4">
                 <div className="text-sm font-semibold pb-2">
-                  Select Add-ons (Multiple)
+                  Select Ad Space
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {result?.addonList?.map((addon: any) => (
@@ -952,7 +952,7 @@ export default function VendorDetail() {
                   disabled={!selectedPlan || loadingPlan}
                   onClick={onUpdatePlan}
                 >
-                  Update Plan, Add-ons & Cuisines
+                  Update Plan, Ad Space & Cuisines
                 </LoadingButton>
               </div>
             </div>
