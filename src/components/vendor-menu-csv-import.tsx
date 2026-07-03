@@ -54,6 +54,8 @@ export function VendorMenuCsvImport({
           hasFlavors: "TRUE",
           flavors: "Lemon Pepper|Hot|Mild|Habanero",
           flavorsPerOrder: 2,
+          comboSideOptions: "Fries|Side Salad|Chips",
+          comboSidesPerOrder: 1,
           newDish: "FALSE",
           popularDish: "FALSE",
           "diet[0]": "",
@@ -127,6 +129,10 @@ export function VendorMenuCsvImport({
             .filter((flavor: string) => flavor !== "Plain")
             .join("|"),
           flavorsPerOrder: anyItem.flavorsPerOrder ?? "",
+          comboSideOptions: Array.isArray(anyItem.comboSideOptions)
+            ? anyItem.comboSideOptions.filter(Boolean).join("|")
+            : "",
+          comboSidesPerOrder: anyItem.comboSidesPerOrder ?? "",
           newDish: anyItem.newDish ? "TRUE" : "FALSE",
           popularDish: anyItem.popularDish ? "TRUE" : "FALSE",
           "diet[0]": dietIds[0] || "",
@@ -186,7 +192,7 @@ export function VendorMenuCsvImport({
 
     StringHelper.downloadCSV(
       importSummary.errors.map((error) => ({
-        rowNumber: error.rowNumber,
+        csvLine: error.rowNumber,
         menuItemId: error.menuItemId || "",
         menuItemName: error.menuItemName || "",
         message: error.message,
@@ -373,7 +379,7 @@ export function VendorMenuCsvImport({
               <p
                 key={`${error.rowNumber}-${error.menuItemId || error.menuItemName}-${error.message}`}
               >
-                Row {error.rowNumber}
+                CSV line {error.rowNumber}
                 {error.menuItemId ? ` [${error.menuItemId}]` : ""}
                 {error.menuItemName ? ` (${error.menuItemName})` : ""}:{" "}
                 {error.message}
@@ -399,7 +405,7 @@ export function VendorMenuCsvImport({
                     key={`${error.rowNumber}-${error.menuItemId || error.menuItemName}-${error.message}-extra`}
                     className="text-sm"
                   >
-                    Row {error.rowNumber}
+                    CSV line {error.rowNumber}
                     {error.menuItemId ? ` [${error.menuItemId}]` : ""}
                     {error.menuItemName ? ` (${error.menuItemName})` : ""}:{" "}
                     {error.message}

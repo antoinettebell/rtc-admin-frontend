@@ -162,6 +162,8 @@ export interface MenuItem {
   hasFlavors?: boolean;
   flavors?: string[];
   flavorsPerOrder?: number;
+  comboSideOptions?: string[];
+  comboSidesPerOrder?: number;
   itemType: "COMBO" | "INDIVIDUAL";
   categoryId: string;
   subItem: {
