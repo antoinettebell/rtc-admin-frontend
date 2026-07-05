@@ -32,6 +32,27 @@ class FoodTruckApiService extends BaseAPI {
     );
   }
 
+  toggleLocationOrdering(
+    id: string,
+    locationId: string,
+    isOrderingOpen: boolean,
+    truckUnitId?: string,
+  ) {
+    return this.patch<IResponse<{ foodtruck: FoodTruck }>>(
+      `${APIEndpoint.FOOD_TRUCK}/${id}/location/${locationId}/ordering-open`,
+      {
+        isOrderingOpen,
+        truck_unit_id: truckUnitId || null,
+      },
+    );
+  }
+
+  deleteLocation(id: string, locationId: string) {
+    return this.delete<IResponse<{ foodtruck: FoodTruck }>>(
+      `${APIEndpoint.FOOD_TRUCK}/${id}/location/${locationId}`,
+    );
+  }
+
   uploadDocument(
     id: string,
     file: File,

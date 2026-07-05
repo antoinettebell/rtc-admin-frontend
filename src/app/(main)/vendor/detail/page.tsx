@@ -100,6 +100,10 @@ export default function VendorDetail() {
   const [changingLocationId, setChangingLocationId] = useState<string | null>(
     null,
   );
+  const [deletingLocationId, setDeletingLocationId] = useState<string | null>(
+    null,
+  );
+  const [selectedTruckUnitId, setSelectedTruckUnitId] = useState<string>("");
   const [addingLocation, setAddingLocation] = useState<boolean>(false);
   const [newLocation, setNewLocation] = useState({
     title: "",
@@ -209,8 +213,37 @@ export default function VendorDetail() {
         } as any;
       }),
     staleTime: 0,
-    refetchOnWindowFocus: false,
+      refetchOnWindowFocus: false,
   });
+
+  const activeTruckUnits = React.useMemo(
+    () =>
+      (result?.user?.foodTruck?.truck_units || [])
+        .filter((unit: any) => !unit.is_archived)
+        .sort(
+          (a: any, b: any) =>
+            (a.display_order || 0) - (b.display_order || 0),
+        ),
+    [result?.user?.foodTruck?.truck_units],
+  );
+
+  React.useEffect(() => {
+    if (selectedTruckUnitId || activeTruckUnits.length === 0) return;
+
+    const primaryUnit =
+      activeTruckUnits.find((unit: any) => unit.is_primary) ||
+      activeTruckUnits[0];
+    setSelectedTruckUnitId(primaryUnit?._id || "");
+  }, [activeTruckUnits, selectedTruckUnitId]);
+
+  const selectedTruckUnit = React.useMemo(
+    () =>
+      activeTruckUnits.find((unit: any) => unit._id === selectedTruckUnitId) ||
+      activeTruckUnits.find((unit: any) => unit.is_primary) ||
+      activeTruckUnits[0] ||
+      null,
+    [activeTruckUnits, selectedTruckUnitId],
+  );
 
   const getStats = (ftId: string) => {
     reviewApiService.stats(ftId).then((res) => {
@@ -489,30 +522,44 @@ export default function VendorDetail() {
       isOrderingOpen: !!openLocationId && loc._id === openLocationId,
     }));
 
-  const updateOrderingLocation = async (locationId: string, open: boolean) => {
+  const updateOrderingLocation = async (
+    locationId: string,
+    open: boolean,
+    truckUnitId?: string,
+  ) => {
     const foodTruck = result?.user?.foodTruck;
     if (!foodTruck?._id) return;
 
+    if (!truckUnitId) {
+      toast.error("Select a truck before changing location status.");
+      return;
+    }
+
+    const selectedUnit = activeTruckUnits.find(
+      (unit: any) => unit._id === truckUnitId,
+    );
+    const openLocationId = selectedUnit?.open_locations?.find(
+      (loc: any) => loc.isOrderingOpen,
+    )?.locationId;
+
     if (
       open &&
-      foodTruck.currentLocation &&
-      foodTruck.currentLocation !== locationId
+      openLocationId &&
+      openLocationId !== locationId
     ) {
       toast.error("Close the currently open location before opening another.");
       return;
     }
 
-    const nextCurrentLocation = open ? locationId : null;
     setChangingLocationId(locationId);
 
     try {
-      await foodTruckApiService.update(foodTruck._id, {
-        currentLocation: nextCurrentLocation,
-        locations: buildLocationPayload(
-          foodTruck.locations || [],
-          nextCurrentLocation,
-        ),
-      });
+      await foodTruckApiService.toggleLocationOrdering(
+        foodTruck._id,
+        locationId,
+        open,
+        truckUnitId,
+      );
       toast.success(
         open ? "Location opened for ordering." : "Location closed.",
       );
@@ -522,6 +569,30 @@ export default function VendorDetail() {
       toast.error("Unable to update the location.");
     } finally {
       setChangingLocationId(null);
+    }
+  };
+
+  const deleteLocation = async (locationId: string) => {
+    const foodTruck = result?.user?.foodTruck;
+    if (!foodTruck?._id) return;
+
+    const location = foodTruck.locations?.find((loc) => loc._id === locationId);
+    const label = location?.title || location?.address || "this location";
+
+    if (!window.confirm(`Remove ${label}? This cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingLocationId(locationId);
+    try {
+      await foodTruckApiService.deleteLocation(foodTruck._id, locationId);
+      toast.success("Location removed.");
+      refetch();
+    } catch (e) {
+      console.error(e);
+      toast.error("Unable to remove the location.");
+    } finally {
+      setDeletingLocationId(null);
     }
   };
 
@@ -1304,6 +1375,24 @@ export default function VendorDetail() {
                 <div className="border-b w-full"></div>
               </div>
               <div className="pt-2 pb-4">
+                {activeTruckUnits.length > 0 && (
+                  <div className="border rounded-md p-3 mb-4">
+                    <div className="font-semibold mb-2">Truck</div>
+                    <select
+                      className="h-11 w-full max-w-md rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={selectedTruckUnit?._id || ""}
+                      onChange={(e) => setSelectedTruckUnitId(e.target.value)}
+                    >
+                      {activeTruckUnits.map((unit: any, index: number) => (
+                        <option key={unit._id || index} value={unit._id || ""}>
+                          {unit.name ||
+                            (unit.is_primary ? "Primary truck" : "Truck")}
+                          {unit.is_primary ? " (Primary)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="border rounded-md p-3 mb-4">
                   <div className="font-semibold mb-3">Add Location</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
@@ -1380,11 +1469,14 @@ export default function VendorDetail() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
                   {result.user.foodTruck?.locations.map(
                     (item: FoodTruckLocation, i: number) => {
+                      const openLocationId =
+                        selectedTruckUnit?.open_locations?.find(
+                          (loc: any) => loc.isOrderingOpen,
+                        )?.locationId || null;
                       const isCurrentLocation =
-                        result.user.foodTruck?.currentLocation === item._id;
+                        !!openLocationId && openLocationId === item._id;
                       const anotherLocationIsOpen =
-                        !!result.user.foodTruck?.currentLocation &&
-                        !isCurrentLocation;
+                        !!openLocationId && !isCurrentLocation;
 
                       return (
                         <div
@@ -1406,6 +1498,15 @@ export default function VendorDetail() {
                                 Normal ordering:{" "}
                                 {isCurrentLocation ? "Open" : "Closed"}
                               </div>
+                              {selectedTruckUnit && (
+                                <div className="text-xs text-muted-foreground">
+                                  Truck:{" "}
+                                  {selectedTruckUnit.name ||
+                                    (selectedTruckUnit.is_primary
+                                      ? "Primary truck"
+                                      : "Truck")}
+                                </div>
+                              )}
                               {anotherLocationIsOpen && (
                                 <div className="text-xs text-muted-foreground">
                                   Close the open location before opening this
@@ -1414,16 +1515,40 @@ export default function VendorDetail() {
                               )}
                             </div>
                           </div>
-                          <Switch
-                            checked={isCurrentLocation}
-                            disabled={
-                              changingLocationId === item._id ||
-                              anotherLocationIsOpen
-                            }
-                            onCheckedChange={(checked) =>
-                              updateOrderingLocation(item._id, checked)
-                            }
-                          />
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={isCurrentLocation}
+                              disabled={
+                                changingLocationId === item._id ||
+                                anotherLocationIsOpen ||
+                                !selectedTruckUnit?._id
+                              }
+                              onCheckedChange={(checked) =>
+                                updateOrderingLocation(
+                                  item._id,
+                                  checked,
+                                  selectedTruckUnit?._id,
+                                )
+                              }
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              disabled={deletingLocationId === item._id}
+                              onClick={() => deleteLocation(item._id)}
+                              title="Remove location"
+                            >
+                              {deletingLocationId === item._id ? (
+                                <LoaderCircle
+                                  size={16}
+                                  className="animate-spin"
+                                />
+                              ) : (
+                                <Trash2 size={16} />
+                              )}
+                            </Button>
+                          </div>
                         </div>
                       );
                     },
