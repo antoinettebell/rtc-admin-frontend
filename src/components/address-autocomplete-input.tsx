@@ -10,6 +10,10 @@ type AddressSelection = {
   zipcode: string;
 };
 
+type AddressLookupResult =
+  | { ok: true; selection: AddressSelection }
+  | { ok: false; reason: "missing_key" | "maps_unavailable" | "not_found" };
+
 type AddressAutocompleteInputProps = {
   value: string;
   placeholder?: string;
@@ -69,11 +73,15 @@ function getAddressPart(place: any, type: string) {
 export async function geocodeAddress(
   address: string,
   zipcode?: string,
-): Promise<AddressSelection | null> {
+): Promise<AddressLookupResult> {
+  if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
+    return { ok: false, reason: "missing_key" };
+  }
+
   await loadGoogleMapsPlaces();
 
   if (!window.google?.maps?.Geocoder) {
-    return null;
+    return { ok: false, reason: "maps_unavailable" };
   }
 
   const query = [address, zipcode].filter(Boolean).join(", ");
@@ -87,7 +95,7 @@ export async function geocodeAddress(
       },
       (results: any[], status: string) => {
         if (status !== "OK" || !results?.[0]) {
-          resolve(null);
+          resolve({ ok: false, reason: "not_found" });
           return;
         }
 
@@ -96,15 +104,18 @@ export async function geocodeAddress(
         const lng = place.geometry?.location?.lng?.();
 
         if (!place.formatted_address || lat == null || lng == null) {
-          resolve(null);
+          resolve({ ok: false, reason: "not_found" });
           return;
         }
 
         resolve({
-          address: place.formatted_address,
-          lat: String(lat),
-          long: String(lng),
-          zipcode: getAddressPart(place, "postal_code") || zipcode || "",
+          ok: true,
+          selection: {
+            address: place.formatted_address,
+            lat: String(lat),
+            long: String(lng),
+            zipcode: getAddressPart(place, "postal_code") || zipcode || "",
+          },
         });
       },
     );

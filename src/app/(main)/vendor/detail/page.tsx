@@ -601,9 +601,23 @@ export default function VendorDetail() {
 
     setLookingUpLocation(true);
     try {
-      const selection = await geocodeAddress(address, newLocation.zipcode.trim());
+      const result = await geocodeAddress(address, newLocation.zipcode.trim());
 
-      if (!selection) {
+      if (result.ok === false) {
+        if (result.reason === "missing_key") {
+          toast.error(
+            "Google Maps key is missing from the admin build environment.",
+          );
+          return;
+        }
+
+        if (result.reason === "maps_unavailable") {
+          toast.error(
+            "Google Maps did not load. Check API key restrictions and enabled APIs.",
+          );
+          return;
+        }
+
         toast.error(
           "Could not find coordinates. Use street, city, state, and zip.",
         );
@@ -612,7 +626,7 @@ export default function VendorDetail() {
 
       setNewLocation((prev) => ({
         ...prev,
-        ...selection,
+        ...result.selection,
       }));
       toast.success("Coordinates filled.");
     } catch (e) {
