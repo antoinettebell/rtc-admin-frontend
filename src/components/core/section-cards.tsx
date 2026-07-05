@@ -11,17 +11,25 @@ import { useRouter } from "next/navigation";
 
 interface IAttribs {
   isLoading: boolean;
-  data: {
-    totalVendor: number;
-    pendingVendor: number;
-    rejectedVendor: number;
-    totalUser: number;
-    inactiveUser: number;
-  };
+  data?: {
+    totalVendor?: number;
+    pendingVendor?: number;
+    rejectedVendor?: number;
+    totalUser?: number;
+    inactiveUser?: number;
+  } | null;
 }
 
 export function SectionCards({ data, isLoading }: IAttribs) {
   const router = useRouter();
+  const counters = {
+    totalVendor: data?.totalVendor || 0,
+    pendingVendor: data?.pendingVendor || 0,
+    rejectedVendor: data?.rejectedVendor || 0,
+    totalUser: data?.totalUser || 0,
+    inactiveUser: data?.inactiveUser || 0,
+  };
+
   return isLoading ? (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 5xl:grid-cols-4 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
       {[1, 1, 1, 1, 1, 1].map((_, i) => (
@@ -48,7 +56,7 @@ export function SectionCards({ data, isLoading }: IAttribs) {
               Approved Vendors
             </CardDescription>
             <CardTitle className="@[250px]/card:text-3xl text-3xl font-bold tabular-nums text-green-700">
-              {data.totalVendor || 0}
+              {counters.totalVendor}
             </CardTitle>
             <div className="absolute right-4 top-4 rounded p-2 border border-green-200">
               <SquareUserRound size={24} className="text-green-600" />
@@ -74,7 +82,7 @@ export function SectionCards({ data, isLoading }: IAttribs) {
               Vendor Requests
             </CardDescription>
             <CardTitle className="@[250px]/card:text-3xl text-3xl font-bold tabular-nums text-amber-700">
-              {data.pendingVendor || 0}
+              {counters.pendingVendor}
             </CardTitle>
             <div className="absolute right-4 top-4 rounded p-2 border border-amber-200">
               <SquareUserRound size={24} className="text-amber-600" />
@@ -98,7 +106,7 @@ export function SectionCards({ data, isLoading }: IAttribs) {
               Vendors Rejected
             </CardDescription>
             <CardTitle className="@[250px]/card:text-3xl text-3xl font-bold tabular-nums text-red-700">
-              {data.rejectedVendor || 0}
+              {counters.rejectedVendor}
             </CardTitle>
             <div className="absolute right-4 top-4 rounded p-2 border border-red-200">
               <SquareUserRound size={24} className="text-red-600" />
@@ -132,7 +140,7 @@ export function SectionCards({ data, isLoading }: IAttribs) {
               Total Customers
             </CardDescription>
             <CardTitle className="@[250px]/card:text-3xl text-3xl font-bold tabular-nums text-purple-700">
-              {data.totalUser || 0}
+              {counters.totalUser}
             </CardTitle>
             <div className="absolute right-4 top-4 rounded p-2 border border-purple-200">
               <Users size={24} className="text-purple-600" />
@@ -158,7 +166,7 @@ export function SectionCards({ data, isLoading }: IAttribs) {
               Inactive Customers
             </CardDescription>
             <CardTitle className="@[250px]/card:text-3xl text-3xl font-bold tabular-nums text-slate-700">
-              {data.inactiveUser || 0}
+              {counters.inactiveUser}
             </CardTitle>
             <div className="absolute right-4 top-4 rounded p-2 border border-slate-200">
               <Users size={24} className="text-slate-600" />

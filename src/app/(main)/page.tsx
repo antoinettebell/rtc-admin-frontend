@@ -6,7 +6,7 @@ import { userApiService } from "@/services/user-api-service";
 export default function Page() {
   const { data: result, isFetching } = useQuery({
     queryKey: ["overview"],
-    queryFn: () => userApiService.getOverview(),
+    queryFn: () => userApiService.getOverview().catch(() => null),
     // keepPreviousData: false,
     staleTime: 0,
     refetchOnWindowFocus: false,
@@ -18,7 +18,7 @@ export default function Page() {
         <div className="flex flex-col gap-4 md:gap-6">
           <SectionCards
             isLoading={isFetching}
-            data={result?.data.data as any}
+            data={result?.data.data}
           />
         </div>
       </div>
