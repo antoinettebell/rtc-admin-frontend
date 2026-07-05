@@ -530,7 +530,8 @@ export default function VendorDetail() {
     const foodTruck = result?.user?.foodTruck;
     if (!foodTruck?._id) return;
 
-    if (!truckUnitId) {
+    const requiresTruckUnit = activeTruckUnits.length > 0;
+    if (requiresTruckUnit && !truckUnitId) {
       toast.error("Select a truck before changing location status.");
       return;
     }
@@ -538,9 +539,10 @@ export default function VendorDetail() {
     const selectedUnit = activeTruckUnits.find(
       (unit: any) => unit._id === truckUnitId,
     );
-    const openLocationId = selectedUnit?.open_locations?.find(
-      (loc: any) => loc.isOrderingOpen,
-    )?.locationId;
+    const openLocationId = requiresTruckUnit
+      ? selectedUnit?.open_locations?.find((loc: any) => loc.isOrderingOpen)
+          ?.locationId
+      : foodTruck.currentLocation;
 
     if (
       open &&
@@ -554,12 +556,23 @@ export default function VendorDetail() {
     setChangingLocationId(locationId);
 
     try {
-      await foodTruckApiService.toggleLocationOrdering(
-        foodTruck._id,
-        locationId,
-        open,
-        truckUnitId,
-      );
+      if (requiresTruckUnit) {
+        await foodTruckApiService.toggleLocationOrdering(
+          foodTruck._id,
+          locationId,
+          open,
+          truckUnitId,
+        );
+      } else {
+        const nextCurrentLocation = open ? locationId : null;
+        await foodTruckApiService.update(foodTruck._id, {
+          currentLocation: nextCurrentLocation,
+          locations: buildLocationPayload(
+            foodTruck.locations || [],
+            nextCurrentLocation,
+          ),
+        });
+      }
       toast.success(
         open ? "Location opened for ordering." : "Location closed.",
       );
@@ -1465,9 +1478,11 @@ export default function VendorDetail() {
                   {result.user.foodTruck?.locations.map(
                     (item: FoodTruckLocation, i: number) => {
                       const openLocationId =
-                        selectedTruckUnit?.open_locations?.find(
-                          (loc: any) => loc.isOrderingOpen,
-                        )?.locationId || null;
+                        activeTruckUnits.length > 0
+                          ? selectedTruckUnit?.open_locations?.find(
+                              (loc: any) => loc.isOrderingOpen,
+                            )?.locationId || null
+                          : result.user.foodTruck?.currentLocation || null;
                       const isCurrentLocation =
                         !!openLocationId && openLocationId === item._id;
                       const anotherLocationIsOpen =
@@ -1516,7 +1531,8 @@ export default function VendorDetail() {
                               disabled={
                                 changingLocationId === item._id ||
                                 anotherLocationIsOpen ||
-                                !selectedTruckUnit?._id
+                                (activeTruckUnits.length > 0 &&
+                                  !selectedTruckUnit?._id)
                               }
                               onCheckedChange={(checked) =>
                                 updateOrderingLocation(
