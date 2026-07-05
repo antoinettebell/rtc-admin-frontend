@@ -58,7 +58,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VendorMenuCsvImport } from "@/components/vendor-menu-csv-import";
 import { VendorPlanFeatureList } from "@/components/vendor-plan-feature-list";
 import { vendorEmployeeApiService } from "@/services/vendor-employee-api-service";
-import { AddressAutocompleteInput } from "@/components/address-autocomplete-input";
+import {
+  AddressAutocompleteInput,
+  geocodeAddress,
+} from "@/components/address-autocomplete-input";
 
 export default function VendorDetail() {
   const router = useRouter();
@@ -78,6 +81,7 @@ export default function VendorDetail() {
   >(null);
   const [reason, setReason] = useState<string>("");
   const [changing, setChanging] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("profile");
   const [planColor, setPlanColor] = useState<string>("");
   const [locations, setLocations] = useState<Record<string, string>>({});
   const [employeeTab, setEmployeeTab] = useState<"current" | "archived">(
@@ -105,6 +109,7 @@ export default function VendorDetail() {
   );
   const [selectedTruckUnitId, setSelectedTruckUnitId] = useState<string>("");
   const [addingLocation, setAddingLocation] = useState<boolean>(false);
+  const [lookingUpLocation, setLookingUpLocation] = useState<boolean>(false);
   const [newLocation, setNewLocation] = useState({
     title: "",
     address: "",
@@ -361,8 +366,9 @@ export default function VendorDetail() {
   }, [employeeTab, result?.user?._id, result?.user?.foodTruck?._id]);
 
   React.useEffect(() => {
+    if (activeTab !== "employees") return;
     loadEmployees();
-  }, [loadEmployees]);
+  }, [activeTab, loadEmployees]);
 
   const resetEmployeeForm = () => {
     setEmployeeForm({
@@ -585,6 +591,38 @@ export default function VendorDetail() {
     }
   };
 
+  const lookupLocationCoordinates = async () => {
+    const address = newLocation.address.trim();
+
+    if (!address) {
+      toast.error("Enter an address before looking up coordinates.");
+      return;
+    }
+
+    setLookingUpLocation(true);
+    try {
+      const selection = await geocodeAddress(address, newLocation.zipcode.trim());
+
+      if (!selection) {
+        toast.error(
+          "Could not find coordinates. Use street, city, state, and zip.",
+        );
+        return;
+      }
+
+      setNewLocation((prev) => ({
+        ...prev,
+        ...selection,
+      }));
+      toast.success("Coordinates filled.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not look up coordinates.");
+    } finally {
+      setLookingUpLocation(false);
+    }
+  };
+
   const deleteLocation = async (locationId: string) => {
     const foodTruck = result?.user?.foodTruck;
     if (!foodTruck?._id) return;
@@ -708,7 +746,11 @@ export default function VendorDetail() {
 
       {!!result?.user && !isFetching && (
         <>
-          <Tabs defaultValue="profile" className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
             <TabsList className="sticky top-[64px] z-20 bg-white dark:bg-background border-b mb-4 flex flex-wrap gap-2">
               <TabsTrigger
                 value="profile"
@@ -1419,25 +1461,38 @@ export default function VendorDetail() {
                         }))
                       }
                     />
-                    <AddressAutocompleteInput
-                      value={newLocation.address}
-                      placeholder="Address"
-                      onValueChange={(value) =>
-                        setNewLocation((prev) => ({
-                          ...prev,
-                          address: value,
-                          lat: "",
-                          long: "",
-                          zipcode: "",
-                        }))
-                      }
-                      onAddressSelect={(selection) =>
-                        setNewLocation((prev) => ({
-                          ...prev,
-                          ...selection,
-                        }))
-                      }
-                    />
+                    <div className="flex gap-2">
+                      <AddressAutocompleteInput
+                        value={newLocation.address}
+                        placeholder="Address"
+                        className="min-w-0"
+                        onValueChange={(value) =>
+                          setNewLocation((prev) => ({
+                            ...prev,
+                            address: value,
+                            lat: "",
+                            long: "",
+                          }))
+                        }
+                        onAddressSelect={(selection) =>
+                          setNewLocation((prev) => ({
+                            ...prev,
+                            ...selection,
+                          }))
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={lookingUpLocation}
+                        onClick={lookupLocationCoordinates}
+                      >
+                        Lookup
+                        {lookingUpLocation && (
+                          <LoaderCircle size={16} className="animate-spin" />
+                        )}
+                      </Button>
+                    </div>
                     <Input
                       value={newLocation.lat}
                       placeholder="Latitude"

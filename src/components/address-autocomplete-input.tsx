@@ -66,6 +66,51 @@ function getAddressPart(place: any, type: string) {
   return component?.long_name || "";
 }
 
+export async function geocodeAddress(
+  address: string,
+  zipcode?: string,
+): Promise<AddressSelection | null> {
+  await loadGoogleMapsPlaces();
+
+  if (!window.google?.maps?.Geocoder) {
+    return null;
+  }
+
+  const query = [address, zipcode].filter(Boolean).join(", ");
+  const geocoder = new window.google.maps.Geocoder();
+
+  return new Promise((resolve) => {
+    geocoder.geocode(
+      {
+        address: query,
+        componentRestrictions: { country: "US" },
+      },
+      (results: any[], status: string) => {
+        if (status !== "OK" || !results?.[0]) {
+          resolve(null);
+          return;
+        }
+
+        const place = results[0];
+        const lat = place.geometry?.location?.lat?.();
+        const lng = place.geometry?.location?.lng?.();
+
+        if (!place.formatted_address || lat == null || lng == null) {
+          resolve(null);
+          return;
+        }
+
+        resolve({
+          address: place.formatted_address,
+          lat: String(lat),
+          long: String(lng),
+          zipcode: getAddressPart(place, "postal_code") || zipcode || "",
+        });
+      },
+    );
+  });
+}
+
 export function AddressAutocompleteInput({
   value,
   placeholder = "Address",
