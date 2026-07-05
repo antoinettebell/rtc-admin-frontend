@@ -1413,6 +1413,9 @@ export default function VendorDetail() {
                         setNewLocation((prev) => ({
                           ...prev,
                           address: value,
+                          lat: "",
+                          long: "",
+                          zipcode: "",
                         }))
                       }
                       onAddressSelect={(selection) =>
@@ -1425,22 +1428,14 @@ export default function VendorDetail() {
                     <Input
                       value={newLocation.lat}
                       placeholder="Latitude"
-                      onChange={(e) =>
-                        setNewLocation((prev) => ({
-                          ...prev,
-                          lat: e.target.value,
-                        }))
-                      }
+                      readOnly
+                      className="bg-muted"
                     />
                     <Input
                       value={newLocation.long}
                       placeholder="Longitude"
-                      onChange={(e) =>
-                        setNewLocation((prev) => ({
-                          ...prev,
-                          long: e.target.value,
-                        }))
-                      }
+                      readOnly
+                      className="bg-muted"
                     />
                     <div className="flex gap-2">
                       <Input
