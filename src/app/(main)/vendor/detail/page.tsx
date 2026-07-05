@@ -58,6 +58,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VendorMenuCsvImport } from "@/components/vendor-menu-csv-import";
 import { VendorPlanFeatureList } from "@/components/vendor-plan-feature-list";
 import { vendorEmployeeApiService } from "@/services/vendor-employee-api-service";
+import { AddressAutocompleteInput } from "@/components/address-autocomplete-input";
 
 export default function VendorDetail() {
   const router = useRouter();
@@ -1316,13 +1317,19 @@ export default function VendorDetail() {
                         }))
                       }
                     />
-                    <Input
+                    <AddressAutocompleteInput
                       value={newLocation.address}
                       placeholder="Address"
-                      onChange={(e) =>
+                      onValueChange={(value) =>
                         setNewLocation((prev) => ({
                           ...prev,
-                          address: e.target.value,
+                          address: value,
+                        }))
+                      }
+                      onAddressSelect={(selection) =>
+                        setNewLocation((prev) => ({
+                          ...prev,
+                          ...selection,
                         }))
                       }
                     />

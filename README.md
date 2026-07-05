@@ -99,6 +99,7 @@ cp .env.example .env
 |---|---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | Base URL of the backend REST API | `http://localhost:3001` |
 | `NEXT_PUBLIC_ENCRYPTION_SECRET_KEY` | Secret key used for client-side encryption | `your-secret-key` |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Browser Google Maps JavaScript API key for address autocomplete | `your-google-maps-key` |
 
 > **Note:** All variables prefixed with `NEXT_PUBLIC_` are bundled into the client-side JavaScript at build time. **Never put sensitive server-side secrets in these variables.**
 
@@ -138,6 +139,7 @@ Open `.env` and update the values:
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
 NEXT_PUBLIC_ENCRYPTION_SECRET_KEY=your-secret-key
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your-google-maps-key
 ```
 
 Make sure the backend API server is running at the URL specified in `NEXT_PUBLIC_API_BASE_URL`.
