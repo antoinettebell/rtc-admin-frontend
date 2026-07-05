@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   Archive,
   Check,
+  FileText,
   KeyRound,
   LoaderCircle,
   MapPin,
@@ -10,6 +11,7 @@ import {
   Soup,
   SquareUserRound,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 import * as React from "react";
@@ -36,6 +38,7 @@ import { categoryApiService } from "@/services/category-api-service";
 import { menuApiService } from "@/services/menu-api-service";
 import {
   FoodTruckLocation,
+  FoodTruckDocument,
   MenuItem,
   Review,
   ReviewStats,
@@ -114,6 +117,13 @@ export default function VendorDetail() {
   const [reviewList, setReviewList] = useState<Review[]>([]);
   const [page, setPage] = useState<number>(1);
   const [showMore, setShowMore] = useState<boolean>(true);
+  const [documentTitle, setDocumentTitle] = useState("");
+  const [documentType, setDocumentType] = useState("PERMIT");
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [documentSaving, setDocumentSaving] = useState(false);
+  const [documentDeletingId, setDocumentDeletingId] = useState<string | null>(
+    null,
+  );
 
   const days = {
     sun: "Sunday",
@@ -222,6 +232,81 @@ export default function VendorDetail() {
       setShowMore(((res as any).data.data.total as number) > page * 10);
       setPage(p + 1);
     });
+  };
+
+  const foodTruckDocuments: FoodTruckDocument[] =
+    result?.user?.foodTruck?.documents || [];
+
+  const normalizeDocumentName = (value?: string | null) =>
+    String(value || "")
+      .trim()
+      .toLowerCase();
+
+  const handleUploadDocument = async () => {
+    const foodTruckId = result?.user?.foodTruck?._id;
+    if (!foodTruckId || !documentFile) {
+      toast.error("Choose a document before uploading.");
+      return;
+    }
+
+    const uploadName = normalizeDocumentName(
+      documentTitle.trim() || documentFile.name,
+    );
+    const hasDuplicateDocument = foodTruckDocuments.some(
+      (document) =>
+        normalizeDocumentName(document.title || document.original_name) ===
+        uploadName,
+    );
+    let replaceExisting = false;
+
+    if (hasDuplicateDocument) {
+      replaceExisting = window.confirm(
+        "A document with that name already exists. Do you want to replace the existing file?",
+      );
+      if (!replaceExisting) return;
+    }
+
+    setDocumentSaving(true);
+    try {
+      await foodTruckApiService.uploadDocument(foodTruckId, documentFile, {
+        title: documentTitle.trim() || documentFile.name,
+        document_type: documentType,
+        replace_existing: replaceExisting,
+      });
+      toast.success("Document uploaded.");
+      setDocumentTitle("");
+      setDocumentType("PERMIT");
+      setDocumentFile(null);
+      await refetch();
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to upload document.",
+      );
+    } finally {
+      setDocumentSaving(false);
+    }
+  };
+
+  const handleDeleteDocument = async (documentId: string) => {
+    const foodTruckId = result?.user?.foodTruck?._id;
+    if (!foodTruckId) return;
+
+    setDocumentDeletingId(documentId);
+    try {
+      await foodTruckApiService.deleteDocument(foodTruckId, documentId);
+      toast.success("Document deleted.");
+      await refetch();
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to delete document.",
+      );
+    } finally {
+      setDocumentDeletingId(null);
+    }
   };
 
   const loadEmployees = React.useCallback(() => {
@@ -610,6 +695,12 @@ export default function VendorDetail() {
                 Photo Gallery
               </TabsTrigger>
               <TabsTrigger
+                value="documents"
+                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+              >
+                Documents
+              </TabsTrigger>
+              <TabsTrigger
                 value="menu-categories"
                 className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
               >
@@ -922,6 +1013,123 @@ export default function VendorDetail() {
                       </div>
                     </div>
                   )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="documents">
+              <div className="flex items-center gap-3 mt-3">
+                <div className="whitespace-nowrap font-semibold text-xl">
+                  Vendor Documents
+                </div>
+                <div className="border-b w-full"></div>
+              </div>
+              <div className="pt-2 pb-4 space-y-4">
+                <div className="border rounded-md p-3">
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_1fr_auto] gap-3 items-end">
+                    <div>
+                      <div className="text-sm font-medium mb-1">Title</div>
+                      <Input
+                        value={documentTitle}
+                        onChange={(event) =>
+                          setDocumentTitle(event.target.value)
+                        }
+                        placeholder="Permit, license, COI..."
+                      />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium mb-1">Type</div>
+                      <select
+                        value={documentType}
+                        onChange={(event) =>
+                          setDocumentType(event.target.value)
+                        }
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="PERMIT">Permit</option>
+                        <option value="LICENSE">License</option>
+                        <option value="INSURANCE">Insurance</option>
+                        <option value="OTHER">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium mb-1">File</div>
+                      <Input
+                        type="file"
+                        accept="application/pdf,image/png,image/jpeg,image/jpg,image/heic"
+                        onChange={(event) =>
+                          setDocumentFile(event.target.files?.[0] || null)
+                        }
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleUploadDocument}
+                      disabled={documentSaving || !documentFile}
+                    >
+                      {documentSaving ? (
+                        <LoaderCircle className="animate-spin" />
+                      ) : (
+                        <Upload />
+                      )}
+                      Upload
+                    </Button>
+                  </div>
+                </div>
+
+                {foodTruckDocuments.length ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {foodTruckDocuments.map((document) => (
+                      <div
+                        key={document._id || document.file_url}
+                        className="border rounded-md p-3 flex items-start justify-between gap-3"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 font-semibold">
+                            <FileText size={18} className="text-primary" />
+                            <span className="truncate">
+                              {document.title ||
+                                document.original_name ||
+                                "Document"}
+                            </span>
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {document.document_type || "OTHER"}
+                            {document.uploaded_at
+                              ? ` - ${dayjs(document.uploaded_at).format(
+                                  "MM/DD/YYYY",
+                                )}`
+                              : ""}
+                          </div>
+                          <a
+                            href={document.file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm text-primary underline mt-2 inline-block"
+                          >
+                            Open document
+                          </a>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          disabled={documentDeletingId === document._id}
+                          onClick={() => handleDeleteDocument(document._id)}
+                        >
+                          {documentDeletingId === document._id ? (
+                            <LoaderCircle className="animate-spin" />
+                          ) : (
+                            <Trash2 />
+                          )}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground border rounded-md p-4">
+                    No vendor documents uploaded yet.
+                  </div>
+                )}
               </div>
             </TabsContent>
 

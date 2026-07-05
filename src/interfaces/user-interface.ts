@@ -74,6 +74,19 @@ export interface FoodTruckLocation {
   isOrderingOpen?: boolean;
 }
 
+export interface FoodTruckDocument {
+  _id: string;
+  title?: string | null;
+  document_type?: "PERMIT" | "LICENSE" | "INSURANCE" | "OTHER" | string;
+  file_url: string;
+  file_key?: string | null;
+  original_name?: string | null;
+  mime_type?: string | null;
+  size_bytes?: number | null;
+  uploaded_by_user_id?: string | null;
+  uploaded_at?: string;
+}
+
 export interface BusinessHours {
   available: boolean;
   endTime: string;
@@ -99,6 +112,7 @@ export interface FoodTruck {
   featured?: boolean;
   completed?: boolean;
   currentLocation?: string | null;
+  documents?: FoodTruckDocument[];
   locations: FoodTruckLocation[];
   availability: FoodTruckAvailability[];
   createdAt: string;
