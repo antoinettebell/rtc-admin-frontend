@@ -56,7 +56,10 @@ import { BankDetailsDisplay } from "@/components/bank-details-display";
 import { decryptFields } from "@/utils/encryption";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VendorMenuCsvImport } from "@/components/vendor-menu-csv-import";
-import { VendorPlanFeatureList } from "@/components/vendor-plan-feature-list";
+import {
+  getVendorPlanCapabilities,
+  VendorPlanFeatureList,
+} from "@/components/vendor-plan-feature-list";
 import { vendorEmployeeApiService } from "@/services/vendor-employee-api-service";
 import {
   AddressAutocompleteInput,
@@ -270,6 +273,17 @@ export default function VendorDetail() {
 
   const foodTruckDocuments: FoodTruckDocument[] =
     result?.user?.foodTruck?.documents || [];
+  const vendorPlanCapabilities = React.useMemo(
+    () => getVendorPlanCapabilities(result?.user?.foodTruck?.plan),
+    [result?.user?.foodTruck?.plan],
+  );
+  const canManageEmployees = !!vendorPlanCapabilities.employeeLogin;
+
+  React.useEffect(() => {
+    if (activeTab === "employees" && !canManageEmployees) {
+      setActiveTab("profile");
+    }
+  }, [activeTab, canManageEmployees]);
 
   const normalizeDocumentName = (value?: string | null) =>
     String(value || "")
@@ -367,8 +381,9 @@ export default function VendorDetail() {
 
   React.useEffect(() => {
     if (activeTab !== "employees") return;
+    if (!canManageEmployees) return;
     loadEmployees();
-  }, [activeTab, loadEmployees]);
+  }, [activeTab, canManageEmployees, loadEmployees]);
 
   const resetEmployeeForm = () => {
     setEmployeeForm({
@@ -381,6 +396,10 @@ export default function VendorDetail() {
   };
 
   const addEmployee = () => {
+    if (!canManageEmployees) {
+      toast.error("Employee management is not enabled for this vendor plan.");
+      return;
+    }
     const vendorUserId = result?.user?._id;
     const foodTruckId = result?.user?.foodTruck?._id;
     if (!vendorUserId || !foodTruckId) return;
@@ -809,12 +828,14 @@ export default function VendorDetail() {
               >
                 Locations
               </TabsTrigger>
-              <TabsTrigger
-                value="employees"
-                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
-              >
-                Employees
-              </TabsTrigger>
+              {canManageEmployees && (
+                <TabsTrigger
+                  value="employees"
+                  className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+                >
+                  Employees
+                </TabsTrigger>
+              )}
               <TabsTrigger
                 value="availability"
                 className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
@@ -1637,216 +1658,218 @@ export default function VendorDetail() {
               </div>
             </TabsContent>
 
-            <TabsContent value="employees">
-              <div className="flex items-center gap-3 mt-3">
-                <div className="whitespace-nowrap font-semibold text-xl">
-                  Employees
+            {canManageEmployees && (
+              <TabsContent value="employees">
+                <div className="flex items-center gap-3 mt-3">
+                  <div className="whitespace-nowrap font-semibold text-xl">
+                    Employees
+                  </div>
+                  <div className="border-b w-full"></div>
                 </div>
-                <div className="border-b w-full"></div>
-              </div>
 
-              <div className="border rounded-md p-3 mb-4">
-                <div className="font-semibold mb-3">Add Employee</div>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
-                  <Input
-                    value={employeeForm.first_name}
-                    placeholder="First name"
-                    onChange={(e) =>
-                      setEmployeeForm((prev) => ({
-                        ...prev,
-                        first_name: e.target.value,
-                      }))
-                    }
-                  />
-                  <Input
-                    value={employeeForm.last_name}
-                    placeholder="Last name"
-                    onChange={(e) =>
-                      setEmployeeForm((prev) => ({
-                        ...prev,
-                        last_name: e.target.value,
-                      }))
-                    }
-                  />
-                  <Input
-                    value={employeeForm.zip_code}
-                    placeholder="Zip"
-                    onChange={(e) =>
-                      setEmployeeForm((prev) => ({
-                        ...prev,
-                        zip_code: e.target.value,
-                      }))
-                    }
-                  />
-                  <select
-                    value={employeeForm.assigned_location_id}
-                    className="border rounded-md px-3 py-2 bg-background"
-                    onChange={(e) =>
-                      setEmployeeForm((prev) => ({
-                        ...prev,
-                        assigned_location_id: e.target.value,
-                      }))
-                    }
-                  >
-                    <option value="">Location</option>
-                    {(result.user.foodTruck?.locations || []).map(
-                      (location: FoodTruckLocation) => (
-                        <option key={location._id} value={location._id}>
-                          {location.title || location.address || "Location"}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                  <Input
-                    value={employeeForm.pin}
-                    placeholder="PIN"
-                    type="password"
-                    onChange={(e) =>
-                      setEmployeeForm((prev) => ({
-                        ...prev,
-                        pin: e.target.value,
-                      }))
-                    }
-                  />
+                <div className="border rounded-md p-3 mb-4">
+                  <div className="font-semibold mb-3">Add Employee</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
+                    <Input
+                      value={employeeForm.first_name}
+                      placeholder="First name"
+                      onChange={(e) =>
+                        setEmployeeForm((prev) => ({
+                          ...prev,
+                          first_name: e.target.value,
+                        }))
+                      }
+                    />
+                    <Input
+                      value={employeeForm.last_name}
+                      placeholder="Last name"
+                      onChange={(e) =>
+                        setEmployeeForm((prev) => ({
+                          ...prev,
+                          last_name: e.target.value,
+                        }))
+                      }
+                    />
+                    <Input
+                      value={employeeForm.zip_code}
+                      placeholder="Zip"
+                      onChange={(e) =>
+                        setEmployeeForm((prev) => ({
+                          ...prev,
+                          zip_code: e.target.value,
+                        }))
+                      }
+                    />
+                    <select
+                      value={employeeForm.assigned_location_id}
+                      className="border rounded-md px-3 py-2 bg-background"
+                      onChange={(e) =>
+                        setEmployeeForm((prev) => ({
+                          ...prev,
+                          assigned_location_id: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Location</option>
+                      {(result.user.foodTruck?.locations || []).map(
+                        (location: FoodTruckLocation) => (
+                          <option key={location._id} value={location._id}>
+                            {location.title || location.address || "Location"}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                    <Input
+                      value={employeeForm.pin}
+                      placeholder="PIN"
+                      type="password"
+                      onChange={(e) =>
+                        setEmployeeForm((prev) => ({
+                          ...prev,
+                          pin: e.target.value,
+                        }))
+                      }
+                    />
+                    <Button
+                      type="button"
+                      disabled={employeeSaving}
+                      onClick={addEmployee}
+                    >
+                      <Plus size={16} />
+                      Add
+                      {employeeSaving && (
+                        <LoaderCircle size={16} className="animate-spin" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mb-4">
                   <Button
                     type="button"
-                    disabled={employeeSaving}
-                    onClick={addEmployee}
+                    variant={employeeTab === "current" ? "default" : "outline"}
+                    onClick={() => setEmployeeTab("current")}
                   >
-                    <Plus size={16} />
-                    Add
-                    {employeeSaving && (
-                      <LoaderCircle size={16} className="animate-spin" />
-                    )}
+                    Current Employees
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={employeeTab === "archived" ? "default" : "outline"}
+                    onClick={() => setEmployeeTab("archived")}
+                  >
+                    Archived Employees
                   </Button>
                 </div>
-              </div>
 
-              <div className="flex gap-2 mb-4">
-                <Button
-                  type="button"
-                  variant={employeeTab === "current" ? "default" : "outline"}
-                  onClick={() => setEmployeeTab("current")}
-                >
-                  Current Employees
-                </Button>
-                <Button
-                  type="button"
-                  variant={employeeTab === "archived" ? "default" : "outline"}
-                  onClick={() => setEmployeeTab("archived")}
-                >
-                  Archived Employees
-                </Button>
-              </div>
-
-              {employeeLoading ? (
-                <div className="py-8 flex justify-center">
-                  <LoaderCircle className="animate-spin" />
-                </div>
-              ) : employees.length === 0 ? (
-                <div className="text-sm text-muted-foreground border rounded-md p-4">
-                  No {employeeTab === "archived" ? "archived" : "current"} employees.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                  {employees.map((employee) => {
-                    const assignedLocation = result.user.foodTruck?.locations?.find(
-                      (location: FoodTruckLocation) =>
-                        location._id === employee.assigned_location_id,
-                    );
-                    return (
-                      <div
-                        key={employee._id}
-                        className="border rounded-md p-3 flex flex-col gap-3"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="font-semibold">
-                              {employee.first_name} {employee.last_name}
+                {employeeLoading ? (
+                  <div className="py-8 flex justify-center">
+                    <LoaderCircle className="animate-spin" />
+                  </div>
+                ) : employees.length === 0 ? (
+                  <div className="text-sm text-muted-foreground border rounded-md p-4">
+                    No {employeeTab === "archived" ? "archived" : "current"} employees.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    {employees.map((employee) => {
+                      const assignedLocation = result.user.foodTruck?.locations?.find(
+                        (location: FoodTruckLocation) =>
+                          location._id === employee.assigned_location_id,
+                      );
+                      return (
+                        <div
+                          key={employee._id}
+                          className="border rounded-md p-3 flex flex-col gap-3"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="font-semibold">
+                                {employee.first_name} {employee.last_name}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {employee.employee_login_id}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {assignedLocation?.title ||
+                                  assignedLocation?.address ||
+                                  "Unassigned location"}
+                              </div>
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                              {employee.employee_login_id}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {assignedLocation?.title ||
-                                assignedLocation?.address ||
-                                "Unassigned location"}
+                            <div className="text-xs rounded-full border px-2 py-1">
+                              {employee.is_archived
+                                ? "Archived"
+                                : employee.is_active
+                                  ? "Active"
+                                  : "Inactive"}
                             </div>
                           </div>
-                          <div className="text-xs rounded-full border px-2 py-1">
-                            {employee.is_archived
-                              ? "Archived"
-                              : employee.is_active
-                                ? "Active"
-                                : "Inactive"}
-                          </div>
-                        </div>
 
-                        {employeeTab === "current" && (
-                          <div className="flex flex-wrap items-center gap-3">
-                            <div className="flex items-center gap-2">
-                              <Switch
-                                checked={!!employee.is_active}
-                                onCheckedChange={(checked) =>
-                                  updateEmployee(employee, {
-                                    is_active: checked,
-                                    is_working: checked
-                                      ? employee.is_working
-                                      : false,
-                                  })
-                                }
-                              />
-                              <span className="text-sm">Login access</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Switch
-                                checked={!!employee.is_working}
-                                disabled={!employee.is_active}
-                                onCheckedChange={(checked) =>
-                                  updateEmployee(employee, {
-                                    is_working: checked,
-                                  })
-                                }
-                              />
-                              <span className="text-sm">Working</span>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex flex-wrap gap-2">
                           {employeeTab === "current" && (
+                            <div className="flex flex-wrap items-center gap-3">
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={!!employee.is_active}
+                                  onCheckedChange={(checked) =>
+                                    updateEmployee(employee, {
+                                      is_active: checked,
+                                      is_working: checked
+                                        ? employee.is_working
+                                        : false,
+                                    })
+                                  }
+                                />
+                                <span className="text-sm">Login access</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={!!employee.is_working}
+                                  disabled={!employee.is_active}
+                                  onCheckedChange={(checked) =>
+                                    updateEmployee(employee, {
+                                      is_working: checked,
+                                    })
+                                  }
+                                />
+                                <span className="text-sm">Working</span>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap gap-2">
+                            {employeeTab === "current" && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => archiveEmployee(employee)}
+                              >
+                                <Archive size={16} />
+                                Archive
+                              </Button>
+                            )}
                             <Button
                               type="button"
                               variant="outline"
-                              onClick={() => archiveEmployee(employee)}
+                              onClick={() => resetEmployeePin(employee)}
                             >
-                              <Archive size={16} />
-                              Archive
+                              <KeyRound size={16} />
+                              Reset PIN
                             </Button>
-                          )}
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => resetEmployeePin(employee)}
-                          >
-                            <KeyRound size={16} />
-                            Reset PIN
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => removeEmployee(employee)}
-                          >
-                            <Trash2 size={16} />
-                            Remove
-                          </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => removeEmployee(employee)}
+                            >
+                              <Trash2 size={16} />
+                              Remove
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </TabsContent>
+                      );
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+            )}
 
             <TabsContent value="availability">
               <div className="flex items-center gap-3 mt-3">

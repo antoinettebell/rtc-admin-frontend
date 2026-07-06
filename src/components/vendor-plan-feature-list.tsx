@@ -25,7 +25,7 @@ const getTierKey = (plan?: VendorPlan) => {
   return "BASIC";
 };
 
-const getCapabilities = (plan?: VendorPlan) => {
+export const getVendorPlanCapabilities = (plan?: VendorPlan) => {
   const tier = getTierKey(plan);
   const fallback = {
     BASIC: {
@@ -39,6 +39,7 @@ const getCapabilities = (plan?: VendorPlan) => {
       cashPos: false,
       tapToPay: false,
       eventMarketplace: false,
+      multipleTruckUnits: false,
       newDishHighlight: false,
       reporting: "Basic reporting",
       payout: "3-day payouts",
@@ -55,6 +56,7 @@ const getCapabilities = (plan?: VendorPlan) => {
       cashPos: true,
       tapToPay: false,
       eventMarketplace: false,
+      multipleTruckUnits: false,
       newDishHighlight: false,
       reporting: "Advanced reporting",
       payout: "2-day payouts",
@@ -71,6 +73,7 @@ const getCapabilities = (plan?: VendorPlan) => {
       cashPos: true,
       tapToPay: true,
       eventMarketplace: true,
+      multipleTruckUnits: true,
       newDishHighlight: true,
       reporting: "Customizable reporting",
       payout: "Daily payouts",
@@ -79,6 +82,11 @@ const getCapabilities = (plan?: VendorPlan) => {
   }[tier];
 
   const capabilities = plan?.capabilities || {};
+  const hasCashPos =
+    capabilities.cashPos ??
+    (capabilities.walkUpPosPaymentMethods || []).includes("CASH") ??
+    fallback.cashPos;
+
   return {
     ...fallback,
     deliveryAcceptance:
@@ -86,13 +94,11 @@ const getCapabilities = (plan?: VendorPlan) => {
     employeeLogin: capabilities.employeeLogin ?? fallback.employeeLogin,
     employeeWalkUpPos:
       capabilities.employeeWalkUpPos ?? fallback.employeeWalkUpPos,
-    cashPos:
-      capabilities.cashPos ??
-      (capabilities.walkUpPosPaymentMethods || []).includes("CASH") ??
-      fallback.cashPos,
+    cashPos: hasCashPos,
     tapToPay: capabilities.tapToPay ?? fallback.tapToPay,
     eventMarketplace:
       capabilities.eventMarketplace ?? fallback.eventMarketplace,
+    multipleTruckUnits: fallback.multipleTruckUnits,
     newDishHighlight:
       capabilities.newDishHighlight ?? fallback.newDishHighlight,
     mediaLinks: capabilities.maxSocialMediaLinks
@@ -102,7 +108,7 @@ const getCapabilities = (plan?: VendorPlan) => {
 };
 
 export function VendorPlanFeatureList({ plan }: { plan?: VendorPlan }) {
-  const c = getCapabilities(plan);
+  const c = getVendorPlanCapabilities(plan);
   const rows = [
     { label: "Marketplace ordering", enabled: c.marketplaceOrdering },
     { label: "Delivery acceptance", enabled: c.deliveryAcceptance },
@@ -118,6 +124,7 @@ export function VendorPlanFeatureList({ plan }: { plan?: VendorPlan }) {
       enabled: c.employeeWalkUpPos && c.cashPos,
     },
     { label: "Tap to Pay", enabled: c.tapToPay },
+    { label: "Multiple food trucks", enabled: c.multipleTruckUnits },
     { label: "Ability to highlight dishes", enabled: c.newDishHighlight },
     { label: "Event marketplace", enabled: c.eventMarketplace },
   ];
