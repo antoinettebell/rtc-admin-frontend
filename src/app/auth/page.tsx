@@ -55,7 +55,7 @@ export default function Page() {
 
         localStorage.setItem("token", loginData.authToken);
         toast.success("Logged in successfully");
-        router.replace("/");
+        window.location.assign("/");
       })
       .catch((error: any) => {
         console.error("Login failed:", error);
