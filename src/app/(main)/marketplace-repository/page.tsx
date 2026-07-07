@@ -9,15 +9,6 @@ import { toast } from "sonner";
 import { Column, DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useDebouncedCallback } from "@/hooks/use-debounced-callback/use-debounced-callback";
-import {
   MarketplaceRepositoryFile,
   marketplaceApiService,
 } from "@/services/marketplace-api-service";
@@ -27,6 +18,7 @@ const fileTypeLabels: Record<string, string> = {
   BID_MENU_PDF: "Menu PDF",
   BID_IMAGE: "Bid Image",
   PERMIT_LICENSE: "Permit/License",
+  REQUIREMENT_DOCUMENT: "Requirement",
   AGREEMENT_DOCUMENT: "Agreement Placeholder",
 };
 
@@ -40,9 +32,6 @@ const formatBytes = (value?: number | null) => {
 
 export default function MarketplaceRepositoryPage() {
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
-  const [searchTerm, setSearchTerm] = useState("");
-  const [status, setStatus] = useState("ALL");
-  const [attachmentType, setAttachmentType] = useState("ALL");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const { data: result, isFetching, refetch } = useQuery({
@@ -50,26 +39,15 @@ export default function MarketplaceRepositoryPage() {
       "marketplace-repository",
       pagination.page,
       pagination.limit,
-      searchTerm,
-      status,
-      attachmentType,
     ],
     queryFn: () =>
       marketplaceApiService.listRepositoryFiles({
         page: pagination.page,
         limit: pagination.limit,
-        search: searchTerm,
-        status: status === "ALL" ? undefined : status,
-        attachment_type: attachmentType === "ALL" ? undefined : attachmentType,
       }),
     staleTime: 0,
     refetchOnWindowFocus: false,
   });
-
-  const debouncedSearch = useDebouncedCallback((value: string) => {
-    setSearchTerm(value);
-    setPagination((prev) => ({ ...prev, page: 1 }));
-  }, 500);
 
   const accessFile = async (
     file: MarketplaceRepositoryFile,
@@ -158,7 +136,12 @@ export default function MarketplaceRepositoryPage() {
     {
       header: "Type",
       fieldName: "attachment_type",
-      accessor: (file) => fileTypeLabels[file.attachment_type] || file.attachment_type,
+      accessor: (file) =>
+        file.requirement_label
+          ? `${fileTypeLabels[file.attachment_type] || file.attachment_type}: ${
+              file.requirement_label
+            }`
+          : fileTypeLabels[file.attachment_type] || file.attachment_type,
     },
     {
       header: "Size",
@@ -203,53 +186,6 @@ export default function MarketplaceRepositoryPage() {
         currentPage={pagination.page}
         pageSize={pagination.limit}
         setPagination={setPagination}
-        onSearch={debouncedSearch}
-        extraTemplate={
-          <div className="flex flex-wrap gap-2">
-            <Select
-              value={status}
-              onValueChange={(value) => {
-                setStatus(value);
-                setPagination((prev) => ({ ...prev, page: 1 }));
-              }}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="ALL">All statuses</SelectItem>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="ARCHIVED">Archived</SelectItem>
-                  <SelectItem value="FLAGGED">Flagged</SelectItem>
-                  <SelectItem value="DELETED">Deleted</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={attachmentType}
-              onValueChange={(value) => {
-                setAttachmentType(value);
-                setPagination((prev) => ({ ...prev, page: 1 }));
-              }}
-            >
-              <SelectTrigger className="w-[210px]">
-                <SelectValue placeholder="File type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="ALL">All file types</SelectItem>
-                  <SelectItem value="EVENT_IMAGE">Event images</SelectItem>
-                  <SelectItem value="BID_MENU_PDF">Menu PDFs</SelectItem>
-                  <SelectItem value="BID_IMAGE">Bid images</SelectItem>
-                  <SelectItem value="PERMIT_LICENSE">Permits/licenses</SelectItem>
-                  <SelectItem value="AGREEMENT_DOCUMENT">Agreements</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-        }
         actions={(file) => (
           <div className="flex min-w-[190px] flex-wrap gap-1">
             <Button size="sm" variant="outline" onClick={() => accessFile(file)}>

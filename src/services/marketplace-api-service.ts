@@ -14,7 +14,10 @@ export interface MarketplaceRepositoryFile {
   attachment_id: string;
   event_id: string;
   bid_id?: string | null;
+  application_id?: string | null;
   attachment_type: string;
+  requirement_label?: string | null;
+  requirement_key?: string | null;
   file_url: string;
   file_key?: string | null;
   original_name?: string | null;
