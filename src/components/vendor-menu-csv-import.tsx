@@ -53,9 +53,14 @@ export function VendorMenuCsvImport({
           allowCustomize: "TRUE",
           hasFlavors: "TRUE",
           flavors: "Lemon Pepper|Hot|Mild|Habanero",
+          flavorCosts: "Habanero:1.00",
           flavorsPerOrder: 2,
-          comboSideOptions: "Fries|Side Salad|Chips",
-          comboSidesPerOrder: 1,
+          hasToppings: "TRUE",
+          toppings: "Cheese|Bacon|Chicken|Steak",
+          toppingCosts: "Cheese:1.50|Bacon:2.00|Chicken:2.00|Steak:2.00",
+          toppingsPerOrder: 2,
+          comboItemNames: "Fries|Side Salad",
+          comboItemIds: "",
           newDish: "FALSE",
           popularDish: "FALSE",
           "diet[0]": "",
@@ -64,7 +69,6 @@ export function VendorMenuCsvImport({
           "diet[3]": "",
           "diet[4]": "",
           "diet[5]": "",
-          subItemJson: "",
           userId: "",
           strikePrice: "",
           discountType: "FIXED",
@@ -90,6 +94,22 @@ export function VendorMenuCsvImport({
       ""
     );
   };
+
+  const serializePaidOptionCosts = (
+    options?: Array<{ name?: string; hasCost?: boolean; cost?: number }>,
+  ) =>
+    Array.isArray(options)
+      ? options
+          .filter(
+            (option) =>
+              option?.name &&
+              option.name !== "Plain" &&
+              option.hasCost &&
+              Number(option.cost || 0) > 0,
+          )
+          .map((option) => `${option.name}:${Number(option.cost || 0)}`)
+          .join("|")
+      : "";
 
   const downloadCurrentMenu = () => {
     if (!menuItems.length) {
@@ -128,11 +148,42 @@ export function VendorMenuCsvImport({
           flavors: (anyItem.flavors || [])
             .filter((flavor: string) => flavor !== "Plain")
             .join("|"),
+          flavorCosts: serializePaidOptionCosts(anyItem.flavorOptions),
           flavorsPerOrder: anyItem.flavorsPerOrder ?? "",
-          comboSideOptions: Array.isArray(anyItem.comboSideOptions)
-            ? anyItem.comboSideOptions.filter(Boolean).join("|")
+          hasToppings: anyItem.hasToppings ? "TRUE" : "FALSE",
+          toppings: (anyItem.toppings || [])
+            .filter((topping: string) => topping !== "Plain")
+            .join("|"),
+          toppingCosts: serializePaidOptionCosts(anyItem.toppingOptions),
+          toppingsPerOrder: anyItem.toppingsPerOrder ?? "",
+          comboItemNames: Array.isArray(anyItem.subItem)
+            ? anyItem.subItem
+                .map(
+                  (subItem: {
+                    menuItem?: { name?: string } | string;
+                    qty?: number;
+                  }) =>
+                    typeof subItem.menuItem === "string"
+                      ? ""
+                      : subItem.menuItem?.name,
+                )
+                .filter(Boolean)
+                .join("|")
             : "",
-          comboSidesPerOrder: anyItem.comboSidesPerOrder ?? "",
+          comboItemIds: Array.isArray(anyItem.subItem)
+            ? anyItem.subItem
+                .map(
+                  (subItem: {
+                    menuItem?: { _id?: string } | string;
+                    qty?: number;
+                  }) =>
+                    typeof subItem.menuItem === "string"
+                      ? subItem.menuItem
+                      : subItem.menuItem?._id,
+                )
+                .filter(Boolean)
+                .join("|")
+            : "",
           newDish: anyItem.newDish ? "TRUE" : "FALSE",
           popularDish: anyItem.popularDish ? "TRUE" : "FALSE",
           "diet[0]": dietIds[0] || "",
@@ -141,22 +192,6 @@ export function VendorMenuCsvImport({
           "diet[3]": dietIds[3] || "",
           "diet[4]": dietIds[4] || "",
           "diet[5]": dietIds[5] || "",
-          subItemJson: anyItem.subItem?.length
-            ? JSON.stringify(
-                anyItem.subItem.map(
-                  (subItem: {
-                    menuItem?: { _id?: string } | string;
-                    qty?: number;
-                  }) => ({
-                    menuItem:
-                      typeof subItem.menuItem === "string"
-                        ? subItem.menuItem
-                        : subItem.menuItem?._id,
-                    qty: subItem.qty || 1,
-                  }),
-                ),
-              )
-            : "",
           userId: vendorUserId,
           strikePrice: anyItem.strikePrice ?? "",
           discountType: anyItem.discountType || "FIXED",
