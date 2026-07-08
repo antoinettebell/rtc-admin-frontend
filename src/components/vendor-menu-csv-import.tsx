@@ -69,7 +69,6 @@ export function VendorMenuCsvImport({
           "diet[3]": "",
           "diet[4]": "",
           "diet[5]": "",
-          subItemJson: "",
           userId: "",
           strikePrice: "",
           discountType: "FIXED",
@@ -169,22 +168,6 @@ export function VendorMenuCsvImport({
           "diet[3]": dietIds[3] || "",
           "diet[4]": dietIds[4] || "",
           "diet[5]": dietIds[5] || "",
-          subItemJson: anyItem.subItem?.length
-            ? JSON.stringify(
-                anyItem.subItem.map(
-                  (subItem: {
-                    menuItem?: { _id?: string } | string;
-                    qty?: number;
-                  }) => ({
-                    menuItem:
-                      typeof subItem.menuItem === "string"
-                        ? subItem.menuItem
-                        : subItem.menuItem?._id,
-                    qty: subItem.qty || 1,
-                  }),
-                ),
-              )
-            : "",
           userId: vendorUserId,
           strikePrice: anyItem.strikePrice ?? "",
           discountType: anyItem.discountType || "FIXED",
