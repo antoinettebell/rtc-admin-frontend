@@ -236,6 +236,12 @@ export default function VendorDetail() {
 
   const foodTruckDocuments: FoodTruckDocument[] =
     result?.user?.foodTruck?.documents || [];
+  const activeFoodTruckDocuments = foodTruckDocuments.filter(
+    (document) => document.document_status !== "ARCHIVED",
+  );
+  const archivedFoodTruckDocuments = foodTruckDocuments.filter(
+    (document) => document.document_status === "ARCHIVED",
+  );
 
   const normalizeDocumentName = (value?: string | null) =>
     String(value || "")
@@ -252,7 +258,7 @@ export default function VendorDetail() {
     const uploadName = normalizeDocumentName(
       documentTitle.trim() || documentFile.name,
     );
-    const hasDuplicateDocument = foodTruckDocuments.some(
+    const hasDuplicateDocument = activeFoodTruckDocuments.some(
       (document) =>
         normalizeDocumentName(document.title || document.original_name) ===
         uploadName,
@@ -1076,9 +1082,9 @@ export default function VendorDetail() {
                   </div>
                 </div>
 
-                {foodTruckDocuments.length ? (
+                {activeFoodTruckDocuments.length ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {foodTruckDocuments.map((document) => (
+                    {activeFoodTruckDocuments.map((document) => (
                       <div
                         key={document._id || document.file_url}
                         className="border rounded-md p-3 flex items-start justify-between gap-3"
@@ -1130,6 +1136,53 @@ export default function VendorDetail() {
                     No vendor documents uploaded yet.
                   </div>
                 )}
+
+                {archivedFoodTruckDocuments.length ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 font-semibold text-sm">
+                      <Archive size={16} className="text-muted-foreground" />
+                      Archived Documents
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {archivedFoodTruckDocuments.map((document) => (
+                        <div
+                          key={document._id || document.file_url}
+                          className="border rounded-md p-3 bg-muted/30"
+                        >
+                          <div className="flex items-center gap-2 font-semibold">
+                            <FileText size={18} className="text-muted-foreground" />
+                            <span className="truncate">
+                              {document.title ||
+                                document.original_name ||
+                                "Document"}
+                            </span>
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {document.document_type || "OTHER"}
+                            {document.archived_at
+                              ? ` - Archived ${dayjs(
+                                  document.archived_at,
+                                ).format("MM/DD/YYYY")}`
+                              : ""}
+                          </div>
+                          {document.archived_reason ? (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {document.archived_reason}
+                            </div>
+                          ) : null}
+                          <a
+                            href={document.file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm text-primary underline mt-2 inline-block"
+                          >
+                            Open archived document
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </TabsContent>
 
