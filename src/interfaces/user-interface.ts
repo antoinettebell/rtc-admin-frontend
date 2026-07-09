@@ -85,6 +85,11 @@ export interface FoodTruckDocument {
   size_bytes?: number | null;
   uploaded_by_user_id?: string | null;
   uploaded_at?: string;
+  document_status?: "ACTIVE" | "ARCHIVED" | string;
+  archived_at?: string | null;
+  archived_reason?: string | null;
+  archived_by_user_id?: string | null;
+  replaced_by_file_key?: string | null;
 }
 
 export interface FoodTruckTruckUnitOpenLocation {
