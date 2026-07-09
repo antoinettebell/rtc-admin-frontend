@@ -59,6 +59,8 @@ export function VendorMenuCsvImport({
           toppings: "Cheese|Bacon|Chicken|Steak",
           toppingCosts: "Cheese:1.50|Bacon:2.00|Chicken:2.00|Steak:2.00",
           toppingsPerOrder: 2,
+          comboItemNames: "Fries|Side Salad",
+          comboItemIds: "",
           comboSideOptions: "Fries|Side Salad|Chips",
           comboSidesPerOrder: 1,
           newDish: "FALSE",
@@ -156,6 +158,34 @@ export function VendorMenuCsvImport({
             .join("|"),
           toppingCosts: serializePaidOptionCosts(anyItem.toppingOptions),
           toppingsPerOrder: anyItem.toppingsPerOrder ?? "",
+          comboItemNames: Array.isArray(anyItem.subItem)
+            ? anyItem.subItem
+                .map(
+                  (subItem: {
+                    menuItem?: { name?: string } | string;
+                    qty?: number;
+                  }) =>
+                    typeof subItem.menuItem === "string"
+                      ? ""
+                      : subItem.menuItem?.name,
+                )
+                .filter(Boolean)
+                .join("|")
+            : "",
+          comboItemIds: Array.isArray(anyItem.subItem)
+            ? anyItem.subItem
+                .map(
+                  (subItem: {
+                    menuItem?: { _id?: string } | string;
+                    qty?: number;
+                  }) =>
+                    typeof subItem.menuItem === "string"
+                      ? subItem.menuItem
+                      : subItem.menuItem?._id,
+                )
+                .filter(Boolean)
+                .join("|")
+            : "",
           comboSideOptions: Array.isArray(anyItem.comboSideOptions)
             ? anyItem.comboSideOptions.filter(Boolean).join("|")
             : "",
