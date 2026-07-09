@@ -38,6 +38,12 @@ export interface MarketplaceRepositoryFile {
     food_truck_id: string;
     bid_status: string;
   } | null;
+  marketplaceApplication?: {
+    application_id: string;
+    vendor_user_id: string;
+    food_truck_id: string;
+    application_status: string;
+  } | null;
   vendor_user_id?: string | null;
   food_truck_id?: string | null;
 }

@@ -19,7 +19,7 @@ const fileTypeLabels: Record<string, string> = {
   BID_IMAGE: "Bid Image",
   PERMIT_LICENSE: "Permit/License",
   REQUIREMENT_DOCUMENT: "Requirement",
-  AGREEMENT_DOCUMENT: "Agreement Placeholder",
+  AGREEMENT_DOCUMENT: "Signed Agreement",
 };
 
 const formatBytes = (value?: number | null) => {
@@ -114,9 +114,9 @@ export default function MarketplaceRepositoryPage() {
       ),
     },
     {
-      header: "Bid",
+      header: "Submission",
       fieldName: "bid_id",
-      accessor: (file) => file.bid_id || "-",
+      accessor: (file) => file.bid_id || file.application_id || "-",
     },
     {
       header: "Vendor",
@@ -173,8 +173,8 @@ export default function MarketplaceRepositoryPage() {
       <div>
         <h1 className="text-2xl font-semibold">Marketplace Repository</h1>
         <p className="text-sm text-muted-foreground">
-          Review marketplace event images, bid menus, food images, and
-          permit/license documents.
+          Review marketplace event images, bid menus, food images,
+          permit/license documents, and signed agreements.
         </p>
       </div>
 
