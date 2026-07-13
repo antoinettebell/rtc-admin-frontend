@@ -55,6 +55,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VendorMenuCsvImport } from "@/components/vendor-menu-csv-import";
 import { VendorPlanFeatureList } from "@/components/vendor-plan-feature-list";
 import { vendorEmployeeApiService } from "@/services/vendor-employee-api-service";
+import {
+  AddressAutocompleteInput,
+  geocodeAddress,
+} from "@/components/address-autocomplete-input";
 
 export default function VendorDetail() {
   const router = useRouter();
@@ -97,6 +101,7 @@ export default function VendorDetail() {
     null,
   );
   const [addingLocation, setAddingLocation] = useState<boolean>(false);
+  const [lookingUpLocation, setLookingUpLocation] = useState<boolean>(false);
   const [newLocation, setNewLocation] = useState({
     title: "",
     address: "",
@@ -436,6 +441,52 @@ export default function VendorDetail() {
       toast.error("Unable to update the location.");
     } finally {
       setChangingLocationId(null);
+    }
+  };
+
+  const lookupLocationCoordinates = async () => {
+    const address = newLocation.address.trim();
+
+    if (!address) {
+      toast.error("Enter an address before looking up coordinates.");
+      return;
+    }
+
+    setLookingUpLocation(true);
+    try {
+      const result = await geocodeAddress(address, newLocation.zipcode.trim());
+
+      if (result.ok === false) {
+        if (result.reason === "missing_key") {
+          toast.error(
+            "Google Maps key is missing from the admin build environment.",
+          );
+          return;
+        }
+
+        if (result.reason === "maps_unavailable") {
+          toast.error(
+            "Google Maps did not load. Check API key restrictions and enabled APIs.",
+          );
+          return;
+        }
+
+        toast.error(
+          "Could not find coordinates. Use street, city, state, and zip.",
+        );
+        return;
+      }
+
+      setNewLocation((prev) => ({
+        ...prev,
+        ...result.selection,
+      }));
+      toast.success("Coordinates filled.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not look up coordinates.");
+    } finally {
+      setLookingUpLocation(false);
     }
   };
 
@@ -1108,35 +1159,49 @@ export default function VendorDetail() {
                         }))
                       }
                     />
-                    <Input
-                      value={newLocation.address}
-                      placeholder="Address"
-                      onChange={(e) =>
-                        setNewLocation((prev) => ({
-                          ...prev,
-                          address: e.target.value,
-                        }))
-                      }
-                    />
+                    <div className="flex gap-2">
+                      <AddressAutocompleteInput
+                        value={newLocation.address}
+                        placeholder="Address"
+                        className="min-w-0"
+                        onValueChange={(value) =>
+                          setNewLocation((prev) => ({
+                            ...prev,
+                            address: value,
+                            lat: "",
+                            long: "",
+                          }))
+                        }
+                        onAddressSelect={(selection) =>
+                          setNewLocation((prev) => ({
+                            ...prev,
+                            ...selection,
+                          }))
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={lookingUpLocation}
+                        onClick={lookupLocationCoordinates}
+                      >
+                        Lookup
+                        {lookingUpLocation && (
+                          <LoaderCircle size={16} className="animate-spin" />
+                        )}
+                      </Button>
+                    </div>
                     <Input
                       value={newLocation.lat}
                       placeholder="Latitude"
-                      onChange={(e) =>
-                        setNewLocation((prev) => ({
-                          ...prev,
-                          lat: e.target.value,
-                        }))
-                      }
+                      readOnly
+                      className="bg-muted"
                     />
                     <Input
                       value={newLocation.long}
                       placeholder="Longitude"
-                      onChange={(e) =>
-                        setNewLocation((prev) => ({
-                          ...prev,
-                          long: e.target.value,
-                        }))
-                      }
+                      readOnly
+                      className="bg-muted"
                     />
                     <div className="flex gap-2">
                       <Input
