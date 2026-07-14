@@ -20,6 +20,7 @@ import {
   Bell,
   BadgeDollarSign,
   CreditCard,
+  ShieldCheck,
 } from "lucide-react";
 import { NavMain } from "@/components/core/nav-main";
 
@@ -95,6 +96,12 @@ const navMain = [
     title: "Marketplace Payments",
     url: "/marketplace-payments",
     icon: CreditCard,
+    items: [],
+  },
+  {
+    title: "Compliance",
+    url: "/compliance",
+    icon: ShieldCheck,
     items: [],
   },
   {

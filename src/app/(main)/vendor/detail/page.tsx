@@ -783,13 +783,13 @@ export default function VendorDetail() {
         </div>
       )}
 
-      {!!result?.user && !isFetching && (
-        <>
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
+	      {!!result?.user && !isFetching && (
+	        <>
+	          <Tabs
+	            value={activeTab}
+	            onValueChange={setActiveTab}
+	            className="w-full"
+	          >
             <TabsList className="sticky top-[64px] z-20 bg-white dark:bg-background border-b mb-4 flex flex-wrap gap-2">
               <TabsTrigger
                 value="profile"
@@ -1711,16 +1711,16 @@ export default function VendorDetail() {
               </div>
             </TabsContent>
 
-            {canManageEmployees && (
-              <TabsContent value="employees">
-                <div className="flex items-center gap-3 mt-3">
-                  <div className="whitespace-nowrap font-semibold text-xl">
-                    Employees
-                  </div>
-                  <div className="border-b w-full"></div>
-                </div>
+	            {canManageEmployees && (
+	              <TabsContent value="employees">
+	                <div className="flex items-center gap-3 mt-3">
+	                  <div className="whitespace-nowrap font-semibold text-xl">
+	                    Employees
+	                  </div>
+	                  <div className="border-b w-full"></div>
+	                </div>
 
-                <div className="border rounded-md p-3 mb-4">
+	                <div className="border rounded-md p-3 mb-4">
                   <div className="font-semibold mb-3">Add Employee</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
                     <Input
@@ -1916,13 +1916,13 @@ export default function VendorDetail() {
                               Remove
                             </Button>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </TabsContent>
-            )}
+	                        </div>
+	                      );
+	                    })}
+	                  </div>
+	                )}
+	              </TabsContent>
+	            )}
 
             <TabsContent value="availability">
               <div className="flex items-center gap-3 mt-3">

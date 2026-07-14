@@ -21,6 +21,7 @@ enum APIPath {
   NOTIFICATION = "user/admin",
   MARKETPLACE = "marketplace",
   VENDOR_EMPLOYEE = "vendor-employee",
+  VENDOR_COMPLIANCE = "vendor-compliance",
 }
 
 export enum APIEndpoint {
@@ -43,6 +44,7 @@ export enum APIEndpoint {
   NOTIFICATION = `${APIVersion.V1}/${APIPath.NOTIFICATION}`,
   MARKETPLACE = `${APIVersion.V1}/${APIPath.MARKETPLACE}`,
   VENDOR_EMPLOYEE = `${APIVersion.V1}/${APIPath.VENDOR_EMPLOYEE}`,
+  VENDOR_COMPLIANCE = `${APIVersion.V1}/${APIPath.VENDOR_COMPLIANCE}`,
   PUBLIC = `${APIVersion.V1}/${APIPath.PUBLIC}`,
   PUBLIC_PRIVACY_POLICY = `${APIVersion.V1}/${APIPath.PUBLIC}/privacy-policy`,
 }

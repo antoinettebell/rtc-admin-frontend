@@ -61,8 +61,8 @@ export function VendorMenuCsvImport({
           toppingsPerOrder: 2,
           comboItemNames: "Fries|Side Salad",
           comboItemIds: "",
-          comboSideOptions: "Fries|Side Salad|Chips",
-          comboSidesPerOrder: 1,
+	          comboSideOptions: "Fries|Side Salad|Chips",
+	          comboSidesPerOrder: 1,
           newDish: "FALSE",
           popularDish: "FALSE",
           "diet[0]": "",
@@ -185,11 +185,10 @@ export function VendorMenuCsvImport({
                 )
                 .filter(Boolean)
                 .join("|")
-            : "",
-          comboSideOptions: Array.isArray(anyItem.comboSideOptions)
-            ? anyItem.comboSideOptions.filter(Boolean).join("|")
-            : "",
-          comboSidesPerOrder: anyItem.comboSidesPerOrder ?? "",
+	            : "",
+	          comboSideOptions: Array.isArray(anyItem.comboSideOptions)
+	            ? anyItem.comboSideOptions.filter(Boolean).join("|")
+	            : "",
           newDish: anyItem.newDish ? "TRUE" : "FALSE",
           popularDish: anyItem.popularDish ? "TRUE" : "FALSE",
           "diet[0]": dietIds[0] || "",
