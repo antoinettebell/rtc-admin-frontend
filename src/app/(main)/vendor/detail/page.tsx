@@ -56,7 +56,10 @@ import { BankDetailsDisplay } from "@/components/bank-details-display";
 import { decryptFields } from "@/utils/encryption";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VendorMenuCsvImport } from "@/components/vendor-menu-csv-import";
-import { VendorPlanFeatureList } from "@/components/vendor-plan-feature-list";
+import {
+  getVendorPlanCapabilities,
+  VendorPlanFeatureList,
+} from "@/components/vendor-plan-feature-list";
 import { vendorEmployeeApiService } from "@/services/vendor-employee-api-service";
 import {
   AddressAutocompleteInput,
@@ -81,6 +84,7 @@ export default function VendorDetail() {
   >(null);
   const [reason, setReason] = useState<string>("");
   const [changing, setChanging] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("profile");
   const [planColor, setPlanColor] = useState<string>("");
   const [locations, setLocations] = useState<Record<string, string>>({});
   const [employeeTab, setEmployeeTab] = useState<"current" | "archived">(
@@ -242,6 +246,17 @@ export default function VendorDetail() {
   const archivedFoodTruckDocuments = foodTruckDocuments.filter(
     (document) => document.document_status === "ARCHIVED",
   );
+  const vendorPlanCapabilities = React.useMemo(
+    () => getVendorPlanCapabilities(result?.user?.foodTruck?.plan),
+    [result?.user?.foodTruck?.plan],
+  );
+  const canManageEmployees = !!vendorPlanCapabilities.employeeLogin;
+
+  React.useEffect(() => {
+    if (activeTab === "employees" && !canManageEmployees) {
+      setActiveTab("profile");
+    }
+  }, [activeTab, canManageEmployees]);
 
   const normalizeDocumentName = (value?: string | null) =>
     String(value || "")
@@ -338,8 +353,10 @@ export default function VendorDetail() {
   }, [employeeTab, result?.user?._id, result?.user?.foodTruck?._id]);
 
   React.useEffect(() => {
+    if (activeTab !== "employees") return;
+    if (!canManageEmployees) return;
     loadEmployees();
-  }, [loadEmployees]);
+  }, [activeTab, canManageEmployees, loadEmployees]);
 
   const resetEmployeeForm = () => {
     setEmployeeForm({
@@ -352,6 +369,10 @@ export default function VendorDetail() {
   };
 
   const addEmployee = () => {
+    if (!canManageEmployees) {
+      toast.error("Employee management is not enabled for this vendor plan.");
+      return;
+    }
     const vendorUserId = result?.user?._id;
     const foodTruckId = result?.user?.foodTruck?._id;
     if (!vendorUserId || !foodTruckId) return;
@@ -678,9 +699,13 @@ export default function VendorDetail() {
         </div>
       )}
 
-      {!!result?.user && !isFetching && (
-        <>
-          <Tabs defaultValue="profile" className="w-full">
+	      {!!result?.user && !isFetching && (
+	        <>
+	          <Tabs
+	            value={activeTab}
+	            onValueChange={setActiveTab}
+	            className="w-full"
+	          >
             <TabsList className="sticky top-[64px] z-20 bg-white dark:bg-background border-b mb-4 flex flex-wrap gap-2">
               <TabsTrigger
                 value="profile"
@@ -725,12 +750,14 @@ export default function VendorDetail() {
               >
                 Locations
               </TabsTrigger>
-              <TabsTrigger
-                value="employees"
-                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
-              >
-                Employees
-              </TabsTrigger>
+              {canManageEmployees && (
+                <TabsTrigger
+                  value="employees"
+                  className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+                >
+                  Employees
+                </TabsTrigger>
+              )}
               <TabsTrigger
                 value="availability"
                 className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
@@ -1543,6 +1570,7 @@ export default function VendorDetail() {
               </div>
             </TabsContent>
 
+            {canManageEmployees && (
             <TabsContent value="employees">
               <div className="flex items-center gap-3 mt-3">
                 <div className="whitespace-nowrap font-semibold text-xl">
@@ -1753,6 +1781,7 @@ export default function VendorDetail() {
                 </div>
               )}
             </TabsContent>
+            )}
 
             <TabsContent value="availability">
               <div className="flex items-center gap-3 mt-3">
