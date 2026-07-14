@@ -20,6 +20,14 @@ const statusColors: Record<string, string> = {
   archived: "bg-slate-100 text-slate-700",
 };
 
+const documentTypeOptions = [
+  { value: "HEALTH_PERMIT", label: "Health Permit" },
+  { value: "BUSINESS_LICENSE", label: "Business License" },
+  { value: "COI", label: "Certificate of Insurance" },
+  { value: "EIN", label: "EIN" },
+  { value: "W9", label: "W-9" },
+];
+
 const formatLabel = (value?: string | null) =>
   (value || "-")
     .replace(/_/g, " ")
@@ -36,6 +44,7 @@ const getVendorName = (document: ComplianceDocument) => {
 
 export default function CompliancePage() {
   const [reviewStatus, setReviewStatus] = React.useState("");
+  const [documentType, setDocumentType] = React.useState("");
   const [updatingId, setUpdatingId] = React.useState<string | null>(null);
 
   const dashboardQuery = useQuery({
@@ -45,12 +54,13 @@ export default function CompliancePage() {
   });
 
   const documentsQuery = useQuery({
-    queryKey: ["vendor-compliance-documents", reviewStatus],
+    queryKey: ["vendor-compliance-documents", reviewStatus, documentType],
     queryFn: () =>
       vendorComplianceApiService.listDocuments({
         page: 1,
         limit: 50,
         review_status: reviewStatus || undefined,
+        document_type: documentType || undefined,
       }),
     refetchOnWindowFocus: false,
   });
@@ -100,7 +110,7 @@ export default function CompliancePage() {
             Vendor Compliance
           </h1>
           <p className="text-sm text-muted-foreground">
-            Health permits, business licenses, COIs, OCR status, and review actions.
+            Optional permits/licenses/COIs plus EIN/W-9 compliance, OCR status, and review actions.
           </p>
         </div>
         <Button
@@ -138,17 +148,31 @@ export default function CompliancePage() {
             <ShieldCheck className="h-4 w-4" />
             Document Review
           </div>
-          <select
-            value={reviewStatus}
-            onChange={(event) => setReviewStatus(event.target.value)}
-            className="h-9 rounded-md border bg-background px-3 text-sm"
-          >
-            <option value="">All statuses</option>
-            <option value="pending_review">Pending review</option>
-            <option value="verified">Verified</option>
-            <option value="rejected">Rejected</option>
-            <option value="expired">Expired</option>
-          </select>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={documentType}
+              onChange={(event) => setDocumentType(event.target.value)}
+              className="h-9 rounded-md border bg-background px-3 text-sm"
+            >
+              <option value="">All documents</option>
+              {documentTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={reviewStatus}
+              onChange={(event) => setReviewStatus(event.target.value)}
+              className="h-9 rounded-md border bg-background px-3 text-sm"
+            >
+              <option value="">All statuses</option>
+              <option value="pending_review">Pending review</option>
+              <option value="verified">Verified</option>
+              <option value="rejected">Rejected</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
         </div>
 
         <div className="overflow-x-auto">

@@ -48,12 +48,14 @@ export interface MarketplacePayment {
   food_truck_id?: string | null;
   payment_type:
     | "COORDINATOR_AWARD_FEE"
-    | "VENDOR_EVENT_FEE";
+    | "VENDOR_EVENT_FEE"
+    | "FINAL_EVENT_PAYMENT";
   base_amount: number;
   fee_rate?: number | null;
   fee_amount: number;
+  tip_amount?: number;
   total_amount: number;
-  payment_method?: "APPLE_PAY" | "GOOGLE_PAY" | "ADMIN_MANUAL" | null;
+  payment_method?: "APPLE_PAY" | "GOOGLE_PAY" | "TAP_TO_PAY" | "ADMIN_MANUAL" | null;
   payment_status: MarketplacePaymentStatus;
   processor_transaction_id?: string | null;
   manually_marked_paid?: boolean;
