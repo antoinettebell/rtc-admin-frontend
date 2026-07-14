@@ -77,7 +77,14 @@ export interface FoodTruckLocation {
 export interface FoodTruckDocument {
   _id: string;
   title?: string | null;
-  document_type?: "PERMIT" | "LICENSE" | "INSURANCE" | "OTHER" | string;
+  document_type?:
+    | "PERMIT"
+    | "LICENSE"
+    | "INSURANCE"
+    | "EIN"
+    | "W9"
+    | "OTHER"
+    | string;
   file_url: string;
   file_key?: string | null;
   original_name?: string | null;

@@ -1150,7 +1150,7 @@ export default function VendorDetail() {
                         onChange={(event) =>
                           setDocumentTitle(event.target.value)
                         }
-                        placeholder="Permit, license, COI..."
+                        placeholder="Permit, license, COI, W-9..."
                       />
                     </div>
                     <div>
@@ -1165,6 +1165,8 @@ export default function VendorDetail() {
                         <option value="PERMIT">Permit</option>
                         <option value="LICENSE">License</option>
                         <option value="INSURANCE">Insurance</option>
+                        <option value="EIN">EIN</option>
+                        <option value="W9">W-9</option>
                         <option value="OTHER">Other</option>
                       </select>
                     </div>
