@@ -27,7 +27,6 @@ const money = (value?: number | null) => `$${Number(value || 0).toFixed(2)}`;
 const paymentTypeLabels: Record<string, string> = {
   COORDINATOR_AWARD_FEE: "Coordinator Award Fee",
   VENDOR_EVENT_FEE: "Vendor Event Fee",
-  REOPEN_BIDDING_FEE: "Reopen Bidding Fee",
 };
 
 export default function MarketplacePaymentsPage() {
@@ -220,9 +219,6 @@ export default function MarketplacePaymentsPage() {
                     Coordinator award
                   </SelectItem>
                   <SelectItem value="VENDOR_EVENT_FEE">Vendor event fee</SelectItem>
-                  <SelectItem value="REOPEN_BIDDING_FEE">
-                    Reopen bidding
-                  </SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>

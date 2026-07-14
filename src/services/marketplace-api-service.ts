@@ -48,8 +48,7 @@ export interface MarketplacePayment {
   food_truck_id?: string | null;
   payment_type:
     | "COORDINATOR_AWARD_FEE"
-    | "VENDOR_EVENT_FEE"
-    | "REOPEN_BIDDING_FEE";
+    | "VENDOR_EVENT_FEE";
   base_amount: number;
   fee_rate?: number | null;
   fee_amount: number;
