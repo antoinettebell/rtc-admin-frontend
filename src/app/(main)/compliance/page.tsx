@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import dayjs from "dayjs";
-import { CheckCircle2, ExternalLink, RefreshCw, ShieldCheck, XCircle } from "lucide-react";
+import { CheckCircle2, ExternalLink, Gauge, RefreshCw, ShieldCheck, XCircle } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,20 @@ const documentTypeOptions = [
   { value: "EIN", label: "EIN" },
   { value: "W9", label: "W-9" },
 ];
+
+const scoreColorClasses: Record<string, string> = {
+  red: "bg-red-100 text-red-800 border-red-200",
+  yellow: "bg-yellow-100 text-yellow-900 border-yellow-200",
+  blue: "bg-blue-100 text-blue-800 border-blue-200",
+  green: "bg-green-100 text-green-800 border-green-200",
+};
+
+const scoreBarClasses: Record<string, string> = {
+  red: "bg-red-600",
+  yellow: "bg-yellow-500",
+  blue: "bg-blue-600",
+  green: "bg-green-600",
+};
 
 const formatLabel = (value?: string | null) =>
   (value || "-")
@@ -93,6 +107,7 @@ export default function CompliancePage() {
   const dashboard = dashboardQuery.data?.data?.data?.dashboard;
   const documents =
     documentsQuery.data?.data?.data?.complianceDocumentList || [];
+  const vendorScores = dashboard?.vendor_scores || [];
 
   const updateDocument = (
     document: ComplianceDocument,
@@ -140,6 +155,128 @@ export default function CompliancePage() {
             <div className="mt-2 text-2xl font-semibold">{value}</div>
           </div>
         ))}
+      </div>
+
+      <div className="rounded-lg border">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
+          <div className="flex items-center gap-2 font-medium">
+            <Gauge className="h-4 w-4" />
+            Vendor Compliance Scores
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              ["red", "Blocked"],
+              ["yellow", "Needs attention"],
+              ["blue", "Almost complete"],
+              ["green", "Complete"],
+            ].map(([color, label]) => (
+              <Badge
+                key={color}
+                variant="outline"
+                className={scoreColorClasses[color]}
+              >
+                {label}: {dashboard?.by_score_color?.[color] || 0}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[960px] text-sm">
+            <thead className="bg-muted/50 text-left">
+              <tr>
+                <th className="p-3 font-medium">Vendor</th>
+                <th className="p-3 font-medium">Score</th>
+                <th className="p-3 font-medium">Status</th>
+                <th className="p-3 font-medium">Open Items</th>
+                <th className="p-3 font-medium">Plan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vendorScores.map((vendor) => {
+                const openItems = [
+                  ...(vendor.missing_requirements || []).map(
+                    (item) => `Missing ${formatLabel(item)}`,
+                  ),
+                  ...(vendor.pending_requirements || []).map(
+                    (item) => `Pending ${formatLabel(item)}`,
+                  ),
+                  ...(vendor.rejected_requirements || []).map(
+                    (item) => `Rejected ${formatLabel(item)}`,
+                  ),
+                  ...(vendor.expiring_requirements || []).map(
+                    (item) => `${formatLabel(item)} expiring soon`,
+                  ),
+                ];
+                const score = Math.max(0, Math.min(100, Number(vendor.score) || 0));
+
+                return (
+                  <tr key={vendor.food_truck_id} className="border-t">
+                    <td className="p-3">
+                      <div className="font-medium">{vendor.vendor_name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {vendor.vendor_email || vendor.food_truck_id}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2 w-36 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={`h-full rounded-full ${
+                              scoreBarClasses[vendor.score_color] || "bg-slate-500"
+                            }`}
+                            style={{ width: `${score}%` }}
+                          />
+                        </div>
+                        <span className="w-10 font-semibold">{score}%</span>
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <Badge
+                        variant="outline"
+                        className={
+                          scoreColorClasses[vendor.score_color] ||
+                          "bg-slate-100 text-slate-700"
+                        }
+                      >
+                        {vendor.score_label}
+                      </Badge>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {vendor.eligible ? "Eligible" : "Not eligible"}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      {openItems.length ? (
+                        <div className="flex max-w-xl flex-wrap gap-1">
+                          {openItems.slice(0, 5).map((item) => (
+                            <Badge key={item} variant="secondary">
+                              {item}
+                            </Badge>
+                          ))}
+                          {openItems.length > 5 ? (
+                            <Badge variant="secondary">
+                              +{openItems.length - 5} more
+                            </Badge>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">None</span>
+                      )}
+                    </td>
+                    <td className="p-3">{vendor.plan_name || "-"}</td>
+                  </tr>
+                );
+              })}
+              {!vendorScores.length ? (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                    No vendor compliance scores found.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="rounded-lg border">

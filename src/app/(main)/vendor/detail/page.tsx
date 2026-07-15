@@ -65,6 +65,15 @@ import {
   AddressAutocompleteInput,
   geocodeAddress,
 } from "@/components/address-autocomplete-input";
+import { vendorComplianceApiService } from "@/services/vendor-compliance-api-service";
+
+const adminComplianceDocumentTypeMap: Record<string, string> = {
+  PERMIT: "HEALTH_PERMIT",
+  LICENSE: "BUSINESS_LICENSE",
+  INSURANCE: "COI",
+  EIN: "EIN",
+  W9: "W9",
+};
 
 export default function VendorDetail() {
   const router = useRouter();
@@ -322,11 +331,25 @@ export default function VendorDetail() {
 
     setDocumentSaving(true);
     try {
-      await foodTruckApiService.uploadDocument(foodTruckId, documentFile, {
+      const complianceDocumentType = adminComplianceDocumentTypeMap[documentType];
+      const uploadPayload = {
         title: documentTitle.trim() || documentFile.name,
-        document_type: documentType,
+        document_type: complianceDocumentType || documentType,
         replace_existing: replaceExisting,
-      });
+      };
+
+      if (complianceDocumentType) {
+        await vendorComplianceApiService.uploadDocument(
+          foodTruckId,
+          documentFile,
+          uploadPayload,
+        );
+      } else {
+        await foodTruckApiService.uploadDocument(foodTruckId, documentFile, {
+          ...uploadPayload,
+          document_type: documentType,
+        });
+      }
       toast.success("Document uploaded.");
       setDocumentTitle("");
       setDocumentType("PERMIT");

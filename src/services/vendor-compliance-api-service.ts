@@ -33,6 +33,25 @@ export type ComplianceDashboard = {
   expiring_soon: number;
   by_review_status: Record<string, number>;
   by_document_type: Record<string, number>;
+  by_score_color?: Record<string, number>;
+  vendor_scores?: VendorComplianceScore[];
+};
+
+export type VendorComplianceScore = {
+  food_truck_id: string;
+  vendor_user_id?: string | null;
+  vendor_name: string;
+  vendor_email?: string | null;
+  plan_name?: string | null;
+  score: number;
+  score_color: "red" | "yellow" | "blue" | "green" | string;
+  score_color_hex?: string;
+  score_label: string;
+  eligible: boolean;
+  missing_requirements?: string[];
+  expiring_requirements?: string[];
+  pending_requirements?: string[];
+  rejected_requirements?: string[];
 };
 
 class VendorComplianceApiService extends BaseAPI {
@@ -71,6 +90,28 @@ class VendorComplianceApiService extends BaseAPI {
     return this.patch(
       `${APIEndpoint.VENDOR_COMPLIANCE}/admin/documents/${documentId}/review`,
       payload,
+    );
+  }
+
+  uploadDocument(
+    foodTruckId: string,
+    file: File,
+    data: { title?: string; document_type: string; replace_existing?: boolean },
+  ) {
+    const fd = new FormData();
+    fd.append("file", file);
+    if (data.title) fd.append("title", data.title);
+    fd.append("document_type", data.document_type);
+    if (data.replace_existing) fd.append("replace_existing", "true");
+
+    return this.post(
+      `${APIEndpoint.VENDOR_COMPLIANCE}/food-truck/${foodTruckId}/documents`,
+      fd,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
     );
   }
 }
