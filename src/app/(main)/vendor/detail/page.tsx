@@ -1563,7 +1563,7 @@ export default function VendorDetail() {
                 )}
                 <div className="border rounded-md p-3 mb-4">
                   <div className="font-semibold mb-3">Add Location</div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1fr_1.4fr_auto_1fr_1fr_1.1fr_auto] gap-3">
                     <Input
                       value={newLocation.title}
                       placeholder="Title"
@@ -1574,72 +1574,70 @@ export default function VendorDetail() {
                         }))
                       }
                     />
-                    <div className="flex gap-2">
-                      <AddressAutocompleteInput
-                        value={newLocation.address}
-                        placeholder="Address"
-                        className="min-w-0"
-                        onValueChange={(value) =>
-                          setNewLocation((prev) => ({
-                            ...prev,
-                            address: value,
-                            lat: "",
-                            long: "",
-                          }))
-                        }
-                        onAddressSelect={(selection) =>
-                          setNewLocation((prev) => ({
-                            ...prev,
-                            ...selection,
-                          }))
-                        }
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={lookingUpLocation}
-                        onClick={lookupLocationCoordinates}
-                      >
-                        Lookup
-                        {lookingUpLocation && (
-                          <LoaderCircle size={16} className="animate-spin" />
-                        )}
-                      </Button>
-                    </div>
+                    <AddressAutocompleteInput
+                      value={newLocation.address}
+                      placeholder="Address"
+                      className="min-w-0"
+                      onValueChange={(value) =>
+                        setNewLocation((prev) => ({
+                          ...prev,
+                          address: value,
+                          lat: "",
+                          long: "",
+                        }))
+                      }
+                      onAddressSelect={(selection) =>
+                        setNewLocation((prev) => ({
+                          ...prev,
+                          ...selection,
+                        }))
+                      }
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={lookingUpLocation}
+                      onClick={lookupLocationCoordinates}
+                    >
+                      Lookup
+                      {lookingUpLocation && (
+                        <LoaderCircle size={16} className="animate-spin" />
+                      )}
+                    </Button>
                     <Input
                       value={newLocation.lat}
                       placeholder="Latitude"
                       readOnly
-                      className="bg-muted"
+                      aria-readonly="true"
+                      className="bg-muted cursor-not-allowed"
                     />
                     <Input
                       value={newLocation.long}
                       placeholder="Longitude"
                       readOnly
-                      className="bg-muted"
+                      aria-readonly="true"
+                      className="bg-muted cursor-not-allowed"
                     />
-                    <div className="flex gap-2">
-                      <Input
-                        value={newLocation.zipcode}
-                        placeholder="Zip"
-                        onChange={(e) =>
-                          setNewLocation((prev) => ({
-                            ...prev,
-                            zipcode: e.target.value,
-                          }))
-                        }
-                      />
-                      <Button
-                        type="button"
-                        disabled={addingLocation}
-                        onClick={addLocation}
-                      >
-                        Add
-                        {addingLocation && (
-                          <LoaderCircle size={16} className="animate-spin" />
-                        )}
-                      </Button>
-                    </div>
+                    <Input
+                      value={newLocation.zipcode}
+                      placeholder="Zip"
+                      onChange={(e) =>
+                        setNewLocation((prev) => ({
+                          ...prev,
+                          zipcode: e.target.value,
+                        }))
+                      }
+                    />
+                    <Button
+                      type="button"
+                      disabled={addingLocation}
+                      onClick={addLocation}
+                    >
+                      Add
+                      {addingLocation && (
+                        <LoaderCircle size={16} className="animate-spin" />
+                      )}
+                    </Button>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 5xl:grid-cols-3 gap-4 *:data-[slot=card]:shadow-xs *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
