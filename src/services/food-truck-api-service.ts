@@ -43,6 +43,7 @@ class FoodTruckApiService extends BaseAPI {
       {
         isOrderingOpen,
         truck_unit_id: truckUnitId || null,
+        schedule_override_reason: "ADMIN_OVERRIDE",
       },
     );
   }

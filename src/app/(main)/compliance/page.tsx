@@ -21,7 +21,7 @@ const statusColors: Record<string, string> = {
 };
 
 const documentTypeOptions = [
-  { value: "HEALTH_PERMIT", label: "Health Permit" },
+  { value: "HEALTH_PERMIT", label: "Sanitation Grade" },
   { value: "BUSINESS_LICENSE", label: "Business License" },
   { value: "COI", label: "Certificate of Insurance" },
   { value: "EIN", label: "EIN" },
