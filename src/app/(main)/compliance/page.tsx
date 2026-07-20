@@ -105,9 +105,14 @@ export default function CompliancePage() {
   });
 
   const dashboard = dashboardQuery.data?.data?.data?.dashboard;
+  const documentData = documentsQuery.data?.data?.data;
   const documents =
-    documentsQuery.data?.data?.data?.complianceDocumentList || [];
+    documentData?.complianceDocumentList || documentData?.records || [];
+  const documentTotal = documentData?.total ?? documents.length;
   const vendorScores = dashboard?.vendor_scores || [];
+  const documentsError =
+    (documentsQuery.error as any)?.response?.data?.message ||
+    (documentsQuery.error as any)?.message;
 
   const updateDocument = (
     document: ComplianceDocument,
@@ -284,6 +289,7 @@ export default function CompliancePage() {
           <div className="flex items-center gap-2 font-medium">
             <ShieldCheck className="h-4 w-4" />
             Document Review
+            <Badge variant="secondary">{documentTotal} found</Badge>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select
@@ -311,6 +317,12 @@ export default function CompliancePage() {
             </select>
           </div>
         </div>
+
+        {documentsError ? (
+          <div className="border-b bg-red-50 p-3 text-sm text-red-700">
+            {documentsError}
+          </div>
+        ) : null}
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-sm">
