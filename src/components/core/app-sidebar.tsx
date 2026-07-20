@@ -1,4 +1,5 @@
 import type * as React from "react";
+import Image from "next/image";
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +22,7 @@ import {
   BadgeDollarSign,
   CreditCard,
   ShieldCheck,
+  CalendarCheck,
 } from "lucide-react";
 import { NavMain } from "@/components/core/nav-main";
 
@@ -42,6 +44,12 @@ const navMain = [
     title: "Users",
     url: "/user",
     icon: User2,
+    items: [],
+  },
+  {
+    title: "Event Coordinators",
+    url: "/event-coordinators",
+    icon: CalendarCheck,
     items: [],
   },
   {
@@ -117,7 +125,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar {...props}>
       <SidebarHeader>
         <div className="flex h-14 px-4 text-white font-semibold items-center p-2 bg-primary rounded-b-3xl">
-          <img src="/logo-tree.png" className="w-[40px] mr-2 mb-2" />
+          <Image
+            src="/logo-tree.png"
+            alt="Round The Corner"
+            width={40}
+            height={40}
+            className="w-[40px] mr-2 mb-2"
+            priority
+          />
           Round The Corner
         </div>
       </SidebarHeader>

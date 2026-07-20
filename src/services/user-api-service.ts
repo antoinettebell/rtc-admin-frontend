@@ -36,6 +36,26 @@ class UserApiService extends BaseAPI {
     });
   }
 
+  listEventCoordinators(
+    page: number,
+    status: string,
+    search: string,
+    limit = 20,
+  ) {
+    return this.getPaginated<User>(
+      `${APIEndpoint.USER}/event-coordinators`,
+      "eventCoordinatorList",
+      {
+        params: {
+          page,
+          limit,
+          ...(status ? { status } : {}),
+          ...(search.trim().length ? { search: search.trim() } : {}),
+        },
+      },
+    );
+  }
+
   getOverview() {
     return this.get<
       IResponse<{
@@ -61,6 +81,15 @@ class UserApiService extends BaseAPI {
       `${APIEndpoint.USER}/${id}/change-status`,
       {
         inactive,
+      },
+    );
+  }
+
+  changeEventCoordinatorStatus(id: string, isEventCoordinator: boolean) {
+    return this.put<IResponse<{ user: User }>>(
+      `${APIEndpoint.USER}/event-coordinators/${id}/status`,
+      {
+        isEventCoordinator,
       },
     );
   }

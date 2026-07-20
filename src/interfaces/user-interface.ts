@@ -12,6 +12,28 @@ export interface User {
   mobileNumber?: boolean | string;
   inactive?: boolean;
   verified?: boolean;
+  isEventCoordinator?: boolean;
+  eventCoordinatorCompanyName?: string | null;
+  eventCoordinatorCompanyAddress?: string | null;
+  eventCoordinatorTaxIdType?: "EIN" | "SSN" | null;
+  eventCoordinatorTaxIdMasked?: string | null;
+  eventCoordinatorAddressLine1?: string | null;
+  eventCoordinatorAddressLine2?: string | null;
+  eventCoordinatorAddressCity?: string | null;
+  eventCoordinatorAddressState?: string | null;
+  eventCoordinatorAddressZip?: string | null;
+  eventCoordinatorFormattedAddress?: string | null;
+  eventCoordinatorPaymentPreference?:
+    | "CASHAPP"
+    | "ZELLE"
+    | "PAYPAL"
+    | "VENMO"
+    | "DIRECT_DEPOSIT"
+    | null;
+  eventCoordinatorPaymentHandle?: string | null;
+  eventCoordinatorPaymentQrCodeUrl?: string | null;
+  eventCoordinatorDirectDepositRoutingNumber?: string | null;
+  eventCoordinatorDirectDepositAccountNumberMasked?: string | null;
   createdAt?: string;
   updatedAt?: string;
   foodTruck?: FoodTruck;

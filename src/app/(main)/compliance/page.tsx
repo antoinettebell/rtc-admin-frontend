@@ -13,7 +13,7 @@ import {
 } from "@/services/vendor-compliance-api-service";
 
 const statusColors: Record<string, string> = {
-  pending_review: "bg-blue-100 text-blue-800",
+  pending_review: "bg-yellow-100 text-yellow-900",
   verified: "bg-green-100 text-green-800",
   rejected: "bg-red-100 text-red-800",
   expired: "bg-yellow-100 text-yellow-900",
