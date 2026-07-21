@@ -44,7 +44,7 @@ export type VendorComplianceScore = {
   vendor_email?: string | null;
   plan_name?: string | null;
   score: number;
-  score_color: "red" | "yellow" | "blue" | "green" | string;
+  score_color: "red" | "orange" | "yellow" | "green" | string;
   score_color_hex?: string;
   score_label: string;
   eligible: boolean;
@@ -96,13 +96,19 @@ class VendorComplianceApiService extends BaseAPI {
   uploadDocument(
     foodTruckId: string,
     file: File,
-    data: { title?: string; document_type: string; replace_existing?: boolean },
+    data: {
+      title?: string;
+      document_type: string;
+      replace_existing?: boolean;
+      expiration_date?: string | null;
+    },
   ) {
     const fd = new FormData();
     fd.append("file", file);
     if (data.title) fd.append("title", data.title);
     fd.append("document_type", data.document_type);
     if (data.replace_existing) fd.append("replace_existing", "true");
+    if (data.expiration_date) fd.append("expiration_date", data.expiration_date);
 
     return this.post(
       `${APIEndpoint.VENDOR_COMPLIANCE}/food-truck/${foodTruckId}/documents`,

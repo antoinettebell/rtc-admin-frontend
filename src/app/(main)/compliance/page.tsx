@@ -30,23 +30,37 @@ const documentTypeOptions = [
 
 const scoreColorClasses: Record<string, string> = {
   red: "bg-red-100 text-red-800 border-red-200",
+  orange: "bg-orange-100 text-orange-800 border-orange-200",
   yellow: "bg-yellow-100 text-yellow-900 border-yellow-200",
-  blue: "bg-blue-100 text-blue-800 border-blue-200",
   green: "bg-green-100 text-green-800 border-green-200",
 };
 
 const scoreBarClasses: Record<string, string> = {
   red: "bg-red-600",
+  orange: "bg-orange-500",
   yellow: "bg-yellow-500",
-  blue: "bg-blue-600",
   green: "bg-green-600",
 };
 
+const acronymLabels: Record<string, string> = {
+  COI: "COI",
+  EIN: "EIN",
+  ID: "ID",
+  OCR: "OCR",
+  SSN: "SSN",
+  W9: "W-9",
+  W_9: "W-9",
+};
+
 const formatLabel = (value?: string | null) =>
-  (value || "-")
+  String(value || "-")
     .replace(/_/g, " ")
     .toLowerCase()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .replace(/\b(Coi|Ein|Id|Ocr|Ssn|W9|W 9)\b/g, (match) => {
+      const key = match.replace(" ", "_").toUpperCase();
+      return acronymLabels[key] || match.toUpperCase();
+    });
 
 const getVendorName = (document: ComplianceDocument) => {
   const truck = document.food_truck_id;
@@ -170,10 +184,10 @@ export default function CompliancePage() {
           </div>
           <div className="flex flex-wrap gap-2">
             {[
-              ["red", "Blocked"],
-              ["yellow", "Needs attention"],
-              ["blue", "Almost complete"],
-              ["green", "Complete"],
+              ["red", "0-24%"],
+              ["orange", "25-49%"],
+              ["yellow", "50-74%"],
+              ["green", "75-100%"],
             ].map(([color, label]) => (
               <Badge
                 key={color}

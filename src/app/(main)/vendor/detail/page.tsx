@@ -76,6 +76,32 @@ const adminComplianceDocumentTypeMap: Record<string, string> = {
   W9: "W9",
 };
 
+const expirationRequiredDocumentTypes = new Set([
+  "PERMIT",
+  "LICENSE",
+  "INSURANCE",
+]);
+
+const acronymLabels: Record<string, string> = {
+  COI: "COI",
+  EIN: "EIN",
+  ID: "ID",
+  OCR: "OCR",
+  SSN: "SSN",
+  W9: "W-9",
+  W_9: "W-9",
+};
+
+const formatAcronymLabel = (value?: string | null) =>
+  String(value || "-")
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .replace(/\b(Coi|Ein|Id|Ocr|Ssn|W9|W 9)\b/g, (match) => {
+      const key = match.replace(" ", "_").toUpperCase();
+      return acronymLabels[key] || match.toUpperCase();
+    });
+
 const complianceStatusLabels: Record<string, string> = {
   NOT_APPLICABLE: "Not Compliance",
   NEEDS_SYNC: "Needs Sync",
@@ -162,6 +188,7 @@ export default function VendorDetail() {
   const [showMore, setShowMore] = useState<boolean>(true);
   const [documentTitle, setDocumentTitle] = useState("");
   const [documentType, setDocumentType] = useState("PERMIT");
+  const [documentExpirationDate, setDocumentExpirationDate] = useState("");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentSaving, setDocumentSaving] = useState(false);
   const [documentDeletingId, setDocumentDeletingId] = useState<string | null>(
@@ -362,6 +389,10 @@ export default function VendorDetail() {
         title: documentTitle.trim() || documentFile.name,
         document_type: complianceDocumentType || documentType,
         replace_existing: replaceExisting,
+        expiration_date:
+          complianceDocumentType && documentExpirationDate
+            ? documentExpirationDate
+            : undefined,
       };
 
       if (complianceDocumentType) {
@@ -379,6 +410,7 @@ export default function VendorDetail() {
       toast.success("Document uploaded.");
       setDocumentTitle("");
       setDocumentType("PERMIT");
+      setDocumentExpirationDate("");
       setDocumentFile(null);
       await refetch();
     } catch (error: any) {
@@ -1191,7 +1223,7 @@ export default function VendorDetail() {
               </div>
               <div className="pt-2 pb-4 space-y-4">
                 <div className="border rounded-md p-3">
-                  <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_1fr_auto] gap-3 items-end">
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_170px_1fr_auto] gap-3 items-end">
                     <div>
                       <div className="text-sm font-medium mb-1">Title</div>
                       <Input
@@ -1206,9 +1238,13 @@ export default function VendorDetail() {
                       <div className="text-sm font-medium mb-1">Type</div>
                       <select
                         value={documentType}
-                        onChange={(event) =>
-                          setDocumentType(event.target.value)
-                        }
+                        onChange={(event) => {
+                          const nextType = event.target.value;
+                          setDocumentType(nextType);
+                          if (!expirationRequiredDocumentTypes.has(nextType)) {
+                            setDocumentExpirationDate("");
+                          }
+                        }}
                         className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                       >
                         <option value="PERMIT">Sanitation Grade</option>
@@ -1218,6 +1254,19 @@ export default function VendorDetail() {
                         <option value="W9">W-9</option>
                         <option value="OTHER">Other</option>
                       </select>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium mb-1">
+                        Expiration Date
+                      </div>
+                      <Input
+                        type="date"
+                        value={documentExpirationDate}
+                        disabled={!expirationRequiredDocumentTypes.has(documentType)}
+                        onChange={(event) =>
+                          setDocumentExpirationDate(event.target.value)
+                        }
+                      />
                     </div>
                     <div>
                       <div className="text-sm font-medium mb-1">File</div>
@@ -1261,7 +1310,7 @@ export default function VendorDetail() {
                             </span>
                           </div>
                           <div className="text-sm text-muted-foreground mt-1">
-                            {document.document_type || "OTHER"}
+                            {formatAcronymLabel(document.document_type || "OTHER")}
                             {document.uploaded_at
                               ? ` - ${dayjs(document.uploaded_at).format(
                                   "MM/DD/YYYY",
@@ -1333,7 +1382,7 @@ export default function VendorDetail() {
                             </span>
                           </div>
                           <div className="text-sm text-muted-foreground mt-1">
-                            {document.document_type || "OTHER"}
+                            {formatAcronymLabel(document.document_type || "OTHER")}
                             {document.archived_at
                               ? ` - Archived ${dayjs(
                                   document.archived_at,
