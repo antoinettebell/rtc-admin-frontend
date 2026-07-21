@@ -48,6 +48,8 @@ export type VendorComplianceScore = {
   score_color_hex?: string;
   score_label: string;
   eligible: boolean;
+  grandfathered?: boolean;
+  grandfather_cutoff_date?: string;
   missing_requirements?: string[];
   expiring_requirements?: string[];
   pending_requirements?: string[];

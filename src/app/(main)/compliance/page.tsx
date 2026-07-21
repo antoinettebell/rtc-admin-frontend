@@ -263,6 +263,11 @@ export default function CompliancePage() {
                       <div className="mt-1 text-xs text-muted-foreground">
                         {vendor.eligible ? "Eligible" : "Not eligible"}
                       </div>
+                      {vendor.grandfathered ? (
+                        <Badge variant="secondary" className="mt-2">
+                          Grandfathered
+                        </Badge>
+                      ) : null}
                     </td>
                     <td className="p-3">
                       {openItems.length ? (
