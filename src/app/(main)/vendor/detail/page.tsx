@@ -30,6 +30,7 @@ import { userApiService } from "@/services/user-api-service";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Status } from "@/components/ui/status";
 import { toast } from "sonner";
@@ -74,6 +75,31 @@ const adminComplianceDocumentTypeMap: Record<string, string> = {
   EIN: "EIN",
   W9: "W9",
 };
+
+const complianceStatusLabels: Record<string, string> = {
+  NOT_APPLICABLE: "Not Compliance",
+  NEEDS_SYNC: "Needs Sync",
+  PENDING_REVIEW: "Pending Review",
+  VERIFIED: "Verified",
+  REJECTED: "Rejected",
+  EXPIRED: "Expired",
+  ARCHIVED: "Archived",
+};
+
+const complianceStatusClasses: Record<string, string> = {
+  NOT_APPLICABLE: "bg-slate-100 text-slate-700",
+  NEEDS_SYNC: "bg-orange-100 text-orange-800",
+  PENDING_REVIEW: "bg-yellow-100 text-yellow-900",
+  VERIFIED: "bg-green-100 text-green-800",
+  REJECTED: "bg-red-100 text-red-800",
+  EXPIRED: "bg-red-100 text-red-800",
+  ARCHIVED: "bg-slate-100 text-slate-700",
+};
+
+const getDocumentComplianceStatus = (document: FoodTruckDocument) =>
+  document.document_status === "ARCHIVED"
+    ? "ARCHIVED"
+    : document.compliance_status || "NEEDS_SYNC";
 
 export default function VendorDetail() {
   const router = useRouter();
@@ -1242,6 +1268,19 @@ export default function VendorDetail() {
                                 )}`
                               : ""}
                           </div>
+                          <div className="mt-2">
+                            <Badge
+                              className={
+                                complianceStatusClasses[
+                                  getDocumentComplianceStatus(document)
+                                ] || "bg-slate-100 text-slate-700"
+                              }
+                            >
+                              {complianceStatusLabels[
+                                getDocumentComplianceStatus(document)
+                              ] || getDocumentComplianceStatus(document)}
+                            </Badge>
+                          </div>
                           <a
                             href={document.file_url}
                             target="_blank"
@@ -1300,6 +1339,19 @@ export default function VendorDetail() {
                                   document.archived_at,
                                 ).format("MM/DD/YYYY")}`
                               : ""}
+                          </div>
+                          <div className="mt-2">
+                            <Badge
+                              className={
+                                complianceStatusClasses[
+                                  getDocumentComplianceStatus(document)
+                                ] || "bg-slate-100 text-slate-700"
+                              }
+                            >
+                              {complianceStatusLabels[
+                                getDocumentComplianceStatus(document)
+                              ] || getDocumentComplianceStatus(document)}
+                            </Badge>
                           </div>
                           {document.archived_reason ? (
                             <div className="text-xs text-muted-foreground mt-1">

@@ -115,6 +115,20 @@ export interface FoodTruckDocument {
   uploaded_by_user_id?: string | null;
   uploaded_at?: string;
   document_status?: "ACTIVE" | "ARCHIVED" | string;
+  compliance_status?:
+    | "NOT_APPLICABLE"
+    | "NEEDS_SYNC"
+    | "PENDING_REVIEW"
+    | "VERIFIED"
+    | "REJECTED"
+    | "EXPIRED"
+    | "ARCHIVED"
+    | string;
+  compliance_document_id?: string | null;
+  compliance_document_type?: string | null;
+  compliance_review_status?: string | null;
+  compliance_ocr_status?: string | null;
+  compliance_synced_at?: string | null;
   archived_at?: string | null;
   archived_reason?: string | null;
   archived_by_user_id?: string | null;

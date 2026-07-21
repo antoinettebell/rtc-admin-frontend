@@ -130,7 +130,7 @@ export default function CompliancePage() {
             Vendor Compliance
           </h1>
           <p className="text-sm text-muted-foreground">
-            Optional permits/licenses/COIs plus EIN/W-9 compliance, OCR status, and review actions.
+            Review loaded vendor documents by compliance bucket, OCR status, and approval status.
           </p>
         </div>
         <Button
