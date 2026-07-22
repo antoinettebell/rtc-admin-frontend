@@ -54,6 +54,10 @@ const acronymLabels: Record<string, string> = {
 };
 
 const formatLabel = (value?: string | null) => {
+  if (/^HEALTH_PERMIT$/i.test(String(value || ""))) {
+    return "Sanitation Grade";
+  }
+
   if (/^BUSINESS_LICENSE$/i.test(String(value || ""))) {
     return "Business License/Permit";
   }
@@ -128,7 +132,13 @@ export default function CompliancePage() {
   const documentData = documentsQuery.data?.data?.data;
   const documents =
     documentData?.complianceDocumentList || documentData?.records || [];
-  const documentTotal = documentData?.total ?? documents.length;
+  const visibleDocuments = documents.filter(
+    (document) =>
+      !["archived", "rejected"].includes(
+        String(document.review_status || "").toLowerCase(),
+      ),
+  );
+  const documentTotal = visibleDocuments.length;
   const vendorScores = dashboard?.vendor_scores || [];
   const documentsError =
     (documentsQuery.error as any)?.response?.data?.message ||
@@ -362,7 +372,7 @@ export default function CompliancePage() {
               </tr>
             </thead>
             <tbody>
-              {documents.map((document) => (
+              {visibleDocuments.map((document) => (
                 <tr key={document.document_id} className="border-t">
                   <td className="p-3">
                     <div className="font-medium">{getVendorName(document)}</div>
@@ -429,7 +439,7 @@ export default function CompliancePage() {
                   </td>
                 </tr>
               ))}
-              {!documents.length ? (
+              {!visibleDocuments.length ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     No compliance documents found.
