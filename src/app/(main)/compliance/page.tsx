@@ -24,6 +24,7 @@ const documentTypeOptions = [
   { value: "HEALTH_PERMIT", label: "Sanitation Grade" },
   { value: "BUSINESS_LICENSE", label: "Business License" },
   { value: "COI", label: "Certificate of Insurance" },
+  { value: "LIQUOR_LICENSE", label: "Liquor License" },
   { value: "EIN", label: "EIN" },
   { value: "W9", label: "W-9" },
 ];

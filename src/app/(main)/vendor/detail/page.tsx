@@ -72,6 +72,7 @@ const adminComplianceDocumentTypeMap: Record<string, string> = {
   PERMIT: "HEALTH_PERMIT",
   LICENSE: "BUSINESS_LICENSE",
   INSURANCE: "COI",
+  LIQUOR_LICENSE: "LIQUOR_LICENSE",
   EIN: "EIN",
   W9: "W9",
 };
@@ -80,6 +81,7 @@ const expirationRequiredDocumentTypes = new Set([
   "PERMIT",
   "LICENSE",
   "INSURANCE",
+  "LIQUOR_LICENSE",
 ]);
 
 const acronymLabels: Record<string, string> = {
@@ -1250,6 +1252,7 @@ export default function VendorDetail() {
                         <option value="PERMIT">Sanitation Grade</option>
                         <option value="LICENSE">License</option>
                         <option value="INSURANCE">Insurance</option>
+                        <option value="LIQUOR_LICENSE">Liquor License</option>
                         <option value="EIN">EIN</option>
                         <option value="W9">W-9</option>
                         <option value="OTHER">Other</option>
