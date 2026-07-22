@@ -101,16 +101,18 @@ class VendorComplianceApiService extends BaseAPI {
     data: {
       title?: string;
       document_type: string;
-      replace_existing?: boolean;
-      expiration_date?: string | null;
-    },
-  ) {
+	      replace_existing?: boolean;
+	      expiration_date?: string | null;
+	      sanitation_grade?: string | null;
+	    },
+	  ) {
     const fd = new FormData();
     fd.append("file", file);
     if (data.title) fd.append("title", data.title);
     fd.append("document_type", data.document_type);
-    if (data.replace_existing) fd.append("replace_existing", "true");
-    if (data.expiration_date) fd.append("expiration_date", data.expiration_date);
+	    if (data.replace_existing) fd.append("replace_existing", "true");
+	    if (data.expiration_date) fd.append("expiration_date", data.expiration_date);
+	    if (data.sanitation_grade) fd.append("sanitation_grade", data.sanitation_grade);
 
     return this.post(
       `${APIEndpoint.VENDOR_COMPLIANCE}/food-truck/${foodTruckId}/documents`,

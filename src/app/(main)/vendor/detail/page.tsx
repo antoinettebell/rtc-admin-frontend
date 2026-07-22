@@ -188,10 +188,11 @@ export default function VendorDetail() {
   const [reviewList, setReviewList] = useState<Review[]>([]);
   const [page, setPage] = useState<number>(1);
   const [showMore, setShowMore] = useState<boolean>(true);
-  const [documentTitle, setDocumentTitle] = useState("");
-  const [documentType, setDocumentType] = useState("PERMIT");
-  const [documentExpirationDate, setDocumentExpirationDate] = useState("");
-  const [documentFile, setDocumentFile] = useState<File | null>(null);
+	  const [documentTitle, setDocumentTitle] = useState("");
+	  const [documentType, setDocumentType] = useState("PERMIT");
+	  const [documentExpirationDate, setDocumentExpirationDate] = useState("");
+	  const [documentSanitationGrade, setDocumentSanitationGrade] = useState("");
+	  const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentSaving, setDocumentSaving] = useState(false);
   const [documentDeletingId, setDocumentDeletingId] = useState<string | null>(
     null,
@@ -367,10 +368,17 @@ export default function VendorDetail() {
       return;
     }
 
-    const uploadName = normalizeDocumentName(
-      documentTitle.trim() || documentFile.name,
-    );
-    const hasDuplicateDocument = activeFoodTruckDocuments.some(
+	    const uploadName = normalizeDocumentName(
+	      documentTitle.trim() || documentFile.name,
+	    );
+	    const normalizedSanitationGrade = documentSanitationGrade
+	      .trim()
+	      .toUpperCase();
+	    if (documentType === "PERMIT" && !normalizedSanitationGrade) {
+	      toast.error("Enter the Sanitation Grade before uploading.");
+	      return;
+	    }
+	    const hasDuplicateDocument = activeFoodTruckDocuments.some(
       (document) =>
         normalizeDocumentName(document.title || document.original_name) ===
         uploadName,
@@ -391,11 +399,15 @@ export default function VendorDetail() {
         title: documentTitle.trim() || documentFile.name,
         document_type: complianceDocumentType || documentType,
         replace_existing: replaceExisting,
-        expiration_date:
-          complianceDocumentType && documentExpirationDate
-            ? documentExpirationDate
-            : undefined,
-      };
+	        expiration_date:
+	          complianceDocumentType && documentExpirationDate
+	            ? documentExpirationDate
+	            : undefined,
+	        sanitation_grade:
+	          complianceDocumentType === "HEALTH_PERMIT"
+	            ? normalizedSanitationGrade
+	            : undefined,
+	      };
 
       if (complianceDocumentType) {
         await vendorComplianceApiService.uploadDocument(
@@ -410,10 +422,11 @@ export default function VendorDetail() {
         });
       }
       toast.success("Document uploaded.");
-      setDocumentTitle("");
-      setDocumentType("PERMIT");
-      setDocumentExpirationDate("");
-      setDocumentFile(null);
+	      setDocumentTitle("");
+	      setDocumentType("PERMIT");
+	      setDocumentExpirationDate("");
+	      setDocumentSanitationGrade("");
+	      setDocumentFile(null);
       await refetch();
     } catch (error: any) {
       toast.error(
@@ -1225,7 +1238,7 @@ export default function VendorDetail() {
               </div>
               <div className="pt-2 pb-4 space-y-4">
                 <div className="border rounded-md p-3">
-                  <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_170px_1fr_auto] gap-3 items-end">
+	                  <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_170px_150px_1fr_auto] gap-3 items-end">
                     <div>
                       <div className="text-sm font-medium mb-1">Title</div>
                       <Input
@@ -1243,10 +1256,13 @@ export default function VendorDetail() {
                         onChange={(event) => {
                           const nextType = event.target.value;
                           setDocumentType(nextType);
-                          if (!expirationRequiredDocumentTypes.has(nextType)) {
-                            setDocumentExpirationDate("");
-                          }
-                        }}
+	                          if (!expirationRequiredDocumentTypes.has(nextType)) {
+	                            setDocumentExpirationDate("");
+	                          }
+	                          if (nextType !== "PERMIT") {
+	                            setDocumentSanitationGrade("");
+	                          }
+	                        }}
                         className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                       >
                         <option value="PERMIT">Sanitation Grade</option>
@@ -1258,21 +1274,43 @@ export default function VendorDetail() {
                         <option value="OTHER">Other</option>
                       </select>
                     </div>
-                    <div>
-                      <div className="text-sm font-medium mb-1">
-                        Expiration Date
-                      </div>
-                      <Input
+	                    <div>
+	                      <div className="text-sm font-medium mb-1">
+	                        Expiration Date
+	                      </div>
+	                      <Input
                         type="date"
                         value={documentExpirationDate}
                         disabled={!expirationRequiredDocumentTypes.has(documentType)}
                         onChange={(event) =>
                           setDocumentExpirationDate(event.target.value)
-                        }
-                      />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium mb-1">File</div>
+	                        }
+	                      />
+	                    </div>
+	                    <div>
+	                      <div className="text-sm font-medium mb-1">
+	                        Grade
+	                        {documentType === "PERMIT" ? (
+	                          <span className="text-red-500"> *</span>
+	                        ) : null}
+	                      </div>
+	                      <Input
+	                        value={documentSanitationGrade}
+	                        disabled={documentType !== "PERMIT"}
+	                        maxLength={1}
+	                        placeholder="A, B, C, D, or F"
+	                        onChange={(event) =>
+	                          setDocumentSanitationGrade(
+	                            event.target.value
+	                              .replace(/[^a-fA-F]/g, "")
+	                              .slice(0, 1)
+	                              .toUpperCase(),
+	                          )
+	                        }
+	                      />
+	                    </div>
+	                    <div>
+	                      <div className="text-sm font-medium mb-1">File</div>
                       <Input
                         type="file"
                         accept="application/pdf,image/png,image/jpeg,image/jpg,image/heic"
