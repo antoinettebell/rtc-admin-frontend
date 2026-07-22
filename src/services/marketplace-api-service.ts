@@ -87,7 +87,133 @@ export interface MarketplacePayment {
   } | null;
 }
 
+export interface MarketplaceEventImage {
+  image_id: string;
+  event_id: string;
+  image_url: string;
+  original_name?: string | null;
+  status: string;
+}
+
+export interface MarketplaceSubmission {
+  bid_id?: string;
+  application_id?: string;
+  bid_status?: string;
+  application_status?: string;
+  vendor_user_id?: any;
+  food_truck_id?: any;
+  full_bid_amount?: number | null;
+  menu_description?: string | null;
+  created_at?: string;
+}
+
+export interface MarketplaceRepositoryEvent {
+  event_id: string;
+  event_name: string;
+  event_description?: string | null;
+  status: string;
+  event_visibility?: string | null;
+  event_date?: string | null;
+  event_city?: string | null;
+  event_state?: string | null;
+  ticket_sales_enabled?: boolean;
+  ticket_url?: string | null;
+  customer_user_id?: any;
+  images?: MarketplaceEventImage[];
+  bids?: MarketplaceSubmission[];
+  applications?: MarketplaceSubmission[];
+  bid_count?: number;
+  application_count?: number;
+  created_at?: string;
+}
+
 class MarketplaceApiService extends BaseAPI {
+  listRepositoryEvents(params: {
+    page: number;
+    limit: number;
+    search?: string;
+    status?: string;
+  }) {
+    return this.getPaginated<MarketplaceRepositoryEvent>(
+      `${APIEndpoint.MARKETPLACE}/repository/events`,
+      "marketplaceEventList",
+      { params },
+    );
+  }
+
+  updateRepositoryEvent(
+    eventId: string,
+    payload: {
+      event_name?: string | null;
+      event_description?: string | null;
+      ticket_sales_enabled?: boolean;
+      ticket_url?: string | null;
+    },
+  ) {
+    return this.patch<
+      IResponse<{ marketplaceEvent: MarketplaceRepositoryEvent }>
+    >(`${APIEndpoint.MARKETPLACE}/repository/events/${eventId}`, payload);
+  }
+
+  createRepositoryEvent(payload: {
+    customer_user_id: string;
+    event_name?: string | null;
+    event_description?: string | null;
+    event_type?: string | null;
+    event_visibility?: "PUBLIC" | "PRIVATE";
+    event_date?: string | null;
+    event_time?: string | null;
+    event_address?: string | null;
+    event_city?: string | null;
+    event_state?: string | null;
+    event_zip?: string | null;
+    number_of_guests?: number | null;
+    number_of_vendors_needed?: number | null;
+    payment_responsibility?: "COORDINATOR" | "VENDOR" | "BOTH" | "NONE";
+    vendor_fee?: number;
+    budgeted_amount?: number;
+    event_close_date?: string | null;
+    event_close_time?: string | null;
+    status?: string;
+  }) {
+    return this.post<
+      IResponse<{ marketplaceEvent: MarketplaceRepositoryEvent }>
+    >(`${APIEndpoint.MARKETPLACE}/repository/events`, payload);
+  }
+
+  updateEventStatus(eventId: string, status: string) {
+    return this.patch<
+      IResponse<{ marketplaceEvent: MarketplaceRepositoryEvent }>
+    >(`${APIEndpoint.MARKETPLACE}/events/${eventId}/status`, { status });
+  }
+
+  awardRepositoryEvent(eventId: string, bidIds: string[]) {
+    return this.post<IResponse<any>>(
+      `${APIEndpoint.MARKETPLACE}/repository/events/${eventId}/award`,
+      { bid_ids: bidIds },
+    );
+  }
+
+  deleteEventImage(eventId: string, imageId: string) {
+    return this.delete<IResponse<{ image_id: string }>>(
+      `${APIEndpoint.MARKETPLACE}/events/${eventId}/images/${imageId}`,
+    );
+  }
+
+  withdrawSubmission(
+    eventId: string,
+    payload: {
+      submission_type: "BID" | "APPLICATION";
+      submission_id: string;
+      reason?: string;
+    },
+  ) {
+    return this.patch<IResponse<any>>(
+      `${APIEndpoint.MARKETPLACE}/repository/events/${eventId}/submissions/withdraw`,
+      payload,
+    );
+  }
+
   listRepositoryFiles(params: {
     page: number;
     limit: number;
