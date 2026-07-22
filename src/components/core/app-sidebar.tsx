@@ -23,6 +23,7 @@ import {
   CreditCard,
   ShieldCheck,
   CalendarCheck,
+  FolderArchive,
 } from "lucide-react";
 import { NavMain } from "@/components/core/nav-main";
 
@@ -98,6 +99,12 @@ const navMain = [
     title: "Coupons & Rewards",
     url: "/coupons-rewards",
     icon: BadgeDollarSign,
+    items: [],
+  },
+  {
+    title: "Marketplace Repository",
+    url: "/marketplace-repository",
+    icon: FolderArchive,
     items: [],
   },
   {
