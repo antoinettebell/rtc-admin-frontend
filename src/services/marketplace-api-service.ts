@@ -107,15 +107,102 @@ export interface MarketplaceSubmission {
   created_at?: string;
 }
 
+export type MarketplaceEventVisibility = "PUBLIC" | "PRIVATE";
+export type MarketplacePaymentResponsibility =
+  | "COORDINATOR"
+  | "VENDOR"
+  | "BOTH"
+  | "NONE";
+
+export interface MarketplaceEventPayload {
+  event_name?: string | null;
+  event_description?: string | null;
+  ticket_sales_enabled?: boolean;
+  ticket_url?: string | null;
+  event_type?: string | null;
+  event_type_other?: string | null;
+  event_visibility?: MarketplaceEventVisibility;
+  event_style?: string | null;
+  service_type?: string | null;
+  service_types?: string[];
+  service_styles?: string[];
+  primary_service_style?: string | null;
+  event_date?: string | null;
+  event_time?: string | null;
+  event_duration_hours?: number | null;
+  event_duration_minutes?: number | null;
+  event_address?: string | null;
+  event_city?: string | null;
+  event_state?: string | null;
+  event_zip?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  formatted_address?: string | null;
+  number_of_guests?: number | null;
+  number_of_vendors_needed?: number | null;
+  power_required?: string[];
+  permits_required?: string[];
+  insurance_required?: boolean;
+  alcohol_required?: boolean;
+  free_food_offered?: boolean | null;
+  free_food_provider?: string | null;
+  vendors_required_to_giveaway_food?: boolean | null;
+  catered_vip_section_enabled?: boolean;
+  vip_guest_count?: number | null;
+  cuisine_preferences?: string[];
+  dietary_restrictions?: string[];
+  equipment_needed?: string[];
+  vendor_fee?: number;
+  budgeted_amount?: number;
+  payment_responsibility?: MarketplacePaymentResponsibility;
+  event_close_date?: string | null;
+  event_close_time?: string | null;
+  status?: string;
+}
+
 export interface MarketplaceRepositoryEvent {
   event_id: string;
   event_name: string;
   event_description?: string | null;
   status: string;
   event_visibility?: string | null;
+  event_type?: string | null;
+  event_type_other?: string | null;
+  event_style?: string | null;
   event_date?: string | null;
+  event_time?: string | null;
+  event_duration_hours?: number | null;
+  event_duration_minutes?: number | null;
+  event_address?: string | null;
   event_city?: string | null;
   event_state?: string | null;
+  event_zip?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  formatted_address?: string | null;
+  service_type?: string | null;
+  service_types?: string[];
+  service_styles?: string[];
+  primary_service_style?: string | null;
+  number_of_guests?: number | null;
+  number_of_vendors_needed?: number | null;
+  power_required?: string[];
+  permits_required?: string[];
+  insurance_required?: boolean;
+  alcohol_required?: boolean;
+  free_food_offered?: boolean | null;
+  free_food_provider?: string | null;
+  vendors_required_to_giveaway_food?: boolean | null;
+  catered_vip_section_enabled?: boolean;
+  vip_guest_count?: number | null;
+  cuisine_preferences?: string[];
+  dietary_restrictions?: string[];
+  equipment_needed?: string[];
+  vendor_fee?: number | null;
+  budgeted_amount?: number | null;
+  payment_responsibility?: MarketplacePaymentResponsibility;
+  event_close_date?: string | null;
+  event_close_time?: string | null;
   ticket_sales_enabled?: boolean;
   ticket_url?: string | null;
   customer_user_id?: any;
@@ -143,38 +230,15 @@ class MarketplaceApiService extends BaseAPI {
 
   updateRepositoryEvent(
     eventId: string,
-    payload: {
-      event_name?: string | null;
-      event_description?: string | null;
-      ticket_sales_enabled?: boolean;
-      ticket_url?: string | null;
-    },
+    payload: MarketplaceEventPayload,
   ) {
     return this.patch<
       IResponse<{ marketplaceEvent: MarketplaceRepositoryEvent }>
     >(`${APIEndpoint.MARKETPLACE}/repository/events/${eventId}`, payload);
   }
 
-  createRepositoryEvent(payload: {
+  createRepositoryEvent(payload: MarketplaceEventPayload & {
     customer_user_id: string;
-    event_name?: string | null;
-    event_description?: string | null;
-    event_type?: string | null;
-    event_visibility?: "PUBLIC" | "PRIVATE";
-    event_date?: string | null;
-    event_time?: string | null;
-    event_address?: string | null;
-    event_city?: string | null;
-    event_state?: string | null;
-    event_zip?: string | null;
-    number_of_guests?: number | null;
-    number_of_vendors_needed?: number | null;
-    payment_responsibility?: "COORDINATOR" | "VENDOR" | "BOTH" | "NONE";
-    vendor_fee?: number;
-    budgeted_amount?: number;
-    event_close_date?: string | null;
-    event_close_time?: string | null;
-    status?: string;
   }) {
     return this.post<
       IResponse<{ marketplaceEvent: MarketplaceRepositoryEvent }>
