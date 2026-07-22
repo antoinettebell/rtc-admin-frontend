@@ -33,7 +33,7 @@ const fileTypeLabels: Record<string, string> = {
   EVENT_IMAGE: "Event Image",
   BID_MENU_PDF: "Menu PDF",
   BID_IMAGE: "Bid Image",
-  PERMIT_LICENSE: "Permit/License",
+  PERMIT_LICENSE: "Business License/Permit",
   REQUIREMENT_DOCUMENT: "Requirement",
   AGREEMENT_DOCUMENT: "Signed Agreement",
 };

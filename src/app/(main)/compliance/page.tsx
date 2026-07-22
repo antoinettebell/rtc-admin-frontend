@@ -22,7 +22,7 @@ const statusColors: Record<string, string> = {
 
 const documentTypeOptions = [
   { value: "HEALTH_PERMIT", label: "Sanitation Grade" },
-  { value: "BUSINESS_LICENSE", label: "Business License" },
+  { value: "BUSINESS_LICENSE", label: "Business License/Permit" },
   { value: "COI", label: "Certificate of Insurance" },
   { value: "LIQUOR_LICENSE", label: "Liquor License" },
   { value: "EIN", label: "EIN" },
@@ -53,8 +53,12 @@ const acronymLabels: Record<string, string> = {
   W_9: "W-9",
 };
 
-const formatLabel = (value?: string | null) =>
-  String(value || "-")
+const formatLabel = (value?: string | null) => {
+  if (/^BUSINESS_LICENSE$/i.test(String(value || ""))) {
+    return "Business License/Permit";
+  }
+
+  return String(value || "-")
     .replace(/_/g, " ")
     .toLowerCase()
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
@@ -62,6 +66,7 @@ const formatLabel = (value?: string | null) =>
       const key = match.replace(" ", "_").toUpperCase();
       return acronymLabels[key] || match.toUpperCase();
     });
+};
 
 const getVendorName = (document: ComplianceDocument) => {
   const truck = document.food_truck_id;
@@ -332,7 +337,6 @@ export default function CompliancePage() {
               <option value="">All statuses</option>
               <option value="pending_review">Pending review</option>
               <option value="verified">Verified</option>
-              <option value="rejected">Rejected</option>
               <option value="expired">Expired</option>
             </select>
           </div>

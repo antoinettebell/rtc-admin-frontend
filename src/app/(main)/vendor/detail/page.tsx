@@ -1233,7 +1233,7 @@ export default function VendorDetail() {
                         onChange={(event) =>
                           setDocumentTitle(event.target.value)
                         }
-                        placeholder="Sanitation Grade, license, COI, W-9..."
+                        placeholder="Sanitation Grade, Business License/Permit, COI, W-9..."
                       />
                     </div>
                     <div>
@@ -1250,7 +1250,7 @@ export default function VendorDetail() {
                         className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                       >
                         <option value="PERMIT">Sanitation Grade</option>
-                        <option value="LICENSE">License</option>
+                        <option value="LICENSE">Business License/Permit</option>
                         <option value="INSURANCE">Insurance</option>
                         <option value="LIQUOR_LICENSE">Liquor License</option>
                         <option value="EIN">EIN</option>
