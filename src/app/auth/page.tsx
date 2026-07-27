@@ -1,6 +1,4 @@
 "use client";
-import { cn } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { authApiService } from "@/services/auth-api-service";
 import { toast } from "sonner";
-import { LoaderCircle } from "lucide-react";
+import { ArrowRight, LoaderCircle, Lock, Mail, ShieldCheck } from "lucide-react";
 import axios from "axios";
 
 export default function Page() {
@@ -31,7 +29,6 @@ export default function Page() {
     register,
     handleSubmit,
     formState: { errors },
-    getValues: getFormValue,
   } = useForm<FormSchemaType>({
     resolver: zodResolver(formSchema),
   });
@@ -83,74 +80,149 @@ export default function Page() {
   };
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <div className={cn("flex flex-col gap-6")}>
-          <Card className="overflow-hidden rounded-md">
-            <CardHeader className="p-0">
-              <CardTitle className="text-2xl px-6 pt-9 pb-5 rounded-b-3xl bg-primary flex justify-center">
-                <svg
-                  width="69"
-                  height="15"
-                  viewBox="0 0 69 15"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M11.9964 2.55068H3.89643C3.52309 2.55068 3.19643 2.64402 2.91643 2.83068C2.59643 3.04401 2.43643 3.33068 2.43643 3.69068C2.43643 4.35735 2.96976 4.69068 4.03643 4.69068H10.1964C10.7298 4.69068 11.0298 4.69735 11.0964 4.71068C11.5364 4.75068 11.7564 4.87735 11.7564 5.09068C11.7564 5.25068 11.7498 5.36402 11.7364 5.43068C11.1231 7.69735 9.64976 9.76402 7.31643 11.6307C5.03643 13.444 2.70309 14.4773 0.316426 14.7307V12.5507C1.15643 12.5507 2.10976 12.2907 3.17643 11.7707C4.06976 11.3573 5.14976 10.644 6.41643 9.63068C7.96309 8.41735 8.73643 7.51068 8.73643 6.91068C8.73643 6.83068 8.68976 6.75735 8.59643 6.69068L4.89643 6.71068C3.50976 6.71068 2.47643 6.55068 1.79643 6.23068C0.80976 5.76402 0.316426 4.91068 0.316426 3.67068C0.316426 2.83068 0.636426 2.08401 1.27643 1.43068C1.91643 0.764015 2.66309 0.430682 3.51643 0.430682H11.9964V2.55068ZM15.8729 14.7307H13.7329V0.430682H15.8729V14.7307ZM29.0146 8.83068V14.7307H17.3946C17.728 11.584 18.988 8.67068 21.1746 5.99068C23.3746 3.29735 25.9813 1.45068 28.9946 0.450681V2.67068C26.7013 3.68402 24.8213 5.00402 23.3546 6.63068C21.9413 8.21735 20.8013 10.2107 19.9346 12.6107H26.9146V8.83068H29.0146ZM42.8325 14.7307H40.6925C39.9325 12.344 39.0058 10.324 37.9125 8.67068C36.6992 6.85735 35.1458 5.26402 33.2525 3.89068V14.7307H31.1525V0.450681C33.0325 0.997348 34.8592 2.09068 36.6325 3.73068C38.2192 5.17068 39.5658 6.84402 40.6725 8.75068V0.430682H42.8325V14.7307ZM54.6574 14.7307H52.5174V0.430682H54.6574V14.7307ZM68.6592 14.7307H66.5192C65.7592 12.344 64.8325 10.324 63.7392 8.67068C62.5259 6.85735 60.9725 5.26402 59.0792 3.89068V14.7307H56.9792V0.450681C58.8592 0.997348 60.6859 2.09068 62.4592 3.73068C64.0459 5.17068 65.3925 6.84402 66.4992 8.75068V0.430682H68.6592V14.7307N"
-                  fill="white"
-                />
-                </svg>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-center p-4">
-                <img src="/logo-tree.png" className="w-[120px]" />
-              </div>
-              <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="flex flex-col gap-6">
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      type="email"
-                      placeholder="Enter your email"
-                      error={errors.email?.message}
-                      {...register("email")}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <div className="flex items-center">
-                      <Label htmlFor="password">Password</Label>
-                    </div>
-                    <Input
-                      type="password"
-                      placeholder="Enter your password"
-                      error={errors.password?.message}
-                      {...register("password")}
-                    />
-                    <div className="flex justify-end items-center">
-                      <a
-                        onClick={() => router.push("/auth/forgot-password")}
-                        className="ml-auto inline-block text-sm underline-offset-4 hover:underline cursor-pointer"
-                      >
-                        Forgot your password?
-                      </a>
-                    </div>
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    variant="default"
-                    className="w-full"
-                  >
-                    Login
-                    {isLoading && <LoaderCircle className="animate-spin" />}
-                  </Button>
+    <div className="min-h-svh w-full bg-background p-4 text-foreground md:p-8">
+      <div className="mx-auto grid min-h-[calc(100svh-2rem)] w-full max-w-7xl overflow-hidden rounded-[2rem] border border-border bg-card shadow-2xl md:min-h-[calc(100svh-4rem)] lg:grid-cols-[0.72fr_1fr]">
+        <aside className="relative hidden overflow-hidden bg-sidebar px-12 py-14 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between">
+          <div className="absolute left-12 top-12 grid grid-cols-4 gap-4 opacity-80">
+            {Array.from({ length: 16 }).map((_, index) => (
+              <span
+                key={index}
+                className="h-1.5 w-1.5 rounded-full bg-sidebar-primary"
+              />
+            ))}
+          </div>
+          <div className="absolute -right-32 top-10 h-96 w-96 rounded-full bg-sidebar-primary/10" />
+          <div className="absolute -bottom-40 -left-24 h-96 w-96 rounded-full bg-sidebar-primary/10" />
+
+          <div className="relative z-10 flex flex-1 flex-col items-center justify-center text-center">
+            <img
+              src="/logo-tree.png"
+              alt="Round Da' Corner ERP"
+              className="mb-8 w-72 max-w-full drop-shadow-2xl"
+            />
+            <div className="font-serif text-[7rem] font-bold leading-none tracking-[0.12em] text-white drop-shadow-lg">
+              RDC
+            </div>
+            <div className="mt-5 text-4xl font-semibold tracking-wide text-white">
+              <span className="text-sidebar-primary">—</span> Round{" "}
+              <span className="text-[#FF8A00]">Da’</span> Corner ERP{" "}
+              <span className="text-sidebar-primary">—</span>
+            </div>
+            <div className="mt-8 h-px w-full bg-sidebar-primary/70" />
+            <div className="mt-8 text-2xl tracking-[0.55em] text-sidebar-primary">
+              ADMIN PORTAL
+            </div>
+          </div>
+
+          <div className="relative z-10 flex items-center gap-5 text-lg">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-sidebar-primary text-sidebar-primary">
+              <ShieldCheck className="h-6 w-6" />
+            </div>
+            <span>
+              Secure. Reliable. <strong>Built for Growth.</strong>
+            </span>
+          </div>
+
+          <div className="absolute bottom-12 right-12 grid grid-cols-6 gap-4 opacity-80">
+            {Array.from({ length: 24 }).map((_, index) => (
+              <span
+                key={index}
+                className="h-1.5 w-1.5 rounded-full bg-sidebar-primary"
+              />
+            ))}
+          </div>
+        </aside>
+
+        <main className="flex items-center justify-center px-6 py-12 md:px-12">
+          <div className="w-full max-w-2xl">
+            <div className="mb-12 flex flex-col items-center text-center">
+              <div className="mb-8 flex h-28 w-28 items-center justify-center rounded-full bg-secondary shadow-lg shadow-primary/5">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-card text-sidebar-primary">
+                  <ShieldCheck className="h-12 w-12" />
                 </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
+              </div>
+              <h1 className="text-5xl font-bold tracking-tight text-foreground">
+                Welcome Back
+              </h1>
+              <p className="mt-6 text-xl text-muted-foreground">
+                Sign in to your Round Da’ Corner ERP admin account
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+              <div className="grid gap-3">
+                <Label htmlFor="email" className="text-base font-bold">
+                  Email Address
+                </Label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute left-4 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                    <Mail className="h-5 w-5" />
+                  </div>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email address"
+                    error={errors.email?.message}
+                    className="h-16 rounded-lg pl-20 text-lg shadow-sm md:text-lg"
+                    {...register("email")}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <Label htmlFor="password" className="text-base font-bold">
+                  Password
+                </Label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute left-4 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                    <Lock className="h-5 w-5" />
+                  </div>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    error={errors.password?.message}
+                    className="h-16 rounded-lg pl-20 pr-14 text-lg shadow-sm md:text-lg"
+                    {...register("password")}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push("/auth/forgot-password")}
+                  className="ml-auto text-base font-medium text-sidebar-primary hover:underline"
+                >
+                  Forgot your password?
+                </button>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                variant="default"
+                className="h-16 w-full rounded-lg bg-sidebar text-xl font-bold text-sidebar-foreground hover:bg-sidebar/90"
+              >
+                Sign In
+                {isLoading ? (
+                  <LoaderCircle className="ml-3 h-6 w-6 animate-spin" />
+                ) : (
+                  <ArrowRight className="ml-3 h-6 w-6" />
+                )}
+              </Button>
+            </form>
+
+            <div className="my-12 flex items-center gap-8">
+              <div className="h-px flex-1 bg-border" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Lock className="h-4 w-4" />
+              </div>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
+            <p className="text-center text-base text-muted-foreground">
+              © 2025 Round Da’ Corner ERP. All rights reserved.
+            </p>
+          </div>
+        </main>
       </div>
     </div>
   );

@@ -131,7 +131,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar {...props}>
       <SidebarHeader>
-        <div className="flex h-14 px-4 text-white font-semibold items-center p-2 bg-primary rounded-b-3xl">
+        <div className="flex h-14 px-4 text-sidebar-primary-foreground font-semibold items-center p-2 bg-sidebar-primary rounded-b-3xl">
           <Image
             src="/logo-tree.png"
             alt="Round The Corner"
