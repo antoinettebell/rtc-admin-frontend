@@ -189,6 +189,7 @@ export function VendorMenuCsvImport({
 	          comboSideOptions: Array.isArray(anyItem.comboSideOptions)
 	            ? anyItem.comboSideOptions.filter(Boolean).join("|")
 	            : "",
+          comboSidesPerOrder: anyItem.comboSidesPerOrder ?? 1,
           newDish: anyItem.newDish ? "TRUE" : "FALSE",
           popularDish: anyItem.popularDish ? "TRUE" : "FALSE",
           "diet[0]": dietIds[0] || "",
