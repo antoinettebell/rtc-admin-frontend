@@ -61,9 +61,9 @@ export function NavMain({
                   item.url &&
                   pathname.includes(item.url)) ||
                 (pathname === "/" && item.url === "/")
-                  ? "bg-gray-100 font-medium rounded-sm"
+                  ? "bg-sidebar-accent font-medium rounded-sm"
                   : !item.items?.length
-                    ? "hover:font-medium"
+                    ? "hover:bg-sidebar-accent/80 hover:font-medium rounded-sm"
                     : ""
               }
             >
@@ -82,9 +82,9 @@ export function NavMain({
               >
                 <SidebarMenuButton tooltip={item.title}>
                   {item.icon && (
-                    <item.icon className="text-[#3F3F46] text-base" />
+                    <item.icon className="text-sidebar-foreground text-base" />
                   )}
-                  <span className="text-[#3F3F46] text-base">{item.title}</span>
+                  <span className="text-sidebar-foreground text-base">{item.title}</span>
                   {item.items?.length ? (
                     <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                   ) : (
@@ -99,8 +99,8 @@ export function NavMain({
                       key={subItem.title}
                       className={
                         pathname.includes(subItem.url)
-                          ? "bg-gray-100 font-medium rounded-sm"
-                          : "hover:font-medium"
+                          ? "bg-sidebar-accent font-medium rounded-sm"
+                          : "hover:bg-sidebar-accent/80 hover:font-medium rounded-sm"
                       }
                     >
                       <SidebarMenuSubButton asChild>
@@ -108,7 +108,7 @@ export function NavMain({
                           className="cursor-pointer"
                           onClick={() => router.push(subItem.url)}
                         >
-                          <span className="text-[#3F3F46] text-base">
+                          <span className="text-sidebar-foreground text-base">
                             {subItem.title}
                           </span>
                         </a>
