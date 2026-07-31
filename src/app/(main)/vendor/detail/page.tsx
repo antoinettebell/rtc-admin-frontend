@@ -188,6 +188,9 @@ export default function VendorDetail() {
   const [reviewList, setReviewList] = useState<Review[]>([]);
   const [page, setPage] = useState<number>(1);
   const [showMore, setShowMore] = useState<boolean>(true);
+  const [moderatingReviewId, setModeratingReviewId] = useState<string | null>(
+    null,
+  );
 	  const [documentTitle, setDocumentTitle] = useState("");
 	  const [documentType, setDocumentType] = useState("PERMIT");
 	  const [documentExpirationDate, setDocumentExpirationDate] = useState("");
@@ -334,6 +337,37 @@ export default function VendorDetail() {
       setShowMore(((res as any).data.data.total as number) > page * 10);
       setPage(p + 1);
     });
+  };
+
+  const moderateReview = async (
+    review: Review,
+    status: "PUBLISHED" | "HIDDEN" | "REJECTED",
+  ) => {
+    if (!review._id) return;
+    const reason =
+      status === "PUBLISHED"
+        ? ""
+        : window.prompt("Enter the moderation reason:")?.trim();
+    if (status !== "PUBLISHED" && !reason) return;
+    setModeratingReviewId(review._id);
+    try {
+      await reviewApiService.moderate(review._id, { status, reason });
+      setReviewList((current) =>
+        current.map((item) =>
+          item._id === review._id ? { ...item, status } : item,
+        ),
+      );
+      const ftId = result?.user?.foodTruck?._id;
+      if (ftId) {
+        const response = await reviewApiService.stats(ftId);
+        setReviewStats((response as any).data.data);
+      }
+      toast.success(status === "PUBLISHED" ? "Review restored" : "Review hidden");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Could not moderate review");
+    } finally {
+      setModeratingReviewId(null);
+    }
   };
 
   const foodTruckDocuments: FoodTruckDocument[] =
@@ -2230,7 +2264,9 @@ export default function VendorDetail() {
                       <path
                         d="M17.9991 28.4835L9.2738 33.6812C8.88834 33.9237 8.48536 34.0277 8.06487 33.993C7.64437 33.9584 7.27644 33.8198 6.96106 33.5772C6.64569 33.3347 6.4004 33.0318 6.22519 32.6687C6.04999 32.3055 6.01495 31.898 6.12007 31.4462L8.4328 21.6225L0.706174 15.0214C0.35576 14.7095 0.137101 14.354 0.0501985 13.9548C-0.0367042 13.5556 -0.0107737 13.1662 0.12799 12.7864C0.266754 12.4066 0.477003 12.0947 0.758735 11.8508C1.04047 11.6068 1.42592 11.4509 1.9151 11.383L12.1121 10.4994L16.0543 1.24745C16.2295 0.831634 16.5014 0.519771 16.8701 0.311862C17.2387 0.103954 17.6151 0 17.9991 0C18.3832 0 18.7595 0.103954 19.1281 0.311862C19.4968 0.519771 19.7687 0.831634 19.9439 1.24745L23.8861 10.4994L34.0831 11.383C34.5737 11.4523 34.9591 11.6082 35.2395 11.8508C35.5198 12.0933 35.73 12.4052 35.8702 12.7864C36.0104 13.1675 36.037 13.5577 35.9501 13.9569C35.8632 14.3561 35.6438 14.7109 35.292 15.0214L27.5654 21.6225L29.8781 31.4462C29.9833 31.8966 29.9482 32.3041 29.773 32.6687C29.5978 33.0332 29.3525 33.3361 29.0371 33.5772C28.7218 33.8184 28.3538 33.957 27.9333 33.993C27.5128 34.0291 27.1099 33.9251 26.7244 33.6812L17.9991 28.4835Z"
                         fill={
-                          (reviewStats?.reviewStats?.avgRate || 0) >= 1
+                          (reviewStats?.reviewStats?.reviewCount ??
+                            reviewStats?.reviewStats?.totalReviews ??
+                            0) > 0
                             ? "#FFCC00"
                             : "#8E8E93"
                         }
@@ -2238,12 +2274,21 @@ export default function VendorDetail() {
                     </svg>
 
                     <div className="text-3xl font-semibold">
-                      {reviewStats?.reviewStats?.avgRate || 0}
+                      {(reviewStats?.reviewStats?.reviewCount ??
+                        reviewStats?.reviewStats?.totalReviews ??
+                        0) > 0
+                        ? Number(
+                            reviewStats?.reviewStats?.averageRating ??
+                              reviewStats?.reviewStats?.avgRate,
+                          ).toFixed(1)
+                        : "New vendor"}
                     </div>
                   </div>
                   <div className="flex w-full items-center flex-col mt-6">
                     <div className="text-xl">
-                      {reviewStats?.reviewStats?.totalReviews || 0}
+                      {reviewStats?.reviewStats?.reviewCount ??
+                        reviewStats?.reviewStats?.totalReviews ??
+                        0}
                     </div>
                     <div className="text-md text-gray-500">Reviews</div>
                   </div>
@@ -2317,7 +2362,9 @@ export default function VendorDetail() {
                         <div className="flex flex-col">
                           <div className="flex gap-2 items-end">
                             <div className="cust-name text-lg font-medium">
-                              {itm.user?.firstName} {itm.user?.lastName}
+                              {[itm.user?.firstName, itm.user?.lastName]
+                                .filter(Boolean)
+                                .join(" ") || "Verified customer"}
                             </div>
                             <div className="cust-name text-xs text-gray-500 pb-1">
                               {dayjs(itm.createdAt).format(
@@ -2333,6 +2380,31 @@ export default function VendorDetail() {
                               {itm.review}
                             </div>
                           )}
+
+                          <div className="mt-2 flex items-center gap-2">
+                            <Badge variant="outline">
+                              {itm.status || "PUBLISHED"}
+                            </Badge>
+                            {(itm.status || "PUBLISHED") === "PUBLISHED" ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={moderatingReviewId === itm._id}
+                                onClick={() => moderateReview(itm, "HIDDEN")}
+                              >
+                                Hide review
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={moderatingReviewId === itm._id}
+                                onClick={() => moderateReview(itm, "PUBLISHED")}
+                              >
+                                Restore review
+                              </Button>
+                            )}
+                          </div>
 
                           {!!itm.images.length && (
                             <div className="flex gap-3 mt-1">

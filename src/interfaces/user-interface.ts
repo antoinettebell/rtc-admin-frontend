@@ -417,13 +417,16 @@ export interface Review {
   deletedAt: string;
   createdAt: string;
   updatedAt: string;
+  status?: "PUBLISHED" | "HIDDEN" | "REJECTED";
   user?: User;
 }
 
 export interface ReviewStats {
   reviewStats: {
-    avgRate: number;
+    avgRate: number | null;
     totalReviews: number;
+    averageRating?: number | null;
+    reviewCount?: number;
     star1: number;
     star2: number;
     star3: number;

@@ -21,6 +21,18 @@ class ReviewApiService extends BaseAPI {
       },
     });
   }
+  moderate(
+    reviewId: string,
+    payload: {
+      status: "PUBLISHED" | "HIDDEN" | "REJECTED";
+      reason?: string;
+    },
+  ) {
+    return this.patch<{
+      review: Review;
+      vendorRating: { averageRating: number | null; reviewCount: number };
+    }>(`${APIEndpoint.REVIEW}/${reviewId}/moderate`, payload);
+  }
 }
 
 export const reviewApiService = new ReviewApiService();
