@@ -214,7 +214,51 @@ export interface MarketplaceRepositoryEvent {
   created_at?: string;
 }
 
+export interface MarketplaceTaxExemption {
+  event_id: string;
+  event_name: string;
+  event_date?: string | null;
+  charitable_event: boolean;
+  religious_organization: boolean;
+  tax_exemption_status: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED";
+  tax_exemption_entity_use_code?: "E" | "F" | null;
+  customer_user_id?: {
+    _id?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    eventCoordinatorCompanyName?: string;
+  } | string;
+  certificate?: {
+    attachment_id: string;
+    file_url: string;
+    original_name?: string | null;
+    created_at?: string;
+  } | null;
+}
+
 class MarketplaceApiService extends BaseAPI {
+  listTaxExemptions(status = "PENDING") {
+    return this.get<IResponse<{ taxExemptionList: MarketplaceTaxExemption[] }>>(
+      `${APIEndpoint.MARKETPLACE}/repository/tax-exemptions`,
+      { params: { status } },
+    );
+  }
+
+  reviewTaxExemption(
+    eventId: string,
+    payload: {
+      status: "APPROVED" | "REJECTED";
+      expiration_date?: string | null;
+      review_notes?: string;
+    },
+  ) {
+    return this.patch<IResponse<{ marketplaceEvent: MarketplaceRepositoryEvent }>>(
+      `${APIEndpoint.MARKETPLACE}/repository/tax-exemptions/${eventId}/review`,
+      payload,
+    );
+  }
+
   listRepositoryEvents(params: {
     page: number;
     limit: number;

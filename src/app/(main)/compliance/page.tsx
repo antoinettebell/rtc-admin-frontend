@@ -11,6 +11,10 @@ import {
   ComplianceDocument,
   vendorComplianceApiService,
 } from "@/services/vendor-compliance-api-service";
+import {
+  MarketplaceTaxExemption,
+  marketplaceApiService,
+} from "@/services/marketplace-api-service";
 
 const statusColors: Record<string, string> = {
   pending_review: "bg-yellow-100 text-yellow-900",
@@ -84,6 +88,7 @@ export default function CompliancePage() {
   const [reviewStatus, setReviewStatus] = React.useState("");
   const [documentType, setDocumentType] = React.useState("");
   const [updatingId, setUpdatingId] = React.useState<string | null>(null);
+  const [updatingExemptionId, setUpdatingExemptionId] = React.useState<string | null>(null);
 
   const dashboardQuery = useQuery({
     queryKey: ["vendor-compliance-dashboard"],
@@ -100,6 +105,12 @@ export default function CompliancePage() {
         review_status: reviewStatus || undefined,
         document_type: documentType || undefined,
       }),
+    refetchOnWindowFocus: false,
+  });
+
+  const exemptionsQuery = useQuery({
+    queryKey: ["marketplace-tax-exemptions", "PENDING"],
+    queryFn: () => marketplaceApiService.listTaxExemptions("PENDING"),
     refetchOnWindowFocus: false,
   });
 
@@ -128,6 +139,28 @@ export default function CompliancePage() {
     },
   });
 
+  const exemptionReviewMutation = useMutation({
+    mutationFn: ({
+      request,
+      status,
+    }: {
+      request: MarketplaceTaxExemption;
+      status: "APPROVED" | "REJECTED";
+    }) => marketplaceApiService.reviewTaxExemption(request.event_id, { status }),
+    onSuccess: (_, variables) => {
+      toast.success(
+        variables.status === "APPROVED"
+          ? "Event tax exemption approved"
+          : "Event tax exemption rejected",
+      );
+      exemptionsQuery.refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || "Unable to review exemption");
+    },
+    onSettled: () => setUpdatingExemptionId(null),
+  });
+
   const dashboard = dashboardQuery.data?.data?.data?.dashboard;
   const documentData = documentsQuery.data?.data?.data;
   const documents =
@@ -143,6 +176,8 @@ export default function CompliancePage() {
   const documentsError =
     (documentsQuery.error as any)?.response?.data?.message ||
     (documentsQuery.error as any)?.message;
+  const exemptions =
+    exemptionsQuery.data?.data?.data?.taxExemptionList || [];
 
   const updateDocument = (
     document: ComplianceDocument,
@@ -150,6 +185,14 @@ export default function CompliancePage() {
   ) => {
     setUpdatingId(document.document_id);
     reviewMutation.mutate({ document, nextStatus });
+  };
+
+  const reviewExemption = (
+    request: MarketplaceTaxExemption,
+    status: "APPROVED" | "REJECTED",
+  ) => {
+    setUpdatingExemptionId(request.event_id);
+    exemptionReviewMutation.mutate({ request, status });
   };
 
   return (
@@ -169,6 +212,7 @@ export default function CompliancePage() {
           onClick={() => {
             dashboardQuery.refetch();
             documentsQuery.refetch();
+            exemptionsQuery.refetch();
           }}
         >
           <RefreshCw className="mr-2 h-4 w-4" />
@@ -190,6 +234,114 @@ export default function CompliancePage() {
             <div className="mt-2 text-2xl font-semibold">{value}</div>
           </div>
         ))}
+      </div>
+
+      <div className="rounded-lg border">
+        <div className="flex items-center gap-2 border-b p-4 font-medium">
+          <ShieldCheck className="h-4 w-4" />
+          Event Tax-Exemption Review
+          <Badge variant="secondary">{exemptions.length} pending</Badge>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[960px] text-sm">
+            <thead className="bg-muted/50 text-left">
+              <tr>
+                <th className="p-3 font-medium">Coordinator</th>
+                <th className="p-3 font-medium">Event</th>
+                <th className="p-3 font-medium">Exemption</th>
+                <th className="p-3 font-medium">Certificate</th>
+                <th className="p-3 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {exemptions.map((request) => {
+                const coordinator =
+                  request.customer_user_id && typeof request.customer_user_id === "object"
+                    ? request.customer_user_id
+                    : null;
+                return (
+                  <tr key={request.event_id} className="border-t">
+                    <td className="p-3">
+                      <div className="font-medium">
+                        {coordinator?.eventCoordinatorCompanyName ||
+                          `${coordinator?.firstName || ""} ${coordinator?.lastName || ""}`.trim() ||
+                          "Event Coordinator"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {coordinator?.email || "-"}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div className="font-medium">{request.event_name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {request.event_date
+                          ? dayjs(request.event_date).format("YYYY-MM-DD")
+                          : request.event_id}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <Badge variant="outline">
+                        {request.religious_organization
+                          ? "Religious (F)"
+                          : "Charitable (E)"}
+                      </Badge>
+                    </td>
+                    <td className="p-3">
+                      {request.certificate?.file_url ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            window.open(
+                              request.certificate?.file_url,
+                              "_blank",
+                              "noopener,noreferrer",
+                            )
+                          }
+                        >
+                          <ExternalLink className="mr-1 h-4 w-4" />
+                          Review File
+                        </Button>
+                      ) : (
+                        <Badge variant="destructive">Missing</Badge>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          disabled={
+                            !request.certificate || updatingExemptionId === request.event_id
+                          }
+                          onClick={() => reviewExemption(request, "APPROVED")}
+                        >
+                          <CheckCircle2 className="mr-1 h-4 w-4" />
+                          Approve
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={updatingExemptionId === request.event_id}
+                          onClick={() => reviewExemption(request, "REJECTED")}
+                        >
+                          <XCircle className="mr-1 h-4 w-4" />
+                          Reject
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {!exemptions.length ? (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                    No pending event tax-exemption certificates.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="rounded-lg border">
