@@ -78,6 +78,7 @@ export function VendorMenuCsvImport({
           discountMode: "CUSTOM",
           predefinedDiscountId: "",
           discountValue: "",
+          bogoItemNames: "",
           bogoItemIds: "",
           discount: "",
         },
@@ -208,6 +209,16 @@ export function VendorMenuCsvImport({
             anyItem.predefinedDiscountId ||
             "",
           discountValue: anyItem.discountValue ?? "",
+          bogoItemNames: Array.isArray(anyItem.bogoItems)
+            ? anyItem.bogoItems
+                .map((bogoItem: { itemId?: { name?: string } | string }) =>
+                  typeof bogoItem.itemId === "string"
+                    ? ""
+                    : bogoItem.itemId?.name,
+                )
+                .filter(Boolean)
+                .join("|")
+            : "",
           bogoItemIds: Array.isArray(anyItem.bogoItems)
             ? anyItem.bogoItems
                 .map((bogoItem: { itemId?: { _id?: string } | string }) =>
@@ -327,6 +338,11 @@ export function VendorMenuCsvImport({
           <p className="text-sm text-muted-foreground">
             Use the template download if you want the exact header layout and a
             starter sample row.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Combo and BOGO items can be referenced by their existing menu names
+            in `comboItemNames` and `bogoItemNames`. Individual items included
+            in the same CSV are created first automatically.
           </p>
           <p className="text-sm text-muted-foreground">
             Put image filenames in the CSV `imgUrls` column, separated by `|`
