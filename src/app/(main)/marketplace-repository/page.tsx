@@ -6,8 +6,10 @@ import dayjs from "dayjs";
 import {
   Ban,
   CheckCircle,
+  CheckCircle2,
   Download,
   Eye,
+  ExternalLink,
   Flag,
   FolderArchive,
   ImageOff,
@@ -16,13 +18,15 @@ import {
   Save,
   Trash2,
   X,
+  XCircle,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Column, DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import {
   MarketplaceEventPayload,
+  MarketplaceTaxExemption,
   MarketplaceRepositoryEvent,
   MarketplaceRepositoryFile,
   MarketplaceSubmission,
@@ -372,6 +376,37 @@ export default function MarketplaceRepositoryPage() {
   const [selectedBidIds, setSelectedBidIds] = useState<Record<string, string[]>>({});
   const [creatingEvent, setCreatingEvent] = useState(false);
   const [newEvent, setNewEvent] = useState<NewEventDraft>(emptyNewEventDraft);
+  const [updatingExemptionId, setUpdatingExemptionId] = useState<string | null>(null);
+
+  const exemptionsQuery = useQuery({
+    queryKey: ["marketplace-repository-tax-exemptions", "PENDING"],
+    queryFn: () => marketplaceApiService.listTaxExemptions("PENDING"),
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+  });
+
+  const exemptionReviewMutation = useMutation({
+    mutationFn: ({
+      request,
+      status,
+    }: {
+      request: MarketplaceTaxExemption;
+      status: "APPROVED" | "REJECTED";
+    }) => marketplaceApiService.reviewTaxExemption(request.event_id, { status }),
+    onSuccess: (_, variables) => {
+      toast.success(
+        variables.status === "APPROVED"
+          ? "Event tax exemption approved"
+          : "Event tax exemption rejected",
+      );
+      exemptionsQuery.refetch();
+      refetchEvents();
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || "Unable to review exemption");
+    },
+    onSettled: () => setUpdatingExemptionId(null),
+  });
 
   const { data: eventResult, isFetching: isFetchingEvents, refetch: refetchEvents } =
     useQuery({
@@ -418,6 +453,16 @@ export default function MarketplaceRepositoryPage() {
   const events = eventResult?.data?.data?.records || [];
   const eventTotal = eventResult?.data?.data?.total || 0;
   const coordinators = coordinatorResult?.data?.data?.records || [];
+  const exemptions =
+    exemptionsQuery.data?.data?.data?.taxExemptionList || [];
+
+  const reviewExemption = (
+    request: MarketplaceTaxExemption,
+    status: "APPROVED" | "REJECTED",
+  ) => {
+    setUpdatingExemptionId(request.event_id);
+    exemptionReviewMutation.mutate({ request, status });
+  };
 
   const startEditEvent = (event: MarketplaceRepositoryEvent) => {
     setEditingEventId(event.event_id);
@@ -1348,6 +1393,107 @@ export default function MarketplaceRepositoryPage() {
           Manage marketplace events, vendor submissions, event images, bid menus,
           food images, permit/license documents, and signed agreements.
         </p>
+      </div>
+
+      <div className="rounded-md border bg-white">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
+          <div>
+            <h2 className="text-lg font-semibold">Sales Tax Exemption Approvals</h2>
+            <p className="text-sm text-muted-foreground">
+              Review charitable and religious event certificates before publication.
+            </p>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium">
+            {exemptions.length} pending
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-sm">
+            <thead className="bg-muted/50 text-left">
+              <tr>
+                <th className="p-3 font-medium">Coordinator</th>
+                <th className="p-3 font-medium">Event</th>
+                <th className="p-3 font-medium">Exemption</th>
+                <th className="p-3 font-medium">Certificate</th>
+                <th className="p-3 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {exemptions.map((request) => {
+                const coordinator =
+                  request.customer_user_id && typeof request.customer_user_id === "object"
+                    ? request.customer_user_id
+                    : null;
+                const coordinatorName =
+                  coordinator?.eventCoordinatorCompanyName ||
+                  `${coordinator?.firstName || ""} ${coordinator?.lastName || ""}`.trim() ||
+                  "Event Coordinator";
+                return (
+                  <tr key={request.event_id} className="border-t">
+                    <td className="p-3">
+                      <div className="font-medium">{coordinatorName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {coordinator?.email || "-"}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div className="font-medium">{request.event_name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {request.event_date
+                          ? dayjs(request.event_date).format("YYYY-MM-DD")
+                          : request.event_id}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      {request.religious_organization ? "Religious (F)" : "Charitable (E)"}
+                    </td>
+                    <td className="p-3">
+                      {request.certificate?.file_url ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            window.open(request.certificate?.file_url, "_blank", "noopener,noreferrer")
+                          }
+                        >
+                          <ExternalLink className="mr-1 h-4 w-4" /> Review File
+                        </Button>
+                      ) : (
+                        <span className="text-red-600">Missing</span>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          disabled={!request.certificate || updatingExemptionId === request.event_id}
+                          onClick={() => reviewExemption(request, "APPROVED")}
+                        >
+                          <CheckCircle2 className="mr-1 h-4 w-4" /> Approve
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={updatingExemptionId === request.event_id}
+                          onClick={() => reviewExemption(request, "REJECTED")}
+                        >
+                          <XCircle className="mr-1 h-4 w-4" /> Reject
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {!exemptions.length ? (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                    No pending sales tax exemption certificates.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="rounded-md border bg-white p-4">
