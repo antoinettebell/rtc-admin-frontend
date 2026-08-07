@@ -23,12 +23,17 @@ import { Column, DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import {
   MarketplaceEventPayload,
+  MarketplacePaymentResponsibility,
   MarketplaceRepositoryEvent,
   MarketplaceRepositoryFile,
   MarketplaceSubmission,
   marketplaceApiService,
 } from "@/services/marketplace-api-service";
 import { userApiService } from "@/services/user-api-service";
+import {
+  getDerivedPaymentResponsibility,
+  getMarketplacePaymentVisibility,
+} from "@/helpers/marketplace-payment-responsibility";
 
 const fileTypeLabels: Record<string, string> = {
   EVENT_IMAGE: "Event Image",
@@ -148,7 +153,20 @@ type EventDraft = {
   free_food_provider: string;
   vendors_required_to_giveaway_food: boolean | null;
   catered_vip_section_enabled: boolean;
+  vip_section_enabled: boolean;
+  vip_section_details: string;
+  fully_catered_event: boolean;
+  ga_food_sales_allowed: boolean | null;
+  waive_vendor_fee_for_combined_award: boolean | null;
+  vendor_fee_payment_deadline: string;
+  separate_vip_vendor_required: boolean;
   vip_guest_count: string;
+  ga_ticket_quantity: string;
+  ga_ticket_price: string;
+  vip_ticket_quantity: string;
+  vip_ticket_price: string;
+  event_vendor_needs: Array<{ vendor_type: "MERCHANDISE" | "SERVICE" | "OTHER"; type_description?: string | null; quantity: number; fee: number }>;
+  event_vendor_electricity_fee: string;
   cuisine_preferences: string[];
   dietary_restrictions: string[];
   equipment_needed: string[];
@@ -197,7 +215,20 @@ const emptyEventDraft: EventDraft = {
   free_food_provider: "",
   vendors_required_to_giveaway_food: null,
   catered_vip_section_enabled: false,
+  vip_section_enabled: false,
+  vip_section_details: "",
+  fully_catered_event: false,
+  ga_food_sales_allowed: null,
+  waive_vendor_fee_for_combined_award: null,
+  vendor_fee_payment_deadline: "",
+  separate_vip_vendor_required: false,
   vip_guest_count: "",
+  ga_ticket_quantity: "0",
+  ga_ticket_price: "0",
+  vip_ticket_quantity: "0",
+  vip_ticket_price: "0",
+  event_vendor_needs: [],
+  event_vendor_electricity_fee: "0",
   cuisine_preferences: [],
   dietary_restrictions: [],
   equipment_needed: [],
@@ -286,7 +317,20 @@ const toEventDraft = (event: MarketplaceRepositoryEvent): EventDraft => ({
       ? event.vendors_required_to_giveaway_food
       : null,
   catered_vip_section_enabled: !!event.catered_vip_section_enabled,
+  vip_section_enabled: !!event.vip_section_enabled,
+  vip_section_details: event.vip_section_details || "",
+  fully_catered_event: !!event.fully_catered_event,
+  ga_food_sales_allowed: event.ga_food_sales_allowed === true ? true : event.ga_food_sales_allowed === false ? false : null,
+  waive_vendor_fee_for_combined_award: event.waive_vendor_fee_for_combined_award === true ? true : event.waive_vendor_fee_for_combined_award === false ? false : null,
+  vendor_fee_payment_deadline: normalizeDateInput(event.vendor_fee_payment_deadline),
+  separate_vip_vendor_required: !!event.separate_vip_vendor_required,
   vip_guest_count: event.vip_guest_count != null ? String(event.vip_guest_count) : "",
+  ga_ticket_quantity: event.ga_ticket_quantity != null ? String(event.ga_ticket_quantity) : "0",
+  ga_ticket_price: event.ga_ticket_price != null ? String(event.ga_ticket_price) : "0",
+  vip_ticket_quantity: event.vip_ticket_quantity != null ? String(event.vip_ticket_quantity) : "0",
+  vip_ticket_price: event.vip_ticket_price != null ? String(event.vip_ticket_price) : "0",
+  event_vendor_needs: event.event_vendor_needs || [],
+  event_vendor_electricity_fee: event.event_vendor_electricity_fee != null ? String(event.event_vendor_electricity_fee) : "0",
   cuisine_preferences: normalizeArray(event.cuisine_preferences),
   dietary_restrictions: normalizeArray(event.dietary_restrictions),
   equipment_needed: normalizeArray(event.equipment_needed),
@@ -307,6 +351,7 @@ const buildEventPayload = (draft: EventDraft): MarketplaceEventPayload => {
   const primaryServiceStyle = foodTruckSelected
     ? "Food Truck"
     : draft.primary_service_style || null;
+  const paymentResponsibility = getDerivedPaymentResponsibility(draft);
 
   return {
     event_name: draft.event_name,
@@ -344,13 +389,26 @@ const buildEventPayload = (draft: EventDraft): MarketplaceEventPayload => {
       ? draft.vendors_required_to_giveaway_food
       : null,
     catered_vip_section_enabled: draft.catered_vip_section_enabled,
-    vip_guest_count: draft.catered_vip_section_enabled
+    vip_section_enabled: draft.vip_section_enabled,
+    vip_section_details: draft.vip_section_enabled ? draft.vip_section_details : null,
+    fully_catered_event: draft.fully_catered_event,
+    ga_food_sales_allowed: draft.ga_food_sales_allowed,
+    waive_vendor_fee_for_combined_award: draft.waive_vendor_fee_for_combined_award,
+    vendor_fee_payment_deadline: draft.vendor_fee_payment_deadline || null,
+    separate_vip_vendor_required: draft.separate_vip_vendor_required,
+    vip_guest_count: draft.vip_section_enabled
       ? numberOrNull(draft.vip_guest_count)
       : 0,
+    ga_ticket_quantity: numberOrNull(draft.ga_ticket_quantity) || 0,
+    ga_ticket_price: moneyOrZero(draft.ga_ticket_price),
+    vip_ticket_quantity: draft.vip_section_enabled ? numberOrNull(draft.vip_ticket_quantity) || 0 : 0,
+    vip_ticket_price: draft.vip_section_enabled ? moneyOrZero(draft.vip_ticket_price) : 0,
+    event_vendor_needs: draft.event_vendor_needs,
+    event_vendor_electricity_fee: moneyOrZero(draft.event_vendor_electricity_fee),
     cuisine_preferences: normalizeArray(draft.cuisine_preferences),
     dietary_restrictions: normalizeArray(draft.dietary_restrictions),
     equipment_needed: normalizeArray(draft.equipment_needed),
-    payment_responsibility: draft.payment_responsibility,
+    payment_responsibility: paymentResponsibility,
     vendor_fee: moneyOrZero(draft.vendor_fee),
     budgeted_amount: moneyOrZero(draft.budgeted_amount),
     event_close_date: draft.event_close_date || null,
@@ -702,7 +760,10 @@ export default function MarketplaceRepositoryPage() {
   const renderEventForm = (
     draft: EventDraft,
     onChange: (field: keyof EventDraft, value: string | boolean | string[] | null) => void,
-  ) => (
+  ) => {
+    const derivedPaymentResponsibility = getDerivedPaymentResponsibility(draft);
+    const paymentVisibility = getMarketplacePaymentVisibility(draft);
+    return (
     <div className="space-y-3">
       <details open className="rounded-md border bg-white p-4">
         <summary className="cursor-pointer text-base font-semibold">Basics</summary>
@@ -985,28 +1046,61 @@ export default function MarketplaceRepositoryPage() {
           <label className="flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm">
             <input
               type="checkbox"
-              checked={draft.catered_vip_section_enabled}
-              onChange={(e) => onChange("catered_vip_section_enabled", e.target.checked)}
+              checked={draft.vip_section_enabled}
+              onChange={(e) => onChange("vip_section_enabled", e.target.checked)}
             />
-            Catered VIP section paid by coordinator
+            VIP section enabled
+          </label>
+          {draft.vip_section_enabled ? (
+            <>
+              <label className="text-sm">
+                Expected VIP Guests *
+                <input type="number" min="0" className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.vip_guest_count} onChange={(e) => onChange("vip_guest_count", e.target.value)} />
+              </label>
+              <label className="text-sm md:col-span-2">
+                VIP Section Details
+                <input className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.vip_section_details} onChange={(e) => onChange("vip_section_details", e.target.value)} />
+              </label>
+              <label className="flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm">
+                <input type="checkbox" checked={draft.catered_vip_section_enabled} onChange={(e) => onChange("catered_vip_section_enabled", e.target.checked)} />
+                VIP catering paid by coordinator
+              </label>
+            </>
+          ) : null}
+          <label className="flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm">
+            <input type="checkbox" checked={draft.fully_catered_event} onChange={(e) => onChange("fully_catered_event", e.target.checked)} />
+            Fully catered event
           </label>
           {draft.catered_vip_section_enabled ? (
+            <>
+              {renderYesNo("Vendors may sell food to GA guests", draft.ga_food_sales_allowed, (value) => onChange("ga_food_sales_allowed", value))}
+              {draft.ga_food_sales_allowed ? renderYesNo("Waive fee for combined award", draft.waive_vendor_fee_for_combined_award, (value) => onChange("waive_vendor_fee_for_combined_award", value)) : null}
+              <label className="flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm">
+                <input type="checkbox" checked={draft.separate_vip_vendor_required} onChange={(e) => onChange("separate_vip_vendor_required", e.target.checked)} />
+                Additional VIP catering service slot
+              </label>
+              <p className="mt-1 text-xs text-gray-500">
+                This adds a VIP catering requirement to the event. A qualified vendor may still offer both VIP Catering and GA Sales.
+              </p>
+            </>
+          ) : null}
+          {paymentVisibility.showPaymentDeadline ? (
             <label className="text-sm">
-              # of VIP Guests *
+              Last Date to Accept Payments
               <input
-                type="number"
-                min="1"
+                type="date"
                 className="mt-1 h-10 w-full rounded-md border bg-white px-3"
-                value={draft.vip_guest_count}
-                onChange={(e) => onChange("vip_guest_count", e.target.value)}
+                value={draft.vendor_fee_payment_deadline}
+                onChange={(e) => onChange("vendor_fee_payment_deadline", e.target.value)}
               />
             </label>
           ) : null}
           <label className="text-sm">
             Who is paying? *
             <select
+              disabled
               className="mt-1 h-10 w-full rounded-md border bg-white px-3"
-              value={draft.payment_responsibility}
+              value={derivedPaymentResponsibility}
               onChange={(e) => onChange("payment_responsibility", e.target.value)}
             >
               <option value="NONE">None</option>
@@ -1015,7 +1109,7 @@ export default function MarketplaceRepositoryPage() {
               <option value="BOTH">Both</option>
             </select>
           </label>
-          <label className="text-sm">
+          {paymentVisibility.showVendorFee ? <label className="text-sm">
             Vendor Fee
             <input
               type="number"
@@ -1024,8 +1118,8 @@ export default function MarketplaceRepositoryPage() {
               value={draft.vendor_fee}
               onChange={(e) => onChange("vendor_fee", e.target.value)}
             />
-          </label>
-          <label className="text-sm">
+          </label> : null}
+          {paymentVisibility.showBudget ? <label className="text-sm">
             Budget Amount
             <input
               type="number"
@@ -1034,7 +1128,7 @@ export default function MarketplaceRepositoryPage() {
               value={draft.budgeted_amount}
               onChange={(e) => onChange("budgeted_amount", e.target.value)}
             />
-          </label>
+          </label> : null}
         </div>
       </details>
 
@@ -1063,6 +1157,18 @@ export default function MarketplaceRepositoryPage() {
             />
             Ticket sales enabled
           </label>
+          {draft.ticket_sales_enabled ? (
+            <>
+              <label className="text-sm">GA Ticket Capacity<input type="number" min="0" className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.ga_ticket_quantity} onChange={(e) => onChange("ga_ticket_quantity", e.target.value)} /></label>
+              <label className="text-sm">GA Ticket Price<input type="number" min="0" step="0.01" className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.ga_ticket_price} onChange={(e) => onChange("ga_ticket_price", e.target.value)} /></label>
+              {draft.vip_section_enabled ? (
+                <>
+                  <label className="text-sm">VIP Ticket Capacity<input type="number" min="0" className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.vip_ticket_quantity} onChange={(e) => onChange("vip_ticket_quantity", e.target.value)} /></label>
+                  <label className="text-sm">VIP Ticket Price<input type="number" min="0" step="0.01" className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.vip_ticket_price} onChange={(e) => onChange("vip_ticket_price", e.target.value)} /></label>
+                </>
+              ) : null}
+            </>
+          ) : null}
           <label className="text-sm md:col-span-2">
             Ticket URL
             <input
@@ -1074,7 +1180,8 @@ export default function MarketplaceRepositoryPage() {
         </div>
       </details>
     </div>
-  );
+    );
+  };
 
   const eventColumns: Column<MarketplaceRepositoryEvent>[] = [
     {
