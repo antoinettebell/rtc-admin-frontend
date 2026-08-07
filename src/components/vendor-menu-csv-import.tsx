@@ -52,6 +52,7 @@ export function VendorMenuCsvImport({
           preparationTime: 10,
           allowCustomize: "TRUE",
           hasFlavors: "TRUE",
+          flavorLabel: "Flavor",
           flavors: "Lemon Pepper|Hot|Mild|Habanero",
           flavorCosts: "Habanero:1.00",
           flavorsPerOrder: 2,
@@ -61,9 +62,10 @@ export function VendorMenuCsvImport({
           toppingsPerOrder: 2,
           comboItemNames: "Fries|Side Salad",
           comboItemIds: "",
-	          comboSideOptions: "Fries|Side Salad|Chips",
-	          comboSideCosts: "Side Salad:2.00|Chips:1.00",
-	          comboSidesPerOrder: 1,
+          comboItemQuantities: "2|1",
+          comboSideOptions: "Fries|Side Salad|Chips",
+          comboSideCosts: "Side Salad:2.00|Chips:1.00",
+          comboSidesPerOrder: 1,
           newDish: "FALSE",
           popularDish: "FALSE",
           "diet[0]": "",
@@ -81,7 +83,6 @@ export function VendorMenuCsvImport({
           discountValue: "",
           bogoItemNames: "",
           bogoItemIds: "",
-          discount: "",
         },
       ],
       "menu-items-import-template",
@@ -149,6 +150,7 @@ export function VendorMenuCsvImport({
           preparationTime: anyItem.preparationTime ?? "",
           allowCustomize: anyItem.allowCustomize ? "TRUE" : "FALSE",
           hasFlavors: anyItem.hasFlavors ? "TRUE" : "FALSE",
+          flavorLabel: anyItem.flavorLabel || "Flavor",
           flavors: (anyItem.flavors || [])
             .filter((flavor: string) => flavor !== "Plain")
             .join("|"),
@@ -187,10 +189,15 @@ export function VendorMenuCsvImport({
                 )
                 .filter(Boolean)
                 .join("|")
-	            : "",
-	          comboSideOptions: Array.isArray(anyItem.comboSideOptions)
-	            ? anyItem.comboSideOptions.filter(Boolean).join("|")
-	            : "",
+            : "",
+          comboItemQuantities: Array.isArray(anyItem.subItem)
+            ? anyItem.subItem
+                .map((subItem: { qty?: number }) => subItem.qty ?? 1)
+                .join("|")
+            : "",
+          comboSideOptions: Array.isArray(anyItem.comboSideOptions)
+            ? anyItem.comboSideOptions.filter(Boolean).join("|")
+            : "",
           comboSideCosts: serializePaidOptionCosts(anyItem.comboSideOptionCosts),
           comboSidesPerOrder: anyItem.comboSidesPerOrder ?? 1,
           newDish: anyItem.newDish ? "TRUE" : "FALSE",
@@ -231,7 +238,6 @@ export function VendorMenuCsvImport({
                 .filter(Boolean)
                 .join("|")
             : "",
-          discount: anyItem.discount ?? "",
         };
       }),
       `${vendorName || "vendor"}-current-menu`,
@@ -345,6 +351,12 @@ export function VendorMenuCsvImport({
             Combo and BOGO items can be referenced by their existing menu names
             in `comboItemNames` and `bogoItemNames`. Individual items included
             in the same CSV are created first automatically.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            For combos, list each included item quantity in
+            `comboItemQuantities` in the same order as `comboItemNames` or
+            `comboItemIds`. For example, `Burger|Fries` with `2|1` includes two
+            burgers and one fries.
           </p>
           <p className="text-sm text-muted-foreground">
             Put image filenames in the CSV `imgUrls` column, separated by `|`
