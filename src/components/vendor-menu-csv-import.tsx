@@ -62,6 +62,7 @@ export function VendorMenuCsvImport({
           comboItemNames: "Fries|Side Salad",
           comboItemIds: "",
 	          comboSideOptions: "Fries|Side Salad|Chips",
+	          comboSideCosts: "Side Salad:2.00|Chips:1.00",
 	          comboSidesPerOrder: 1,
           newDish: "FALSE",
           popularDish: "FALSE",
@@ -190,6 +191,7 @@ export function VendorMenuCsvImport({
 	          comboSideOptions: Array.isArray(anyItem.comboSideOptions)
 	            ? anyItem.comboSideOptions.filter(Boolean).join("|")
 	            : "",
+          comboSideCosts: serializePaidOptionCosts(anyItem.comboSideOptionCosts),
           comboSidesPerOrder: anyItem.comboSidesPerOrder ?? 1,
           newDish: anyItem.newDish ? "TRUE" : "FALSE",
           popularDish: anyItem.popularDish ? "TRUE" : "FALSE",

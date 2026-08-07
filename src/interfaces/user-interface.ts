@@ -244,6 +244,11 @@ export interface MenuItem {
   flavors?: string[];
   flavorsPerOrder?: number;
   comboSideOptions?: string[];
+  comboSideOptionCosts?: Array<{
+    name?: string;
+    hasCost?: boolean;
+    cost?: number;
+  }>;
   comboSidesPerOrder?: number;
   itemType: "COMBO" | "INDIVIDUAL";
   categoryId: string;
