@@ -46,8 +46,10 @@ export function VendorMenuCsvImport({
           available: "TRUE",
           itemType: "INDIVIDUAL",
           meatWellness: "NA",
-          categoryId: "REPLACE_WITH_GLOBAL_CATEGORY_ID",
+          globalCategoryName: "REPLACE_WITH_GLOBAL_CATEGORY_NAME",
+          categoryId: "",
           menuCategoryName: "Desserts",
+          meatName: "",
           meatId: "",
           preparationTime: 10,
           allowCustomize: "TRUE",
@@ -68,6 +70,7 @@ export function VendorMenuCsvImport({
           comboSidesPerOrder: 1,
           newDish: "FALSE",
           popularDish: "FALSE",
+          dietNames: "",
           "diet[0]": "",
           "diet[1]": "",
           "diet[2]": "",
@@ -98,6 +101,11 @@ export function VendorMenuCsvImport({
       item.categoryId ||
       ""
     );
+  };
+
+  const getGlobalCategoryName = (item: MenuItem) => {
+    const category = (item as any).category;
+    return category?.categoriesId?.name || category?.name || "";
   };
 
   const serializePaidOptionCosts = (
@@ -144,8 +152,10 @@ export function VendorMenuCsvImport({
           available: item.available ? "TRUE" : "FALSE",
           itemType: item.itemType || "INDIVIDUAL",
           meatWellness: anyItem.meatWellness || "NA",
+          globalCategoryName: getGlobalCategoryName(item),
           categoryId: getGlobalCategoryId(item),
           menuCategoryName: anyItem.category?.name || "",
+          meatName: anyItem.meatId?.name || anyItem.meat?.name || "",
           meatId: anyItem.meatId?._id || anyItem.meatId || "",
           preparationTime: anyItem.preparationTime ?? "",
           allowCustomize: anyItem.allowCustomize ? "TRUE" : "FALSE",
@@ -202,6 +212,14 @@ export function VendorMenuCsvImport({
           comboSidesPerOrder: anyItem.comboSidesPerOrder ?? 1,
           newDish: anyItem.newDish ? "TRUE" : "FALSE",
           popularDish: anyItem.popularDish ? "TRUE" : "FALSE",
+          dietNames: Array.isArray(anyItem.diet)
+            ? anyItem.diet
+                .map((diet: { name?: string } | string) =>
+                  typeof diet === "string" ? "" : diet?.name,
+                )
+                .filter(Boolean)
+                .join("|")
+            : "",
           "diet[0]": dietIds[0] || "",
           "diet[1]": dietIds[1] || "",
           "diet[2]": dietIds[2] || "",
@@ -351,6 +369,12 @@ export function VendorMenuCsvImport({
             Combo and BOGO items can be referenced by their existing menu names
             in `comboItemNames` and `bogoItemNames`. Individual items included
             in the same CSV are created first automatically.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Use readable names in `globalCategoryName`, `meatName`, and
+            `dietNames`. Separate multiple diets with `|`. Database ID columns
+            remain supported for older files but are not required when names
+            are supplied.
           </p>
           <p className="text-sm text-muted-foreground">
             For combos, list each included item quantity in
