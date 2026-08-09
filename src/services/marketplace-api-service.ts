@@ -18,19 +18,19 @@ export type EventVendorReviewStatus =
 
 export interface AdminEventVendorProfile {
   profile_id: string;
-  vendor_user_id: {
+  vendor_user_id?: {
     _id: string;
     firstName?: string;
     lastName?: string;
     email?: string;
     countryCode?: string;
     mobileNumber?: string;
-  };
-  business_name: string;
-  business_description: string;
-  vendor_types: string[];
-  merchandise_categories: string[];
-  social_links: string[];
+  } | null;
+  business_name?: string;
+  business_description?: string;
+  vendor_types?: string[];
+  merchandise_categories?: string[];
+  social_links?: string[];
   logo_url?: string | null;
   review_status: EventVendorReviewStatus;
   rejection_reason?: string | null;
