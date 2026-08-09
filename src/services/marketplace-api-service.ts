@@ -10,6 +10,41 @@ export type MarketplacePaymentStatus =
   | "CANCELLED"
   | "REFUNDED";
 
+export type EventVendorReviewStatus =
+  | "DRAFT"
+  | "PENDING_REVIEW"
+  | "APPROVED"
+  | "REJECTED";
+
+export interface AdminEventVendorProfile {
+  profile_id: string;
+  vendor_user_id: {
+    _id: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    countryCode?: string;
+    mobileNumber?: string;
+  };
+  business_name: string;
+  business_description: string;
+  vendor_types: string[];
+  merchandise_categories: string[];
+  social_links: string[];
+  logo_url?: string | null;
+  review_status: EventVendorReviewStatus;
+  rejection_reason?: string | null;
+  submitted_at?: string | null;
+  submission_count?: number;
+}
+
+export interface AdminEventVendorPhoto {
+  photo_id: string;
+  category?: string | null;
+  file_url: string;
+  original_name?: string | null;
+}
+
 export interface MarketplaceRepositoryFile {
   attachment_id: string;
   event_id: string;
@@ -406,6 +441,39 @@ class MarketplaceApiService extends BaseAPI {
     return this.post<IResponse<{ marketplacePayment: MarketplacePayment }>>(
       `${APIEndpoint.MARKETPLACE}/payments/${paymentId}/admin-mark-paid`,
       payload,
+    );
+  }
+
+  listEventVendorProfiles(status: EventVendorReviewStatus | "", page = 1, limit = 20) {
+    return this.get<
+      IResponse<{
+        profileList: AdminEventVendorProfile[];
+        total: number;
+        page: number;
+        totalPages: number;
+      }>
+    >(`${APIEndpoint.MARKETPLACE}/admin/event-vendors`, {
+      params: { page, limit, ...(status ? { status } : {}) },
+    });
+  }
+
+  getEventVendorProfile(profileId: string) {
+    return this.get<
+      IResponse<{
+        eventVendorProfile: AdminEventVendorProfile;
+        photoList: AdminEventVendorPhoto[];
+      }>
+    >(`${APIEndpoint.MARKETPLACE}/admin/event-vendors/${profileId}`);
+  }
+
+  reviewEventVendorProfile(
+    profileId: string,
+    reviewStatus: "APPROVED" | "REJECTED",
+    rejectionReason = "",
+  ) {
+    return this.put<IResponse<{ eventVendorProfile: AdminEventVendorProfile }>>(
+      `${APIEndpoint.MARKETPLACE}/admin/event-vendors/${profileId}/review`,
+      { review_status: reviewStatus, rejection_reason: rejectionReason },
     );
   }
 }

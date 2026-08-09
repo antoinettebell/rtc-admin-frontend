@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   CalendarCheck,
   FolderArchive,
+  Store,
 } from "lucide-react";
 import { NavMain } from "@/components/core/nav-main";
 
@@ -39,6 +40,12 @@ const navMain = [
     title: "Vendors",
     url: "/vendor",
     icon: SquareUserRound,
+    items: [],
+  },
+  {
+    title: "Marketplace Vendors",
+    url: "/marketplace-vendors",
+    icon: Store,
     items: [],
   },
   {
