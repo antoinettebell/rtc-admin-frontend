@@ -1,149 +1,87 @@
-import { Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 
 type VendorPlan = {
   name?: string;
   slug?: string;
   rate?: number | string;
-  capabilities?: Record<string, any>;
+  details?: string[];
 };
 
-const getTierKey = (plan?: VendorPlan) => {
+type FoodVendorTier = "BASIC" | "PLATINUM" | "ELITE";
+
+export const CANONICAL_FOOD_VENDOR_BENEFITS: Record<FoodVendorTier, readonly string[]> = {
+  BASIC: [
+    "Delivery/Pickup Ordering Fulfillment",
+    "Bluetooth Order/Receipt Printing",
+    "Sales Tax Reporting",
+    "1 media/social link",
+    "3-day payouts",
+  ],
+  PLATINUM: [
+    "Delivery/Pickup Ordering Fulfillment",
+    "Bluetooth Order/Receipt Printing",
+    "Sales Tax Reporting",
+    "1099 Reporting",
+    "2 media/social links",
+    "2-day payouts",
+    "Employee Login/Cashier Mode",
+    "Walk-Up Payment Acceptance (Cash Only)",
+  ],
+  ELITE: [
+    "Delivery/Pickup Ordering Fulfillment",
+    "Bluetooth Order/Receipt Printing",
+    "Sales Tax Reporting",
+    "1099 Reporting",
+    "4 media/social links",
+    "Daily payouts",
+    "Employee Login/Cashier Mode",
+    "Walk-Up Payment Acceptance (Cash/Tap to Pay)",
+    "Multiple food trucks",
+    "Event marketplace",
+  ],
+};
+
+const getFoodVendorTier = (plan?: VendorPlan): FoodVendorTier | null => {
   const slug = String(plan?.slug || "").toUpperCase();
   const name = String(plan?.name || "").toUpperCase();
   const rate = Number(plan?.rate);
-
-  if (slug.includes("ELITE") || name.includes("ELITE") || rate === 5.5) {
-    return "ELITE";
-  }
-  if (
-    slug.includes("PLATINUM") ||
-    name.includes("PLATINUM") ||
-    rate === 4.5
-  ) {
-    return "PLATINUM";
-  }
-  return "BASIC";
+  if (slug.includes("ELITE") || name.includes("ELITE") || rate === 5.5) return "ELITE";
+  if (slug.includes("PLATINUM") || name.includes("PLATINUM") || rate === 4.5) return "PLATINUM";
+  if (slug.includes("BASIC") || name.includes("BASIC") || rate === 3.5) return "BASIC";
+  return null;
 };
 
+export const getVendorPlanBenefits = (plan?: VendorPlan): readonly string[] => {
+  const tier = getFoodVendorTier(plan);
+  // Known Food Vendor tiers always render the exact backend contract; legacy
+  // stored detail strings cannot alter the Admin display.
+  return tier ? CANONICAL_FOOD_VENDOR_BENEFITS[tier] : plan?.details || [];
+};
+
+// Kept for the existing Admin employee-tab gate. This is derived from the
+// same canonical tier identity rather than from legacy persisted capability
+// fields.
 export const getVendorPlanCapabilities = (plan?: VendorPlan) => {
-  const tier = getTierKey(plan);
-  const fallback = {
-    BASIC: {
-      deliveryAcceptance: true,
-      marketplaceOrdering: true,
-      preorderOrdering: true,
-      qrOrdering: true,
-      printing: true,
-      employeeLogin: false,
-      employeeWalkUpPos: false,
-      cashPos: false,
-      tapToPay: false,
-      eventMarketplace: false,
-      multipleTruckUnits: false,
-      newDishHighlight: false,
-      reporting: "Basic reporting",
-      payout: "3-day payouts",
-      mediaLinks: "1 media/social link",
-    },
-    PLATINUM: {
-      deliveryAcceptance: true,
-      marketplaceOrdering: true,
-      preorderOrdering: true,
-      qrOrdering: true,
-      printing: true,
-      employeeLogin: true,
-      employeeWalkUpPos: true,
-      cashPos: true,
-      tapToPay: false,
-      eventMarketplace: false,
-      multipleTruckUnits: false,
-      newDishHighlight: false,
-      reporting: "Advanced reporting",
-      payout: "2-day payouts",
-      mediaLinks: "2 media/social links",
-    },
-    ELITE: {
-      deliveryAcceptance: true,
-      marketplaceOrdering: true,
-      preorderOrdering: true,
-      qrOrdering: true,
-      printing: true,
-      employeeLogin: true,
-      employeeWalkUpPos: true,
-      cashPos: true,
-      tapToPay: true,
-      eventMarketplace: true,
-      multipleTruckUnits: true,
-      newDishHighlight: true,
-      reporting: "Customizable reporting",
-      payout: "Daily payouts",
-      mediaLinks: "4 media/social links",
-    },
-  }[tier];
-
-  const capabilities = plan?.capabilities || {};
-  const hasCashPos =
-    capabilities.cashPos ??
-    (capabilities.walkUpPosPaymentMethods || []).includes("CASH") ??
-    fallback.cashPos;
-
+  const tier = getFoodVendorTier(plan);
   return {
-    ...fallback,
-    deliveryAcceptance:
-      capabilities.deliveryAcceptance ?? fallback.deliveryAcceptance,
-    employeeLogin: capabilities.employeeLogin ?? fallback.employeeLogin,
-    employeeWalkUpPos:
-      capabilities.employeeWalkUpPos ?? fallback.employeeWalkUpPos,
-    cashPos: hasCashPos,
-    tapToPay: capabilities.tapToPay ?? fallback.tapToPay,
-    eventMarketplace:
-      capabilities.eventMarketplace ?? fallback.eventMarketplace,
-    multipleTruckUnits: fallback.multipleTruckUnits,
-    newDishHighlight:
-      capabilities.newDishHighlight ?? fallback.newDishHighlight,
-    mediaLinks: capabilities.maxSocialMediaLinks
-      ? `${capabilities.maxSocialMediaLinks} media/social links`
-      : fallback.mediaLinks,
+    employeeLogin: tier === "PLATINUM" || tier === "ELITE",
+    employeeWalkUpPos: tier === "PLATINUM" || tier === "ELITE",
+    tapToPay: tier === "ELITE",
+    multipleTruckUnits: tier === "ELITE",
+    eventMarketplace: tier === "ELITE",
   };
 };
 
 export function VendorPlanFeatureList({ plan }: { plan?: VendorPlan }) {
-  const c = getVendorPlanCapabilities(plan);
-  const rows = [
-    { label: "Marketplace ordering", enabled: c.marketplaceOrdering },
-    { label: "Delivery acceptance", enabled: c.deliveryAcceptance },
-    { label: "Preorder ordering", enabled: c.preorderOrdering },
-    { label: "QR ordering", enabled: c.qrOrdering },
-    { label: "Printing", enabled: c.printing },
-    { label: c.reporting, enabled: true },
-    { label: c.mediaLinks, enabled: true },
-    { label: c.payout, enabled: true },
-    { label: "Employee Login/Cashier Mode", enabled: c.employeeLogin },
-    {
-      label: "Walk-up POS for Cash Payments Only",
-      enabled: c.employeeWalkUpPos && c.cashPos,
-    },
-    { label: "Tap to Pay", enabled: c.tapToPay },
-    { label: "Multiple food trucks", enabled: c.multipleTruckUnits },
-    { label: "Ability to highlight dishes", enabled: c.newDishHighlight },
-    { label: "Event marketplace", enabled: c.eventMarketplace },
-  ];
-
+  const benefits = getVendorPlanBenefits(plan);
   return (
     <div className="grid gap-1.5">
-      {rows.map((row) => (
-        <div
-          key={row.label}
-          className="flex items-center gap-2 text-sm text-gray-700"
-        >
-          <span
-            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-              row.enabled ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-            }`}
-          >
-            {row.enabled ? <Check size={14} /> : <X size={14} />}
+      {benefits.map((label) => (
+        <div key={label} className="flex items-center gap-2 text-sm text-gray-700">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700">
+            <Check size={14} />
           </span>
-          <span>{row.enabled ? row.label : `No ${row.label}`}</span>
+          <span>{label}</span>
         </div>
       ))}
     </div>
