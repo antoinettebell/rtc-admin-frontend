@@ -9,6 +9,7 @@ import {
   EventVendorReviewStatus,
   marketplaceApiService,
 } from "@/services/marketplace-api-service";
+import { normalizeExternalWebLink } from "@/helpers/external-web-link";
 
 const CATEGORY_LABELS: Record<string, string> = {
   ARTISANS_CRAFTERS: "Artisans and Crafters",
@@ -98,7 +99,10 @@ export default function MarketplaceVendorsPage() {
             <p><strong>Categories:</strong> {(detail.eventVendorProfile.merchandise_categories || []).map((item) => CATEGORY_LABELS[item] || item).join(", ") || "None"}</p>
             <p><strong>Contact:</strong> {detail.eventVendorProfile.vendor_user_id?.email || "Vendor account unavailable"}</p>
             {detail.eventVendorProfile.logo_url ? <img className="mt-3 h-32 w-32 rounded object-contain" src={detail.eventVendorProfile.logo_url} alt="Business logo" /> : null}
-            <div className="mt-3 space-y-1">{(detail.eventVendorProfile.social_links || []).map((link) => <a key={link} href={link} target="_blank" rel="noreferrer" className="block text-blue-700 underline">{link}</a>)}</div>
+            <div className="mt-3 space-y-1">{(detail.eventVendorProfile.social_links || []).map((link) => {
+              const href = normalizeExternalWebLink(link);
+              return href ? <a key={link} href={href} target="_blank" rel="noreferrer" className="block text-blue-700 underline">{link}</a> : <span key={link} className="block text-slate-500">{link}</span>;
+            })}</div>
             <div className="mt-4 grid grid-cols-2 gap-2">{(detail.photoList || []).map((photo) => <div key={photo.photo_id}><img src={photo.file_url} alt={photo.original_name || "Portfolio"} className="h-32 w-full rounded object-cover" /><div className="text-xs">{CATEGORY_LABELS[photo.category || ""] || photo.category}</div></div>)}</div>
             {detail.eventVendorProfile.review_status === "PENDING_REVIEW" ? <div className="mt-5 space-y-3"><textarea className="w-full rounded border p-2" placeholder="Rejection reason" value={reason} onChange={(event) => setReason(event.target.value)} /><div className="flex gap-2"><Button onClick={() => review("APPROVED")}>Approve</Button><Button variant="destructive" onClick={() => review("REJECTED")}>Reject</Button></div></div> : null}
             {detail.eventVendorProfile.rejection_reason ? <p className="mt-3 text-red-700">Rejection reason: {detail.eventVendorProfile.rejection_reason}</p> : null}
