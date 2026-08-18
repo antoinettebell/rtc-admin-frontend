@@ -34,6 +34,11 @@ import {
   getDerivedPaymentResponsibility,
   getMarketplacePaymentVisibility,
 } from "@/helpers/marketplace-payment-responsibility";
+import {
+  formatMarketplaceCalendarDate,
+  normalizeMarketplaceCalendarDateInput,
+  normalizeMarketplaceZonedDateInput,
+} from "@/helpers/marketplace-event-date";
 
 const fileTypeLabels: Record<string, string> = {
   EVENT_IMAGE: "Event Image",
@@ -247,12 +252,6 @@ const emptyNewEventDraft: NewEventDraft = {
   customer_user_id: "",
 };
 
-const normalizeDateInput = (value?: string | null) => {
-  if (!value) return "";
-  const parsed = dayjs(value);
-  return parsed.isValid() ? parsed.format("YYYY-MM-DD") : "";
-};
-
 const normalizeTimeInput = (value?: string | null) => {
   if (!value) return "";
   const match = String(value).match(/^(\d{1,2}):(\d{2})/);
@@ -287,7 +286,7 @@ const toEventDraft = (event: MarketplaceRepositoryEvent): EventDraft => ({
   service_types: normalizeArray(event.service_types?.length ? event.service_types : event.service_type),
   service_styles: normalizeArray(event.service_styles),
   primary_service_style: event.primary_service_style || "",
-  event_date: normalizeDateInput(event.event_date),
+  event_date: normalizeMarketplaceCalendarDateInput(event.event_date),
   event_time: normalizeTimeInput(event.event_time),
   event_duration_minutes: event.event_duration_minutes != null ? String(event.event_duration_minutes) : "",
   event_address: event.event_address || "",
@@ -322,7 +321,9 @@ const toEventDraft = (event: MarketplaceRepositoryEvent): EventDraft => ({
   fully_catered_event: !!event.fully_catered_event,
   ga_food_sales_allowed: event.ga_food_sales_allowed === true ? true : event.ga_food_sales_allowed === false ? false : null,
   waive_vendor_fee_for_combined_award: event.waive_vendor_fee_for_combined_award === true ? true : event.waive_vendor_fee_for_combined_award === false ? false : null,
-  vendor_fee_payment_deadline: normalizeDateInput(event.vendor_fee_payment_deadline),
+  vendor_fee_payment_deadline: normalizeMarketplaceCalendarDateInput(
+    event.vendor_fee_payment_deadline,
+  ),
   separate_vip_vendor_required: !!event.separate_vip_vendor_required,
   vip_guest_count: event.vip_guest_count != null ? String(event.vip_guest_count) : "",
   ga_ticket_quantity: event.ga_ticket_quantity != null ? String(event.ga_ticket_quantity) : "0",
@@ -337,7 +338,10 @@ const toEventDraft = (event: MarketplaceRepositoryEvent): EventDraft => ({
   payment_responsibility: event.payment_responsibility || "NONE",
   vendor_fee: event.vendor_fee != null ? String(event.vendor_fee) : "0",
   budgeted_amount: event.budgeted_amount != null ? String(event.budgeted_amount) : "0",
-  event_close_date: normalizeDateInput(event.event_close_date),
+  event_close_date: normalizeMarketplaceZonedDateInput(
+    event.event_close_date,
+    event.event_timezone || "America/New_York",
+  ),
   event_close_time: normalizeTimeInput(event.event_close_time),
   status: event.status || "DRAFT",
   ticket_sales_enabled: !!event.ticket_sales_enabled,
@@ -1223,7 +1227,7 @@ export default function MarketplaceRepositoryPage() {
       accessor: (event) => (
         <div className="text-sm">
           <div>
-            {event.event_date ? dayjs(event.event_date).format("YYYY-MM-DD") : "-"}
+            {formatMarketplaceCalendarDate(event.event_date)}
           </div>
           <div className="text-xs text-muted-foreground">
             {[event.event_city, event.event_state].filter(Boolean).join(", ") || "-"}

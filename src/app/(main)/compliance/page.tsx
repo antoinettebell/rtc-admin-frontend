@@ -15,6 +15,7 @@ import {
   MarketplaceTaxExemption,
   marketplaceApiService,
 } from "@/services/marketplace-api-service";
+import { formatMarketplaceCalendarDate } from "@/helpers/marketplace-event-date";
 
 const statusColors: Record<string, string> = {
   pending_review: "bg-yellow-100 text-yellow-900",
@@ -275,7 +276,7 @@ export default function CompliancePage() {
                       <div className="font-medium">{request.event_name}</div>
                       <div className="text-xs text-muted-foreground">
                         {request.event_date
-                          ? dayjs(request.event_date).format("YYYY-MM-DD")
+                          ? formatMarketplaceCalendarDate(request.event_date)
                           : request.event_id}
                       </div>
                     </td>

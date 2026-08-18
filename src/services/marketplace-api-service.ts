@@ -168,6 +168,7 @@ export interface MarketplaceEventPayload {
   primary_service_style?: string | null;
   event_date?: string | null;
   event_time?: string | null;
+  event_timezone?: string | null;
   event_duration_hours?: number | null;
   event_duration_minutes?: number | null;
   event_address?: string | null;
@@ -219,6 +220,7 @@ export interface MarketplaceRepositoryEvent {
   event_style?: string | null;
   event_date?: string | null;
   event_time?: string | null;
+  event_timezone?: string | null;
   event_duration_hours?: number | null;
   event_duration_minutes?: number | null;
   event_address?: string | null;
