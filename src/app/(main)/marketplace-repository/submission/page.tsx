@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Download, ExternalLink, Save, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -49,13 +49,11 @@ const titleForType = (type: MarketplaceSubmissionType) => ({
 const unwrap = (value: any) => value?.data?.data || value?.data || value;
 
 export default function MarketplaceSubmissionPage() {
-  const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const eventId = decodeURIComponent(String(params.eventId || ""));
-  const submissionType = decodeURIComponent(
-    String(params.submissionType || ""),
-  ) as MarketplaceSubmissionType;
-  const submissionId = decodeURIComponent(String(params.submissionId || ""));
+  const eventId = searchParams.get("eventId") || "";
+  const submissionType = (searchParams.get("submissionType") || "") as MarketplaceSubmissionType;
+  const submissionId = searchParams.get("submissionId") || "";
   const [draft, setDraft] = React.useState<Record<string, any>>({});
   const [reason, setReason] = React.useState("");
   const [busy, setBusy] = React.useState(false);

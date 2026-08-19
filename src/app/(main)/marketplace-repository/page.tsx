@@ -1404,7 +1404,7 @@ export default function MarketplaceRepositoryPage() {
             event.submission_summaries?.map((submission) => (
               <Link
                 key={`${submission.submission_type}-${submission.submission_id}`}
-                href={`/marketplace-repository/events/${event.event_id}/submissions/${submission.submission_type}/${submission.submission_id}`}
+                href={`/marketplace-repository/submission?eventId=${encodeURIComponent(event.event_id)}&submissionType=${encodeURIComponent(submission.submission_type)}&submissionId=${encodeURIComponent(submission.submission_id)}`}
                 className="flex items-center justify-between gap-3 rounded-md border p-2 text-xs hover:bg-slate-50"
               >
                 <span>
