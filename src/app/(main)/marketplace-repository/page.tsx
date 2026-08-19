@@ -2,19 +2,15 @@
 
 import * as React from "react";
 import { useState } from "react";
-import dayjs from "dayjs";
+import Link from "next/link";
 import {
   Ban,
-  CheckCircle,
-  Download,
-  Eye,
-  Flag,
-  FolderArchive,
+  ChevronDown,
+  ExternalLink,
   ImageOff,
   Pencil,
   Plus,
   Save,
-  Trash2,
   X,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -25,8 +21,7 @@ import {
   MarketplaceEventPayload,
   MarketplacePaymentResponsibility,
   MarketplaceRepositoryEvent,
-  MarketplaceRepositoryFile,
-  MarketplaceSubmission,
+  MarketplaceSubmissionType,
   marketplaceApiService,
 } from "@/services/marketplace-api-service";
 import { userApiService } from "@/services/user-api-service";
@@ -40,38 +35,20 @@ import {
   normalizeMarketplaceZonedDateInput,
 } from "@/helpers/marketplace-event-date";
 
-const fileTypeLabels: Record<string, string> = {
-  EVENT_IMAGE: "Event Image",
-  BID_MENU_PDF: "Menu PDF",
-  BID_IMAGE: "Bid Image",
-  PERMIT_LICENSE: "Business License/Permit",
-  REQUIREMENT_DOCUMENT: "Requirement",
-  AGREEMENT_DOCUMENT: "Signed Agreement",
-};
-
-const formatBytes = (value?: number | null) => {
-  const bytes = Number(value || 0);
-  if (!bytes) return "-";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
 const getPersonName = (user: any) =>
   [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
   user?.email ||
   "-";
 
-const getFoodTruckName = (submission: MarketplaceSubmission) => {
-  const truck = submission.food_truck_id;
-  if (truck?.name) return truck.name;
-  const vendor = submission.vendor_user_id;
-  return getPersonName(vendor);
-};
+const eventFormSectionClass =
+  "group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow open:shadow-md";
 
-const isBidAwardable = (submission: MarketplaceSubmission) =>
-  !!submission.bid_id &&
-  ["SUBMITTED", "UNDER_REVIEW"].includes(String(submission.bid_status || ""));
+const EventFormSectionSummary = ({ children }: { children: React.ReactNode }) => (
+  <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg bg-slate-50 px-4 py-3 text-base font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
+    <span>{children}</span>
+    <ChevronDown className="h-5 w-5 text-slate-500 transition-transform group-open:rotate-180" />
+  </summary>
+);
 
 const eventStatuses = ["DRAFT", "OPEN", "REOPENED", "CLOSED", "AWARDED", "CANCELLED"];
 const eventTypeOptions = [
@@ -104,7 +81,6 @@ const primaryServiceStyleOptions = [
 const permitOptions = [
   "None",
   "City Permit",
-  "Food Vendor",
   "Sanitation Grade",
   "Alcohol",
 ];
@@ -126,6 +102,60 @@ const equipmentOptions = [
   "Additional Staffing",
   "Chair Covers",
 ];
+const platedOptions = [
+  "Individual Plated Meals",
+  "Buffet Style",
+  "Boxed Meals",
+  "Family Style / Shared Platters",
+  "Passed Appetizers",
+  "Food Truck Window Service",
+  "Drop-Off Catering Only",
+  "Full-Service Catering",
+  "Dessert / Snack Service",
+  "Custom Menu / Chef's Choice",
+];
+const platedCourseOptions = [
+  "1 Course",
+  "2 Courses",
+  "3 Courses",
+  "4 Courses",
+  "5 Courses",
+  "Vendor Recommended",
+];
+const entreeSelectionOptions = [
+  "Single entree for all guests",
+  "Guest choice of 2-3 entrees",
+  "Table-side choice",
+  "Vendor recommended",
+];
+const platedIncludedItemOptions = [
+  "Bread",
+  "Salad",
+  "Dessert",
+  "None",
+  "Vendor recommended",
+];
+const buffetSetupOptions = [
+  "Full menu buffet",
+  "Self-service buffet",
+  "Staff-served buffet",
+  "Buffet stations",
+];
+const cateringIncludedItemOptions = [
+  "Bread",
+  "Salad",
+  "Dessert",
+  "Drinks",
+  "Plates/utensils/napkins",
+  "Vendor recommended",
+];
+const foodTruckMenuOptions = ["Full Menu", "Limited event menu", "Vendor recommended"];
+const stationSetupOptions = [
+  "Served stations",
+  "Self-service stations",
+  "Family-style table service",
+  "Vendor recommended",
+];
 
 type EventDraft = {
   event_name: string;
@@ -138,8 +168,11 @@ type EventDraft = {
   service_types: string[];
   service_styles: string[];
   primary_service_style: string;
+  charitable_event: boolean;
+  religious_organization: boolean;
   event_date: string;
   event_time: string;
+  event_timezone: string;
   event_duration_minutes: string;
   event_address: string;
   event_city: string;
@@ -148,6 +181,9 @@ type EventDraft = {
   latitude: string;
   longitude: string;
   formatted_address: string;
+  geocoded_address: string;
+  place_id: string;
+  geocoding_provider: string;
   number_of_guests: string;
   number_of_vendors_needed: string;
   power_required: string[];
@@ -175,6 +211,16 @@ type EventDraft = {
   cuisine_preferences: string[];
   dietary_restrictions: string[];
   equipment_needed: string[];
+  plated_number_of_courses: string;
+  plated_options: string[];
+  plated_entree_selection: string;
+  plated_included_items: string[];
+  buffet_setup: string;
+  buffet_included_items: string[];
+  food_truck_options: string;
+  station_setup_type: string;
+  station_included_items: string[];
+  service_notes: string;
   payment_responsibility: "COORDINATOR" | "VENDOR" | "BOTH" | "NONE";
   vendor_fee: string;
   budgeted_amount: string;
@@ -183,6 +229,7 @@ type EventDraft = {
   status: string;
   ticket_sales_enabled: boolean;
   ticket_url: string;
+  admin_reason: string;
 };
 
 type NewEventDraft = EventDraft & {
@@ -200,8 +247,11 @@ const emptyEventDraft: EventDraft = {
   service_types: [],
   service_styles: [],
   primary_service_style: "",
+  charitable_event: false,
+  religious_organization: false,
   event_date: "",
   event_time: "",
+  event_timezone: "America/New_York",
   event_duration_minutes: "",
   event_address: "",
   event_city: "",
@@ -210,6 +260,9 @@ const emptyEventDraft: EventDraft = {
   latitude: "",
   longitude: "",
   formatted_address: "",
+  geocoded_address: "",
+  place_id: "",
+  geocoding_provider: "",
   number_of_guests: "",
   number_of_vendors_needed: "1",
   power_required: [],
@@ -237,6 +290,16 @@ const emptyEventDraft: EventDraft = {
   cuisine_preferences: [],
   dietary_restrictions: [],
   equipment_needed: [],
+  plated_number_of_courses: "",
+  plated_options: [],
+  plated_entree_selection: "",
+  plated_included_items: [],
+  buffet_setup: "",
+  buffet_included_items: [],
+  food_truck_options: "",
+  station_setup_type: "",
+  station_included_items: [],
+  service_notes: "",
   payment_responsibility: "NONE",
   vendor_fee: "0",
   budgeted_amount: "0",
@@ -245,6 +308,7 @@ const emptyEventDraft: EventDraft = {
   status: "DRAFT",
   ticket_sales_enabled: false,
   ticket_url: "",
+  admin_reason: "",
 };
 
 const emptyNewEventDraft: NewEventDraft = {
@@ -261,6 +325,12 @@ const normalizeTimeInput = (value?: string | null) => {
 const normalizeArray = (value?: string[] | string | null) => {
   if (Array.isArray(value)) return value.filter(Boolean);
   return value ? [String(value)] : [];
+};
+
+const submissionTypeLabel = (type: MarketplaceSubmissionType) => {
+  if (type === "FOOD_BID") return "Food Bid";
+  if (type === "FOOD_APPLICATION") return "Food Application";
+  return "Marketplace Vendor Application";
 };
 
 const numberOrNull = (value: string) => {
@@ -286,8 +356,11 @@ const toEventDraft = (event: MarketplaceRepositoryEvent): EventDraft => ({
   service_types: normalizeArray(event.service_types?.length ? event.service_types : event.service_type),
   service_styles: normalizeArray(event.service_styles),
   primary_service_style: event.primary_service_style || "",
+  charitable_event: !!event.charitable_event,
+  religious_organization: !!event.religious_organization,
   event_date: normalizeMarketplaceCalendarDateInput(event.event_date),
   event_time: normalizeTimeInput(event.event_time),
+  event_timezone: event.event_timezone || "America/New_York",
   event_duration_minutes: event.event_duration_minutes != null ? String(event.event_duration_minutes) : "",
   event_address: event.event_address || "",
   event_city: event.event_city || "",
@@ -296,6 +369,9 @@ const toEventDraft = (event: MarketplaceRepositoryEvent): EventDraft => ({
   latitude: event.latitude != null ? String(event.latitude) : "",
   longitude: event.longitude != null ? String(event.longitude) : "",
   formatted_address: event.formatted_address || "",
+  geocoded_address: event.geocoded_address || "",
+  place_id: event.place_id || "",
+  geocoding_provider: event.geocoding_provider || "",
   number_of_guests: event.number_of_guests != null ? String(event.number_of_guests) : "",
   number_of_vendors_needed:
     event.number_of_vendors_needed != null ? String(event.number_of_vendors_needed) : "1",
@@ -335,6 +411,17 @@ const toEventDraft = (event: MarketplaceRepositoryEvent): EventDraft => ({
   cuisine_preferences: normalizeArray(event.cuisine_preferences),
   dietary_restrictions: normalizeArray(event.dietary_restrictions),
   equipment_needed: normalizeArray(event.equipment_needed),
+  plated_number_of_courses:
+    event.plated_number_of_courses != null ? String(event.plated_number_of_courses) : "",
+  plated_options: normalizeArray(event.plated_options),
+  plated_entree_selection: event.plated_entree_selection || "",
+  plated_included_items: normalizeArray(event.plated_included_items),
+  buffet_setup: event.buffet_setup || "",
+  buffet_included_items: normalizeArray(event.buffet_included_items),
+  food_truck_options: normalizeArray(event.food_truck_options)[0] || "",
+  station_setup_type: event.station_setup_type || "",
+  station_included_items: normalizeArray(event.station_included_items),
+  service_notes: event.service_notes || "",
   payment_responsibility: event.payment_responsibility || "NONE",
   vendor_fee: event.vendor_fee != null ? String(event.vendor_fee) : "0",
   budgeted_amount: event.budgeted_amount != null ? String(event.budgeted_amount) : "0",
@@ -346,6 +433,7 @@ const toEventDraft = (event: MarketplaceRepositoryEvent): EventDraft => ({
   status: event.status || "DRAFT",
   ticket_sales_enabled: !!event.ticket_sales_enabled,
   ticket_url: event.ticket_url || "",
+  admin_reason: "",
 });
 
 const buildEventPayload = (draft: EventDraft): MarketplaceEventPayload => {
@@ -368,8 +456,11 @@ const buildEventPayload = (draft: EventDraft): MarketplaceEventPayload => {
     service_types: serviceTypes,
     service_styles: normalizeArray(draft.service_styles),
     primary_service_style: primaryServiceStyle,
+    charitable_event: draft.charitable_event,
+    religious_organization: draft.religious_organization,
     event_date: draft.event_date || null,
     event_time: draft.event_time || null,
+    event_timezone: draft.event_timezone || "America/New_York",
     event_duration_hours: 0,
     event_duration_minutes: numberOrNull(draft.event_duration_minutes),
     event_address: draft.event_address,
@@ -379,6 +470,9 @@ const buildEventPayload = (draft: EventDraft): MarketplaceEventPayload => {
     latitude: numberOrNull(draft.latitude),
     longitude: numberOrNull(draft.longitude),
     formatted_address: draft.formatted_address || draft.event_address,
+    geocoded_address: draft.geocoded_address || draft.formatted_address || draft.event_address,
+    place_id: draft.place_id || null,
+    geocoding_provider: draft.geocoding_provider || null,
     number_of_guests: numberOrNull(draft.number_of_guests),
     number_of_vendors_needed: numberOrNull(draft.number_of_vendors_needed),
     power_required: normalizeArray(draft.power_required),
@@ -412,6 +506,16 @@ const buildEventPayload = (draft: EventDraft): MarketplaceEventPayload => {
     cuisine_preferences: normalizeArray(draft.cuisine_preferences),
     dietary_restrictions: normalizeArray(draft.dietary_restrictions),
     equipment_needed: normalizeArray(draft.equipment_needed),
+    plated_number_of_courses: draft.plated_number_of_courses || null,
+    plated_options: normalizeArray(draft.plated_options),
+    plated_entree_selection: draft.plated_entree_selection || null,
+    plated_included_items: normalizeArray(draft.plated_included_items),
+    buffet_setup: draft.buffet_setup || null,
+    buffet_included_items: normalizeArray(draft.buffet_included_items),
+    food_truck_options: draft.food_truck_options ? [draft.food_truck_options] : [],
+    station_setup_type: draft.station_setup_type || null,
+    station_included_items: normalizeArray(draft.station_included_items),
+    service_notes: draft.service_notes || null,
     payment_responsibility: paymentResponsibility,
     vendor_fee: moneyOrZero(draft.vendor_fee),
     budgeted_amount: moneyOrZero(draft.budgeted_amount),
@@ -420,18 +524,17 @@ const buildEventPayload = (draft: EventDraft): MarketplaceEventPayload => {
     status: draft.status,
     ticket_sales_enabled: draft.ticket_sales_enabled,
     ticket_url: draft.ticket_sales_enabled ? draft.ticket_url : "",
+    admin_reason: draft.admin_reason.trim(),
   };
 };
 
 export default function MarketplaceRepositoryPage() {
-  const [pagination, setPagination] = useState({ page: 1, limit: 10 });
   const [eventPagination, setEventPagination] = useState({ page: 1, limit: 10 });
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [eventStatus, setEventStatus] = useState("");
   const [eventSearch, setEventSearch] = useState("");
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [eventDrafts, setEventDrafts] = useState<Record<string, EventDraft>>({});
-  const [selectedBidIds, setSelectedBidIds] = useState<Record<string, string[]>>({});
   const [creatingEvent, setCreatingEvent] = useState(false);
   const [newEvent, setNewEvent] = useState<NewEventDraft>(emptyNewEventDraft);
 
@@ -462,37 +565,46 @@ export default function MarketplaceRepositoryPage() {
     refetchOnWindowFocus: false,
   });
 
-  const { data: result, isFetching, refetch } = useQuery({
-    queryKey: [
-      "marketplace-repository",
-      pagination.page,
-      pagination.limit,
-    ],
-    queryFn: () =>
-      marketplaceApiService.listRepositoryFiles({
-        page: pagination.page,
-        limit: pagination.limit,
-      }),
+  const { data: newEventDraftResult } = useQuery({
+    queryKey: ["marketplace-repository-new-event-draft"],
+    queryFn: () => marketplaceApiService.getRepositoryNewEventDraft(),
     staleTime: 0,
-      refetchOnWindowFocus: false,
-    });
+    refetchOnWindowFocus: false,
+  });
 
   const events = eventResult?.data?.data?.records || [];
   const eventTotal = eventResult?.data?.data?.total || 0;
   const coordinators = coordinatorResult?.data?.data?.records || [];
 
+  React.useEffect(() => {
+    const adminDraft = newEventDraftResult?.data?.data?.adminDraft;
+    if (!adminDraft?.payload) return;
+    const payload = adminDraft.payload;
+    setNewEvent({
+      ...emptyNewEventDraft,
+      ...toEventDraft(payload as MarketplaceRepositoryEvent),
+      customer_user_id: String(payload.customer_user_id || ""),
+      admin_reason: adminDraft.reason || "",
+    });
+    setCreatingEvent(true);
+  }, [newEventDraftResult]);
+
   const startEditEvent = (event: MarketplaceRepositoryEvent) => {
+    const savedDraft = event.admin_draft?.payload || {};
     setEditingEventId(event.event_id);
     setEventDrafts((prev) => ({
       ...prev,
-      [event.event_id]: toEventDraft(event),
+      [event.event_id]: {
+        ...toEventDraft({ ...event, ...savedDraft }),
+        admin_reason: event.admin_draft?.reason || "",
+      },
     }));
   };
 
   const updateEventDraft = (
     eventId: string,
     field: keyof EventDraft,
-    value: string | boolean | string[] | null,
+    value: EventDraft[keyof EventDraft],
   ) => {
     setEventDrafts((prev) => ({
       ...prev,
@@ -505,47 +617,74 @@ export default function MarketplaceRepositoryPage() {
 
   const updateNewEvent = (
     field: keyof NewEventDraft,
-    value: string | boolean | string[] | null,
+    value: NewEventDraft[keyof NewEventDraft],
   ) => {
     setNewEvent((prev) => ({ ...prev, [field]: value }));
   };
 
-  const saveEvent = async (event: MarketplaceRepositoryEvent) => {
+  const saveEvent = async (
+    event: MarketplaceRepositoryEvent,
+    saveMode: "DRAFT" | "PUBLISH",
+  ) => {
     const draft = eventDrafts[event.event_id];
     if (!draft) return;
+    if (!draft.admin_reason.trim()) {
+      toast.error("Enter an admin reason for this event change.");
+      return;
+    }
     setUpdatingId(event.event_id);
     try {
       await marketplaceApiService.updateRepositoryEvent(
         event.event_id,
-        buildEventPayload(draft),
+        { ...buildEventPayload(draft), save_mode: saveMode },
       );
-      toast.success("Marketplace event updated");
-      setEditingEventId(null);
-      refetchEvents();
+      toast.success(saveMode === "DRAFT" ? "Event draft saved" : "Marketplace event published");
+      if (saveMode === "PUBLISH") setEditingEventId(null);
+      await refetchEvents();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Unable to update event");
+      const validationErrors = error?.response?.data?.validation_errors || error?.response?.data?.data?.validation_errors;
+      const message = Array.isArray(validationErrors) && validationErrors.length
+        ? validationErrors.map((item: any) => `${item.field}: ${item.message}`).join(" · ")
+        : error?.response?.data?.message || "Unable to update event";
+      toast.error(message);
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const createEvent = async () => {
-    if (!newEvent.customer_user_id || !newEvent.event_name.trim()) {
-      toast.error("Select a coordinator and enter an event name.");
+  const createEvent = async (saveMode: "DRAFT" | "PUBLISH") => {
+    if (!newEvent.admin_reason.trim()) {
+      toast.error("Provide an admin reason before saving this event draft.");
+      return;
+    }
+    if (
+      saveMode === "PUBLISH" &&
+      (!newEvent.customer_user_id || !newEvent.event_name.trim())
+    ) {
+      toast.error("Select a coordinator and enter an event name before publishing.");
       return;
     }
     setUpdatingId("create-event");
     try {
       await marketplaceApiService.createRepositoryEvent({
         ...buildEventPayload(newEvent),
-        customer_user_id: newEvent.customer_user_id,
+        ...(newEvent.customer_user_id
+          ? { customer_user_id: newEvent.customer_user_id }
+          : {}),
+        save_mode: saveMode,
       });
-      toast.success("Marketplace event created");
-      setNewEvent(emptyNewEventDraft);
-      setCreatingEvent(false);
-      refetchEvents();
+      toast.success(saveMode === "DRAFT" ? "Event draft saved" : "Marketplace event created");
+      if (saveMode === "PUBLISH") {
+        setNewEvent(emptyNewEventDraft);
+        setCreatingEvent(false);
+        await refetchEvents();
+      }
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Unable to create event");
+      const validationErrors = error?.response?.data?.validation_errors || error?.response?.data?.data?.validation_errors;
+      const message = Array.isArray(validationErrors) && validationErrors.length
+        ? validationErrors.map((item: any) => `${item.field}: ${item.message}`).join(" · ")
+        : error?.response?.data?.message || "Unable to save event";
+      toast.error(message);
     } finally {
       setUpdatingId(null);
     }
@@ -555,11 +694,14 @@ export default function MarketplaceRepositoryPage() {
     event: MarketplaceRepositoryEvent,
     status: string,
   ) => {
-    const label = status === "CANCELLED" ? "reject/cancel" : `mark ${status}`;
-    if (!window.confirm(`Are you sure you want to ${label} this event?`)) return;
+    const reason = window.prompt(`Reason for changing this event to ${status}?`);
+    if (!reason?.trim()) return;
     setUpdatingId(`${event.event_id}-${status}`);
     try {
-      await marketplaceApiService.updateEventStatus(event.event_id, status);
+      await marketplaceApiService.updateRepositoryEvent(event.event_id, {
+        status,
+        admin_reason: reason.trim(),
+      });
       toast.success(`Event marked ${status}`);
       refetchEvents();
     } catch (error: any) {
@@ -579,7 +721,6 @@ export default function MarketplaceRepositoryPage() {
       await marketplaceApiService.deleteEventImage(event.event_id, imageId);
       toast.success("Event image removed");
       refetchEvents();
-      refetch();
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Unable to remove image");
     } finally {
@@ -587,112 +728,9 @@ export default function MarketplaceRepositoryPage() {
     }
   };
 
-  const withdrawSubmission = async (
-    event: MarketplaceRepositoryEvent,
-    submission: MarketplaceSubmission,
-  ) => {
-    const isBid = !!submission.bid_id;
-    const submissionId = submission.bid_id || submission.application_id;
-    if (!submissionId) return;
-    const reason = window.prompt("Reason for withdrawing this vendor?");
-    if (!reason?.trim()) return;
-    setUpdatingId(submissionId);
-    try {
-      await marketplaceApiService.withdrawSubmission(event.event_id, {
-        submission_type: isBid ? "BID" : "APPLICATION",
-        submission_id: submissionId,
-        reason: reason.trim(),
-      });
-      toast.success("Vendor submission withdrawn");
-      refetchEvents();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Unable to withdraw vendor");
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const toggleAwardBid = (eventId: string, bidId: string) => {
-    setSelectedBidIds((prev) => {
-      const current = prev[eventId] || [];
-      return {
-        ...prev,
-        [eventId]: current.includes(bidId)
-          ? current.filter((id) => id !== bidId)
-          : [...current, bidId],
-      };
-    });
-  };
-
-  const awardEventBids = async (event: MarketplaceRepositoryEvent) => {
-    const bidIds = selectedBidIds[event.event_id] || [];
-    if (!bidIds.length) {
-      toast.error("Select at least one submitted bid to award.");
-      return;
-    }
-    if (!window.confirm("Award the selected vendor bid(s) for this event?")) return;
-    setUpdatingId(`${event.event_id}-award`);
-    try {
-      const response = await marketplaceApiService.awardRepositoryEvent(
-        event.event_id,
-        bidIds,
-      );
-      toast.success(
-        response.data?.data?.requires_payment
-          ? "Award fee payment is pending for the coordinator."
-          : "Marketplace event awarded.",
-      );
-      setSelectedBidIds((prev) => ({ ...prev, [event.event_id]: [] }));
-      refetchEvents();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Unable to award event");
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const accessFile = async (
-    file: MarketplaceRepositoryFile,
-    download = false,
-  ) => {
-    try {
-      const response = await marketplaceApiService.accessFile(
-        file.attachment_id,
-        download,
-      );
-      const url = response.data.data.file_url;
-      window.open(url, "_blank", "noopener,noreferrer");
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Unable to access file");
-    }
-  };
-
-  const updateStatus = async (
-    file: MarketplaceRepositoryFile,
-    nextStatus: "ARCHIVED" | "DELETED" | "FLAGGED",
-  ) => {
-    const reason = window.prompt(`Reason for ${nextStatus.toLowerCase()}?`);
-    if (!reason?.trim()) return;
-
-    setUpdatingId(file.attachment_id);
-    try {
-      await marketplaceApiService.updateFileStatus(
-        file.attachment_id,
-        nextStatus,
-        reason.trim(),
-      );
-      toast.success(`File marked ${nextStatus.toLowerCase()}`);
-      refetch();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Unable to update file");
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
   const toggleDraftArray = (
     draft: EventDraft,
-    onChange: (field: keyof EventDraft, value: string | boolean | string[] | null) => void,
+    onChange: (field: keyof EventDraft, value: EventDraft[keyof EventDraft]) => void,
     field: keyof EventDraft,
     option: string,
   ) => {
@@ -763,14 +801,14 @@ export default function MarketplaceRepositoryPage() {
 
   const renderEventForm = (
     draft: EventDraft,
-    onChange: (field: keyof EventDraft, value: string | boolean | string[] | null) => void,
+    onChange: (field: keyof EventDraft, value: EventDraft[keyof EventDraft]) => void,
   ) => {
     const derivedPaymentResponsibility = getDerivedPaymentResponsibility(draft);
     const paymentVisibility = getMarketplacePaymentVisibility(draft);
     return (
     <div className="space-y-3">
-      <details open className="rounded-md border bg-white p-4">
-        <summary className="cursor-pointer text-base font-semibold">Basics</summary>
+      <details open className={eventFormSectionClass}>
+        <EventFormSectionSummary>Basics</EventFormSectionSummary>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <label className="text-sm xl:col-span-2">
             Event Name *
@@ -842,8 +880,8 @@ export default function MarketplaceRepositoryPage() {
         </div>
       </details>
 
-      <details open className="rounded-md border bg-white p-4">
-        <summary className="cursor-pointer text-base font-semibold">Timing & Location</summary>
+      <details open className={eventFormSectionClass}>
+        <EventFormSectionSummary>Timing & Location</EventFormSectionSummary>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <label className="text-sm">
             Event Date *
@@ -889,6 +927,14 @@ export default function MarketplaceRepositoryPage() {
               className="mt-1 h-10 w-full rounded-md border bg-white px-3"
               value={draft.event_close_time}
               onChange={(e) => onChange("event_close_time", e.target.value)}
+            />
+          </label>
+          <label className="text-sm">
+            Event Timezone *
+            <input
+              className="mt-1 h-10 w-full rounded-md border bg-white px-3"
+              value={draft.event_timezone}
+              onChange={(e) => onChange("event_timezone", e.target.value)}
             />
           </label>
           <label className="text-sm xl:col-span-2">
@@ -946,13 +992,24 @@ export default function MarketplaceRepositoryPage() {
               onChange={(e) => onChange("longitude", e.target.value)}
             />
           </label>
+          <label className="text-sm xl:col-span-2">
+            Formatted Address
+            <input className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.formatted_address} onChange={(e) => onChange("formatted_address", e.target.value)} />
+          </label>
+          <label className="text-sm xl:col-span-2">
+            Geocoded Address
+            <input className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.geocoded_address} onChange={(e) => onChange("geocoded_address", e.target.value)} />
+          </label>
+          <label className="text-sm xl:col-span-2">Google Place ID<input className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.place_id} onChange={(e) => onChange("place_id", e.target.value)} /></label>
+          <label className="text-sm xl:col-span-2">Geocoding Provider<input className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.geocoding_provider} onChange={(e) => onChange("geocoding_provider", e.target.value)} /></label>
         </div>
       </details>
 
-      <details open className="rounded-md border bg-white p-4">
-        <summary className="cursor-pointer text-base font-semibold">Services & Requirements</summary>
+      <details open className={eventFormSectionClass}>
+        <EventFormSectionSummary>Services & Requirements</EventFormSectionSummary>
         <div className="mt-4 space-y-4">
           {renderCheckboxGroup("Service Type *", draft, onChange, "service_types", serviceTypeOptions)}
+          {renderCheckboxGroup("Service Styles", draft, onChange, "service_styles", primaryServiceStyleOptions)}
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <label className="text-sm">
               Primary Service Style *
@@ -991,6 +1048,8 @@ export default function MarketplaceRepositoryPage() {
               />
               Alcohol service required
             </label>
+            <label className="flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm"><input type="checkbox" checked={draft.charitable_event} onChange={(e) => onChange("charitable_event", e.target.checked)} />Charitable event</label>
+            <label className="flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm"><input type="checkbox" checked={draft.religious_organization} onChange={(e) => onChange("religious_organization", e.target.checked)} />Religious organization</label>
           </div>
           {renderCheckboxGroup("Permits Required", draft, onChange, "permits_required", permitOptions)}
           {renderCheckboxGroup("Power Required", draft, onChange, "power_required", powerOptions)}
@@ -1000,8 +1059,8 @@ export default function MarketplaceRepositoryPage() {
         </div>
       </details>
 
-      <details open className="rounded-md border bg-white p-4">
-        <summary className="cursor-pointer text-base font-semibold">Food, VIP & Budget</summary>
+      <details open className={eventFormSectionClass}>
+        <EventFormSectionSummary>Food, VIP & Budget</EventFormSectionSummary>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <label className="text-sm">
             Number of Guests *
@@ -1023,7 +1082,7 @@ export default function MarketplaceRepositoryPage() {
               onChange={(e) => onChange("number_of_vendors_needed", e.target.value)}
             />
           </label>
-          {renderYesNo("Will free food be offered? *", draft.free_food_offered, (value) => {
+          {renderYesNo("Is any food being given away for free by the event organizers or sponsors, aside from what people buy or get from the hired caterers and trucks? *", draft.free_food_offered, (value) => {
             onChange("free_food_offered", value);
             if (value !== true) {
               onChange("free_food_provider", "");
@@ -1136,8 +1195,44 @@ export default function MarketplaceRepositoryPage() {
         </div>
       </details>
 
-      <details open className="rounded-md border bg-white p-4">
-        <summary className="cursor-pointer text-base font-semibold">Tickets & Status</summary>
+      <details className={eventFormSectionClass}>
+        <EventFormSectionSummary>Marketplace Vendor Needs</EventFormSectionSummary>
+        <div className="mt-4 space-y-3">
+          {draft.event_vendor_needs.map((need, index) => (
+            <div key={`${need.vendor_type}-${index}`} className="grid gap-2 rounded-md border p-3 md:grid-cols-5">
+              <select className="h-10 rounded-md border bg-white px-3" value={need.vendor_type} onChange={(e) => onChange("event_vendor_needs", draft.event_vendor_needs.map((item, itemIndex) => itemIndex === index ? { ...item, vendor_type: e.target.value as typeof item.vendor_type } : item))}>
+                <option value="MERCHANDISE">Merchandise</option><option value="SERVICE">Service</option><option value="OTHER">Other</option>
+              </select>
+              <input className="h-10 rounded-md border px-3 md:col-span-2" placeholder="Type description" value={need.type_description || ""} onChange={(e) => onChange("event_vendor_needs", draft.event_vendor_needs.map((item, itemIndex) => itemIndex === index ? { ...item, type_description: e.target.value } : item))} />
+              <input type="number" min="1" className="h-10 rounded-md border px-3" value={need.quantity} onChange={(e) => onChange("event_vendor_needs", draft.event_vendor_needs.map((item, itemIndex) => itemIndex === index ? { ...item, quantity: Number(e.target.value) || 1 } : item))} />
+              <div className="flex gap-2"><input type="number" min="0" step="0.01" className="h-10 min-w-0 flex-1 rounded-md border px-3" value={need.fee} onChange={(e) => onChange("event_vendor_needs", draft.event_vendor_needs.map((item, itemIndex) => itemIndex === index ? { ...item, fee: Number(e.target.value) || 0 } : item))} /><Button type="button" variant="outline" onClick={() => onChange("event_vendor_needs", draft.event_vendor_needs.filter((_, itemIndex) => itemIndex !== index))}>Remove</Button></div>
+            </div>
+          ))}
+          <Button type="button" variant="outline" onClick={() => onChange("event_vendor_needs", [...draft.event_vendor_needs, { vendor_type: "MERCHANDISE", type_description: "", quantity: 1, fee: 0 }])}>Add Vendor Need</Button>
+          <label className="block text-sm">Marketplace Vendor Electricity Fee<input type="number" min="0" step="0.01" className="mt-1 h-10 w-full rounded-md border px-3" value={draft.event_vendor_electricity_fee} onChange={(e) => onChange("event_vendor_electricity_fee", e.target.value)} /></label>
+        </div>
+      </details>
+
+      <details className={eventFormSectionClass}>
+        <EventFormSectionSummary>Detailed Service Configuration</EventFormSectionSummary>
+        <div className="mt-4 space-y-4">
+          {renderCheckboxGroup("Plated Options", draft, onChange, "plated_options", platedOptions)}
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <label className="text-sm">Plated Courses<select className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.plated_number_of_courses} onChange={(e) => onChange("plated_number_of_courses", e.target.value)}><option value="">Not selected</option>{platedCourseOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+            <label className="text-sm">Entree Selection<select className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.plated_entree_selection} onChange={(e) => onChange("plated_entree_selection", e.target.value)}><option value="">Not selected</option>{entreeSelectionOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+            <label className="text-sm">Buffet Setup<select className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.buffet_setup} onChange={(e) => onChange("buffet_setup", e.target.value)}><option value="">Not selected</option>{buffetSetupOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+            <label className="text-sm">Station Setup Type<select className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.station_setup_type} onChange={(e) => onChange("station_setup_type", e.target.value)}><option value="">Not selected</option>{stationSetupOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+          </div>
+          {renderCheckboxGroup("Plated Included Items", draft, onChange, "plated_included_items", platedIncludedItemOptions)}
+          {renderCheckboxGroup("Buffet Included Items", draft, onChange, "buffet_included_items", cateringIncludedItemOptions)}
+          <label className="block text-sm">Food Truck Menu Availability<select className="mt-1 h-10 w-full rounded-md border bg-white px-3" value={draft.food_truck_options} onChange={(e) => onChange("food_truck_options", e.target.value)}><option value="">Not selected</option>{foodTruckMenuOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+          {renderCheckboxGroup("Station Included Items", draft, onChange, "station_included_items", cateringIncludedItemOptions)}
+          <label className="text-sm md:col-span-2 xl:col-span-4">Service Notes<textarea className="mt-1 min-h-24 w-full rounded-md border p-2" value={draft.service_notes} onChange={(e) => onChange("service_notes", e.target.value)} /></label>
+        </div>
+      </details>
+
+      <details open className={eventFormSectionClass}>
+        <EventFormSectionSummary>Tickets & Status</EventFormSectionSummary>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <label className="text-sm">
             Status
@@ -1180,6 +1275,10 @@ export default function MarketplaceRepositoryPage() {
               value={draft.ticket_url}
               onChange={(e) => onChange("ticket_url", e.target.value)}
             />
+          </label>
+          <label className="text-sm md:col-span-2 xl:col-span-4">
+            Admin Change Reason *
+            <textarea className="mt-1 min-h-20 w-full rounded-md border bg-white px-3 py-2" value={draft.admin_reason} onChange={(e) => onChange("admin_reason", e.target.value)} placeholder="Required audit reason for creating or changing this canonical event" />
           </label>
         </div>
       </details>
@@ -1298,166 +1397,40 @@ export default function MarketplaceRepositoryPage() {
     },
     {
       header: "Vendors",
-      fieldName: "bids",
-      accessor: (event) => {
-        const submissions = [
-          ...(event.bids || []),
-          ...(event.applications || []),
-        ];
-        return (
-          <div className="min-w-[300px] space-y-2">
-            {!submissions.length ? (
-              <div className="text-xs text-muted-foreground">No submissions</div>
-            ) : null}
-            {submissions.map((submission) => {
-              const isBid = !!submission.bid_id;
-              const submissionId = submission.bid_id || submission.application_id || "";
-              const status = submission.bid_status || submission.application_status || "-";
-              const selected = (selectedBidIds[event.event_id] || []).includes(
-                submissionId,
-              );
-              return (
-                <div
-                  key={`${isBid ? "bid" : "application"}-${submissionId}`}
-                  className="rounded-md border p-2 text-xs"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <div className="font-medium">{getFoodTruckName(submission)}</div>
-                      <div className="text-muted-foreground">
-                        {isBid ? "Bid" : "Application"}: {status}
-                      </div>
-                    </div>
-                    {isBidAwardable(submission) ? (
-                      <label className="flex items-center gap-1">
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={() => toggleAwardBid(event.event_id, submissionId)}
-                        />
-                        Award
-                      </label>
-                    ) : null}
-                  </div>
-                  <Button
-                    size="xs"
-                    variant="outline"
-                    className="mt-2"
-                    disabled={
-                      updatingId === submissionId ||
-                      ["AWARDED", "ACCEPTED", "PAYMENT_DUE", "PAID", "CONFIRMED", "WITHDRAWN"].includes(
-                        String(status),
-                      )
-                    }
-                    onClick={() => withdrawSubmission(event, submission)}
-                  >
-                    Withdraw
-                  </Button>
-                </div>
-              );
-            })}
-            {(event.bids || []).some(isBidAwardable) ? (
-              <Button
-                size="sm"
-                disabled={updatingId === `${event.event_id}-award`}
-                onClick={() => awardEventBids(event)}
+      fieldName: "submission_summaries",
+      accessor: (event) => (
+        <div className="min-w-[320px] space-y-2">
+          {(event.submission_summaries || []).length ? (
+            event.submission_summaries?.map((submission) => (
+              <Link
+                key={`${submission.submission_type}-${submission.submission_id}`}
+                href={`/marketplace-repository/events/${event.event_id}/submissions/${submission.submission_type}/${submission.submission_id}`}
+                className="flex items-center justify-between gap-3 rounded-md border p-2 text-xs hover:bg-slate-50"
               >
-                <CheckCircle className="mr-1 h-4 w-4" /> Award Selected
-              </Button>
-            ) : null}
-          </div>
-        );
-      },
-    },
-  ];
-
-  const columns: Column<MarketplaceRepositoryFile>[] = [
-    {
-      header: "File",
-      fieldName: "original_name",
-      accessor: (file) => (
-        <div className="min-w-[220px]">
-          <div className="font-medium">{file.original_name || "Unnamed file"}</div>
-          <div className="text-xs text-muted-foreground break-all">
-            {file.file_key || "-"}
-          </div>
+                <span>
+                  <span className="block font-medium">{submission.business_name || submission.vendor_name || submission.event_vendor_profile_id || submission.food_truck_id || "Vendor"}</span>
+                  <span className="text-muted-foreground">
+                    {submissionTypeLabel(submission.submission_type)} · {submission.status}
+                  </span>
+                </span>
+                <ExternalLink className="h-4 w-4 shrink-0" />
+              </Link>
+            ))
+          ) : (
+            <div className="text-xs text-muted-foreground">No submissions</div>
+          )}
         </div>
-      ),
-      canNotHide: true,
-      className: "w-[280px]",
-    },
-    {
-      header: "Event",
-      fieldName: "event_id",
-      accessor: (file) => (
-        <div>
-          <div>{file.marketplaceEvent?.event_name || "-"}</div>
-          <div className="text-xs text-muted-foreground">{file.event_id}</div>
-        </div>
-      ),
-    },
-    {
-      header: "Submission",
-      fieldName: "bid_id",
-      accessor: (file) => file.bid_id || file.application_id || "-",
-    },
-    {
-      header: "Vendor",
-      fieldName: "vendor_user_id",
-      accessor: (file) => (
-        <div className="text-xs">
-          <div>Vendor: {file.vendor_user_id || "-"}</div>
-          <div>Truck: {file.food_truck_id || "-"}</div>
-        </div>
-      ),
-    },
-    {
-      header: "Uploaded By",
-      fieldName: "uploaded_by_user_id",
-      accessor: (file) => file.uploaded_by_user_id || "-",
-    },
-    {
-      header: "Type",
-      fieldName: "attachment_type",
-      accessor: (file) =>
-        file.requirement_label
-          ? `${fileTypeLabels[file.attachment_type] || file.attachment_type}: ${
-              file.requirement_label
-            }`
-          : fileTypeLabels[file.attachment_type] || file.attachment_type,
-    },
-    {
-      header: "Size",
-      fieldName: "size_bytes",
-      accessor: (file) => formatBytes(file.size_bytes),
-    },
-    {
-      header: "Uploaded",
-      fieldName: "created_at",
-      accessor: (file) =>
-        file.created_at ? dayjs(file.created_at).format("YYYY-MM-DD HH:mm") : "-",
-    },
-    {
-      header: "Status",
-      fieldName: "status",
-      accessor: (file) => (
-        <span className="rounded-full border px-2 py-1 text-xs font-medium">
-          {file.status}
-        </span>
       ),
     },
   ];
-
-  const files = result?.data?.data?.records || [];
-  const total = result?.data?.data?.total || 0;
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold">Marketplace Repository</h1>
         <p className="text-sm text-muted-foreground">
-          Manage marketplace events, vendor submissions, event images, bid menus,
-          food images, permit/license documents, and signed agreements.
+          Create and correct canonical coordinator events. Vendor submissions and
+          their files open as linked records instead of duplicate repository rows.
         </p>
       </div>
 
@@ -1466,8 +1439,8 @@ export default function MarketplaceRepositoryPage() {
           <div>
             <h2 className="text-lg font-semibold">Marketplace Events</h2>
             <p className="text-sm text-muted-foreground">
-              Create events for existing coordinators, make minor edits, remove
-              images, reject events, withdraw vendors, and award bids.
+              Create events for existing coordinators, edit the full event record,
+              manage event images, and open exact vendor submissions.
             </p>
           </div>
           <Button onClick={() => setCreatingEvent((value) => !value)}>
@@ -1503,12 +1476,19 @@ export default function MarketplaceRepositoryPage() {
               </label>
             </div>
             {renderEventForm(newEvent, (field, value) => updateNewEvent(field, value))}
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex justify-end gap-2">
               <Button
-                onClick={createEvent}
+                variant="outline"
+                onClick={() => createEvent("DRAFT")}
                 disabled={updatingId === "create-event"}
               >
-                <Save className="mr-1 h-4 w-4" /> Save Event
+                <Save className="mr-1 h-4 w-4" /> Save Draft
+              </Button>
+              <Button
+                onClick={() => createEvent("PUBLISH")}
+                disabled={updatingId === "create-event"}
+              >
+                <Save className="mr-1 h-4 w-4" /> Publish Event
               </Button>
             </div>
           </div>
@@ -1525,13 +1505,23 @@ export default function MarketplaceRepositoryPage() {
               </div>
               <div className="flex gap-2">
                 <Button
+                  variant="outline"
                   onClick={() => {
                     const event = events.find((item) => item.event_id === editingEventId);
-                    if (event) saveEvent(event);
+                    if (event) saveEvent(event, "DRAFT");
                   }}
                   disabled={updatingId === editingEventId}
                 >
-                  <Save className="mr-1 h-4 w-4" /> Save Changes
+                  <Save className="mr-1 h-4 w-4" /> Save Draft
+                </Button>
+                <Button
+                  onClick={() => {
+                    const event = events.find((item) => item.event_id === editingEventId);
+                    if (event) saveEvent(event, "PUBLISH");
+                  }}
+                  disabled={updatingId === editingEventId}
+                >
+                  <Save className="mr-1 h-4 w-4" /> Publish Changes
                 </Button>
                 <Button
                   variant="outline"
@@ -1548,6 +1538,16 @@ export default function MarketplaceRepositoryPage() {
                 </Button>
               </div>
             </div>
+            {events.find((item) => item.event_id === editingEventId)?.admin_draft?.validation_errors?.length ? (
+              <div className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">
+                <div className="font-medium">This draft was retained. Correct the following before publishing:</div>
+                <ul className="mt-1 list-disc pl-5">
+                  {events.find((item) => item.event_id === editingEventId)?.admin_draft?.validation_errors?.map((item, index) => (
+                    <li key={`${item.field}-${index}`}>{item.field}: {item.message}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             {renderEventForm(eventDrafts[editingEventId], (field, value) =>
               updateEventDraft(editingEventId, field, value),
             )}
@@ -1595,10 +1595,10 @@ export default function MarketplaceRepositoryPage() {
                 <>
                   <Button
                     size="sm"
-                    onClick={() => saveEvent(event)}
+                    onClick={() => saveEvent(event, "PUBLISH")}
                     disabled={updatingId === event.event_id}
                   >
-                    <Save className="mr-1 h-4 w-4" /> Save
+                    <Save className="mr-1 h-4 w-4" /> Publish
                   </Button>
                   <Button
                     size="sm"
@@ -1620,7 +1620,7 @@ export default function MarketplaceRepositoryPage() {
                   disabled={updatingId === `${event.event_id}-CANCELLED`}
                   onClick={() => updateEventStatus(event, "CANCELLED")}
                 >
-                  <Ban className="mr-1 h-4 w-4" /> Reject
+                  <Ban className="mr-1 h-4 w-4" /> Cancel Event
                 </Button>
               ) : null}
             </div>
@@ -1628,53 +1628,6 @@ export default function MarketplaceRepositoryPage() {
         />
       </div>
 
-      <DataTable
-        data={files}
-        columns={columns}
-        isLoading={isFetching}
-        totalRecords={total}
-        currentPage={pagination.page}
-        pageSize={pagination.limit}
-        setPagination={setPagination}
-        actions={(file) => (
-          <div className="flex min-w-[190px] flex-wrap gap-1">
-            <Button size="sm" variant="outline" onClick={() => accessFile(file)}>
-              <Eye className="mr-1 h-4 w-4" /> View
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => accessFile(file, true)}
-            >
-              <Download className="mr-1 h-4 w-4" /> Download
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={updatingId === file.attachment_id || file.status === "DELETED"}
-              onClick={() => updateStatus(file, "ARCHIVED")}
-            >
-              <FolderArchive className="mr-1 h-4 w-4" /> Archive
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={updatingId === file.attachment_id || file.status === "DELETED"}
-              onClick={() => updateStatus(file, "FLAGGED")}
-            >
-              <Flag className="mr-1 h-4 w-4" /> Flag
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              disabled={updatingId === file.attachment_id || file.status === "DELETED"}
-              onClick={() => updateStatus(file, "DELETED")}
-            >
-              <Trash2 className="mr-1 h-4 w-4" /> Delete
-            </Button>
-          </div>
-        )}
-      />
     </div>
   );
 }

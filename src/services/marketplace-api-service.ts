@@ -2,7 +2,6 @@ import { BaseAPI } from "./base-api";
 import { APIEndpoint } from "@/models/api-endpoint";
 import { IResponse } from "@/interfaces/response-interface";
 
-export type MarketplaceFileStatus = "ACTIVE" | "ARCHIVED" | "DELETED" | "FLAGGED";
 export type MarketplacePaymentStatus =
   | "PENDING"
   | "PAID"
@@ -43,44 +42,6 @@ export interface AdminEventVendorPhoto {
   category?: string | null;
   file_url: string;
   original_name?: string | null;
-}
-
-export interface MarketplaceRepositoryFile {
-  attachment_id: string;
-  event_id: string;
-  bid_id?: string | null;
-  application_id?: string | null;
-  attachment_type: string;
-  requirement_label?: string | null;
-  requirement_key?: string | null;
-  file_url: string;
-  file_key?: string | null;
-  original_name?: string | null;
-  mime_type?: string | null;
-  size_bytes?: number | null;
-  uploaded_by_user_id: string;
-  status: MarketplaceFileStatus;
-  status_reason?: string | null;
-  created_at?: string;
-  marketplaceEvent?: {
-    event_id: string;
-    event_name: string;
-    customer_user_id: string;
-  } | null;
-  marketplaceBid?: {
-    bid_id: string;
-    vendor_user_id: string;
-    food_truck_id: string;
-    bid_status: string;
-  } | null;
-  marketplaceApplication?: {
-    application_id: string;
-    vendor_user_id: string;
-    food_truck_id: string;
-    application_status: string;
-  } | null;
-  vendor_user_id?: string | null;
-  food_truck_id?: string | null;
 }
 
 export interface MarketplacePayment {
@@ -142,6 +103,60 @@ export interface MarketplaceSubmission {
   created_at?: string;
 }
 
+export type MarketplaceSubmissionType =
+  | "FOOD_BID"
+  | "FOOD_APPLICATION"
+  | "MARKETPLACE_APPLICATION";
+
+export interface MarketplaceSubmissionSummary {
+  submission_type: MarketplaceSubmissionType;
+  submission_id: string;
+  status: string;
+  vendor_name?: string | null;
+  business_name?: string | null;
+  vendor_types?: string[];
+  vendor_user_id?: string | null;
+  food_truck_id?: string | null;
+  event_vendor_profile_id?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface MarketplaceSubmissionAttachment {
+  attachment_id: string;
+  attachment_type?: string | null;
+  requirement_label?: string | null;
+  original_name?: string | null;
+  file_url: string;
+  status?: string | null;
+  created_at?: string | null;
+}
+
+export interface MarketplaceSubmissionDetail {
+  marketplaceEvent: MarketplaceRepositoryEvent;
+  submission: Record<string, any>;
+  submission_type: MarketplaceSubmissionType;
+  submission_id: string;
+  status: string;
+  profile?: Record<string, any> | null;
+  attachments: MarketplaceSubmissionAttachment[];
+  editable_fields: string[];
+  locked_fields: string[];
+  admin_draft?: {
+    payload?: Record<string, any>;
+    reason?: string | null;
+    validation_errors?: Array<{ field: string; message: string }>;
+  } | null;
+  revoke_allowed?: boolean;
+  revoke_block_reason?: string | null;
+}
+
+export interface MarketplaceAdminDraft {
+  payload?: Record<string, any>;
+  reason?: string | null;
+  validation_errors?: Array<{ field: string; message: string }>;
+}
+
 export type MarketplaceEventVisibility = "PUBLIC" | "PRIVATE";
 export type MarketplacePaymentResponsibility =
   | "COORDINATOR"
@@ -169,6 +184,8 @@ export interface MarketplaceEventPayload {
   event_date?: string | null;
   event_time?: string | null;
   event_timezone?: string | null;
+  charitable_event?: boolean;
+  religious_organization?: boolean;
   event_duration_hours?: number | null;
   event_duration_minutes?: number | null;
   event_address?: string | null;
@@ -178,6 +195,10 @@ export interface MarketplaceEventPayload {
   latitude?: number | null;
   longitude?: number | null;
   formatted_address?: string | null;
+  geocoded_address?: string | null;
+  place_id?: string | null;
+  geocoding_provider?: string | null;
+  geocoded_at?: string | null;
   number_of_guests?: number | null;
   number_of_vendors_needed?: number | null;
   power_required?: string[];
@@ -201,12 +222,29 @@ export interface MarketplaceEventPayload {
   cuisine_preferences?: string[];
   dietary_restrictions?: string[];
   equipment_needed?: string[];
+  plated_number_of_courses?: string | null;
+  plated_options?: string[];
+  plated_entree_selection?: string | null;
+  plated_included_items?: string[];
+  plated_single_entree?: boolean;
+  plated_choice_entrees?: boolean;
+  plated_tableside_choice?: boolean;
+  plated_bread_salad_dessert?: boolean;
+  buffet_options?: string[];
+  buffet_setup?: string | null;
+  buffet_included_items?: string[];
+  food_truck_options?: string[];
+  station_setup_type?: string | null;
+  station_included_items?: string[];
+  service_notes?: string | null;
   vendor_fee?: number;
   budgeted_amount?: number;
   payment_responsibility?: MarketplacePaymentResponsibility;
   event_close_date?: string | null;
   event_close_time?: string | null;
   status?: string;
+  admin_reason?: string;
+  save_mode?: "DRAFT" | "PUBLISH";
 }
 
 export interface MarketplaceRepositoryEvent {
@@ -214,6 +252,11 @@ export interface MarketplaceRepositoryEvent {
   event_name: string;
   event_description?: string | null;
   status: string;
+  admin_draft?: {
+    payload?: Record<string, any>;
+    reason?: string | null;
+    validation_errors?: Array<{ field: string; message: string }>;
+  } | null;
   event_visibility?: string | null;
   event_type?: string | null;
   event_type_other?: string | null;
@@ -221,6 +264,8 @@ export interface MarketplaceRepositoryEvent {
   event_date?: string | null;
   event_time?: string | null;
   event_timezone?: string | null;
+  charitable_event?: boolean;
+  religious_organization?: boolean;
   event_duration_hours?: number | null;
   event_duration_minutes?: number | null;
   event_address?: string | null;
@@ -230,6 +275,10 @@ export interface MarketplaceRepositoryEvent {
   latitude?: number | null;
   longitude?: number | null;
   formatted_address?: string | null;
+  geocoded_address?: string | null;
+  place_id?: string | null;
+  geocoding_provider?: string | null;
+  geocoded_at?: string | null;
   service_type?: string | null;
   service_types?: string[];
   service_styles?: string[];
@@ -261,6 +310,21 @@ export interface MarketplaceRepositoryEvent {
   cuisine_preferences?: string[];
   dietary_restrictions?: string[];
   equipment_needed?: string[];
+  plated_number_of_courses?: string | null;
+  plated_options?: string[];
+  plated_entree_selection?: string | null;
+  plated_included_items?: string[];
+  plated_single_entree?: boolean;
+  plated_choice_entrees?: boolean;
+  plated_tableside_choice?: boolean;
+  plated_bread_salad_dessert?: boolean;
+  buffet_options?: string[];
+  buffet_setup?: string | null;
+  buffet_included_items?: string[];
+  food_truck_options?: string[];
+  station_setup_type?: string | null;
+  station_included_items?: string[];
+  service_notes?: string | null;
   vendor_fee?: number | null;
   budgeted_amount?: number | null;
   payment_responsibility?: MarketplacePaymentResponsibility;
@@ -272,7 +336,11 @@ export interface MarketplaceRepositoryEvent {
   images?: MarketplaceEventImage[];
   bids?: MarketplaceSubmission[];
   applications?: MarketplaceSubmission[];
+  submission_summaries?: MarketplaceSubmissionSummary[];
   bid_count?: number;
+  food_application_count?: number;
+  marketplace_application_count?: number;
+  submission_count?: number;
   application_count?: number;
   created_at?: string;
 }
@@ -345,23 +413,81 @@ class MarketplaceApiService extends BaseAPI {
   }
 
   createRepositoryEvent(payload: MarketplaceEventPayload & {
-    customer_user_id: string;
+    customer_user_id?: string;
+    save_mode: "DRAFT" | "PUBLISH";
   }) {
     return this.post<
-      IResponse<{ marketplaceEvent: MarketplaceRepositoryEvent }>
+      IResponse<{
+        marketplaceEvent?: MarketplaceRepositoryEvent;
+        adminDraft?: MarketplaceAdminDraft;
+      }>
     >(`${APIEndpoint.MARKETPLACE}/repository/events`, payload);
   }
 
-  updateEventStatus(eventId: string, status: string) {
-    return this.patch<
-      IResponse<{ marketplaceEvent: MarketplaceRepositoryEvent }>
-    >(`${APIEndpoint.MARKETPLACE}/events/${eventId}/status`, { status });
+  getRepositoryNewEventDraft() {
+    return this.get<IResponse<{ adminDraft: MarketplaceAdminDraft | null }>>(
+      `${APIEndpoint.MARKETPLACE}/repository/events/new-draft`,
+    );
   }
 
-  awardRepositoryEvent(eventId: string, bidIds: string[]) {
-    return this.post<IResponse<any>>(
-      `${APIEndpoint.MARKETPLACE}/repository/events/${eventId}/award`,
-      { bid_ids: bidIds },
+  getRepositorySubmission(
+    eventId: string,
+    submissionType: MarketplaceSubmissionType,
+    submissionId: string,
+  ) {
+    return this.get<IResponse<MarketplaceSubmissionDetail>>(
+      `${APIEndpoint.MARKETPLACE}/repository/events/${eventId}/submissions/${submissionType}/${submissionId}`,
+    );
+  }
+
+  updateRepositorySubmission(
+    eventId: string,
+    submissionType: MarketplaceSubmissionType,
+    submissionId: string,
+    payload: Record<string, unknown> & {
+      admin_reason: string;
+      save_mode: "DRAFT" | "PUBLISH";
+    },
+  ) {
+    return this.patch<IResponse<{ marketplaceSubmission: Record<string, any> }>>(
+      `${APIEndpoint.MARKETPLACE}/repository/events/${eventId}/submissions/${submissionType}/${submissionId}`,
+      payload,
+    );
+  }
+
+  actionRepositorySubmission(
+    eventId: string,
+    submissionType: MarketplaceSubmissionType,
+    submissionId: string,
+    action: "WITHDRAW" | "ARCHIVE" | "DELETE" | "REVOKE",
+    adminReason: string,
+  ) {
+    return this.post<IResponse<{ marketplaceSubmission: Record<string, any> }>>(
+      `${APIEndpoint.MARKETPLACE}/repository/events/${eventId}/submissions/${submissionType}/${submissionId}/actions`,
+      { action, reason: adminReason },
+    );
+  }
+
+  replaceRepositorySubmissionAttachment(
+    eventId: string,
+    submissionType: MarketplaceSubmissionType,
+    submissionId: string,
+    attachmentId: string,
+    file: File,
+    adminReason: string,
+  ) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("admin_reason", adminReason);
+    return this.post<
+      IResponse<{
+        marketplaceAttachment: MarketplaceSubmissionAttachment;
+        marketplaceSubmission: Record<string, any>;
+      }>
+    >(
+      `${APIEndpoint.MARKETPLACE}/repository/events/${eventId}/submissions/${submissionType}/${submissionId}/attachments/${attachmentId}/replace`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
     );
   }
 
@@ -371,52 +497,11 @@ class MarketplaceApiService extends BaseAPI {
     );
   }
 
-  withdrawSubmission(
-    eventId: string,
-    payload: {
-      submission_type: "BID" | "APPLICATION";
-      submission_id: string;
-      reason?: string;
-    },
-  ) {
-    return this.patch<IResponse<any>>(
-      `${APIEndpoint.MARKETPLACE}/repository/events/${eventId}/submissions/withdraw`,
-      payload,
-    );
-  }
-
-  listRepositoryFiles(params: {
-    page: number;
-    limit: number;
-    search?: string;
-    status?: string;
-    attachment_type?: string;
-  }) {
-    return this.getPaginated<MarketplaceRepositoryFile>(
-      `${APIEndpoint.MARKETPLACE}/repository/files`,
-      "marketplaceRepositoryFileList",
-      { params },
-    );
-  }
-
   accessFile(attachmentId: string, download = false) {
     return this.get<
       IResponse<{ file_url: string; file_key?: string | null; action: string }>
     >(`${APIEndpoint.MARKETPLACE}/repository/files/${attachmentId}/access`, {
       params: { download },
-    });
-  }
-
-  updateFileStatus(
-    attachmentId: string,
-    status: Exclude<MarketplaceFileStatus, "ACTIVE">,
-    reason: string,
-  ) {
-    return this.patch<
-      IResponse<{ marketplaceRepositoryFile: MarketplaceRepositoryFile }>
-    >(`${APIEndpoint.MARKETPLACE}/repository/files/${attachmentId}/status`, {
-      status,
-      reason,
     });
   }
 
