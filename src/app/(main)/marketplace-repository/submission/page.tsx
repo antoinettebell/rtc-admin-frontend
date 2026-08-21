@@ -231,7 +231,11 @@ export default function MarketplaceSubmissionPage() {
             <Link href="/marketplace-repository"><ArrowLeft className="mr-2 h-4 w-4" />Marketplace Repository</Link>
           </Button>
           <h1 className="text-2xl font-semibold">{titleForType(detail.submission_type)}</h1>
-          <p className="text-sm text-muted-foreground">Canonical record {detail.submission_id}</p>
+          <p className="text-sm text-muted-foreground">
+            {detail.submission_type === "MARKETPLACE_APPLICATION"
+              ? "Marketplace Vendor Profile"
+              : "Food Vendor Profile"} {detail.vendor_profile_id || "Unavailable"}
+          </p>
         </div>
         <span className="rounded-full border px-3 py-1 text-sm font-medium">{detail.status}</span>
       </div>

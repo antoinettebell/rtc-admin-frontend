@@ -137,6 +137,7 @@ export interface MarketplaceSubmissionDetail {
   submission: Record<string, any>;
   submission_type: MarketplaceSubmissionType;
   submission_id: string;
+  vendor_profile_id?: string | null;
   status: string;
   profile?: Record<string, any> | null;
   attachments: MarketplaceSubmissionAttachment[];

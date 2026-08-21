@@ -1557,7 +1557,7 @@ export default function MarketplaceRepositoryPage() {
         <div className="mb-3 flex flex-wrap gap-2">
           <input
             className="h-10 min-w-[260px] rounded-md border px-3 text-sm"
-            placeholder="Search events"
+            placeholder="Search event, bid, or vendor ID"
             value={eventSearch}
             onChange={(e) => {
               setEventSearch(e.target.value);
