@@ -534,6 +534,7 @@ export default function MarketplaceRepositoryPage() {
   const [eventStatus, setEventStatus] = useState("");
   const [eventSearch, setEventSearch] = useState("");
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [reopenModes, setReopenModes] = useState<Record<string, "ARCHIVE" | "KEEP">>({});
   const [eventDrafts, setEventDrafts] = useState<Record<string, EventDraft>>({});
   const [creatingEvent, setCreatingEvent] = useState(false);
   const [newEvent, setNewEvent] = useState<NewEventDraft>(emptyNewEventDraft);
@@ -634,11 +635,25 @@ export default function MarketplaceRepositoryPage() {
     }
     setUpdatingId(event.event_id);
     try {
-      await marketplaceApiService.updateRepositoryEvent(
-        event.event_id,
-        { ...buildEventPayload(draft), save_mode: saveMode },
-      );
-      toast.success(saveMode === "DRAFT" ? "Event draft saved" : "Marketplace event published");
+      const reopenMode = reopenModes[event.event_id];
+      if (reopenMode && saveMode === "PUBLISH") {
+        await marketplaceApiService.reopenRepositoryEvent(event.event_id, {
+          ...buildEventPayload(draft),
+          reopen_mode: reopenMode,
+        });
+        toast.success("Marketplace event reopened");
+        setReopenModes((previous) => {
+          const next = { ...previous };
+          delete next[event.event_id];
+          return next;
+        });
+      } else {
+        await marketplaceApiService.updateRepositoryEvent(
+          event.event_id,
+          { ...buildEventPayload(draft), save_mode: saveMode },
+        );
+        toast.success(saveMode === "DRAFT" ? "Event draft saved" : "Marketplace event published");
+      }
       if (saveMode === "PUBLISH") setEditingEventId(null);
       await refetchEvents();
     } catch (error: any) {
@@ -709,6 +724,36 @@ export default function MarketplaceRepositoryPage() {
     } finally {
       setUpdatingId(null);
     }
+  };
+
+  const closeEventEarly = async (event: MarketplaceRepositoryEvent) => {
+    if (!window.confirm("Are you sure you want to close the event?")) return;
+    setUpdatingId(`${event.event_id}-CLOSE`);
+    try {
+      await marketplaceApiService.closeRepositoryEvent(
+        event.event_id,
+        "Closed early by admin.",
+      );
+      toast.success("Event closed");
+      await refetchEvents();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Unable to close event");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const startReopenEvent = (event: MarketplaceRepositoryEvent) => {
+    if (!window.confirm("Reopen this event?")) return;
+    const archive = window.confirm(
+      "Archive outstanding bids and applications? Select OK to Archive. Select Cancel to Keep Existing Bids.",
+    );
+    setReopenModes((previous) => ({
+      ...previous,
+      [event.event_id]: archive ? "ARCHIVE" : "KEEP",
+    }));
+    startEditEvent(event);
+    toast.info("Please edit and enter a new future Close Date and Close Time, then publish changes to reopen the event.");
   };
 
   const deleteEventImage = async (
@@ -1498,9 +1543,13 @@ export default function MarketplaceRepositoryPage() {
           <div className="mb-4 rounded-lg border bg-orange-50 p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-base font-semibold">Edit Marketplace Event</h3>
+                <h3 className="text-base font-semibold">
+                  {reopenModes[editingEventId] ? "Reopen Marketplace Event" : "Edit Marketplace Event"}
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  All required and optional coordinator event fields are available here.
+                  {reopenModes[editingEventId]
+                    ? "Enter a new future Close Date and Close Time, then publish to reopen this event. Awarded and paid vendors remain protected."
+                    : "All required and optional coordinator event fields are available here."}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -1510,7 +1559,7 @@ export default function MarketplaceRepositoryPage() {
                     const event = events.find((item) => item.event_id === editingEventId);
                     if (event) saveEvent(event, "DRAFT");
                   }}
-                  disabled={updatingId === editingEventId}
+                  disabled={updatingId === editingEventId || !!reopenModes[editingEventId]}
                 >
                   <Save className="mr-1 h-4 w-4" /> Save Draft
                 </Button>
@@ -1527,6 +1576,11 @@ export default function MarketplaceRepositoryPage() {
                   variant="outline"
                   onClick={() => {
                     setEditingEventId(null);
+                    setReopenModes((previous) => {
+                      const next = { ...previous };
+                      delete next[editingEventId];
+                      return next;
+                    });
                     setEventDrafts((prev) => {
                       const next = { ...prev };
                       delete next[editingEventId];
@@ -1603,7 +1657,14 @@ export default function MarketplaceRepositoryPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setEditingEventId(null)}
+                    onClick={() => {
+                      setEditingEventId(null);
+                      setReopenModes((previous) => {
+                        const next = { ...previous };
+                        delete next[event.event_id];
+                        return next;
+                      });
+                    }}
                   >
                     <X className="mr-1 h-4 w-4" /> Cancel
                   </Button>
@@ -1621,6 +1682,25 @@ export default function MarketplaceRepositoryPage() {
                   onClick={() => updateEventStatus(event, "CANCELLED")}
                 >
                   <Ban className="mr-1 h-4 w-4" /> Cancel Event
+                </Button>
+              ) : null}
+              {["OPEN", "REOPENED"].includes(event.status) && !event.vendor_applications_closed_at ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={updatingId === `${event.event_id}-CLOSE`}
+                  onClick={() => closeEventEarly(event)}
+                >
+                  Close Event
+                </Button>
+              ) : null}
+              {event.status === "CLOSED" || !!event.vendor_applications_closed_at ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => startReopenEvent(event)}
+                >
+                  Reopen Event
                 </Button>
               ) : null}
             </div>

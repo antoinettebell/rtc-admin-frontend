@@ -244,6 +244,7 @@ export interface MarketplaceEventPayload {
   event_close_date?: string | null;
   event_close_time?: string | null;
   status?: string;
+  reopen_mode?: "ARCHIVE" | "KEEP";
   admin_reason?: string;
   save_mode?: "DRAFT" | "PUBLISH";
 }
@@ -253,6 +254,8 @@ export interface MarketplaceRepositoryEvent {
   event_name: string;
   event_description?: string | null;
   status: string;
+  vendor_applications_closed_at?: string | null;
+  closed_at?: string | null;
   admin_draft?: {
     payload?: Record<string, any>;
     reason?: string | null;
@@ -411,6 +414,20 @@ class MarketplaceApiService extends BaseAPI {
     return this.patch<
       IResponse<{ marketplaceEvent: MarketplaceRepositoryEvent }>
     >(`${APIEndpoint.MARKETPLACE}/repository/events/${eventId}`, payload);
+  }
+
+  closeRepositoryEvent(eventId: string, closeComment = "") {
+    return this.post<IResponse<{ marketplaceEvent: MarketplaceRepositoryEvent }>>(
+      `${APIEndpoint.MARKETPLACE}/repository/events/${eventId}/close`,
+      { close_comment: closeComment },
+    );
+  }
+
+  reopenRepositoryEvent(eventId: string, payload: MarketplaceEventPayload) {
+    return this.post<IResponse<{ marketplaceEvent: MarketplaceRepositoryEvent }>>(
+      `${APIEndpoint.MARKETPLACE}/repository/events/${eventId}/reopen`,
+      payload,
+    );
   }
 
   createRepositoryEvent(payload: MarketplaceEventPayload & {
