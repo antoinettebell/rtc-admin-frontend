@@ -615,13 +615,22 @@ export default function MarketplaceRepositoryPage() {
     field: keyof EventDraft,
     value: EventDraft[keyof EventDraft],
   ) => {
-    setEventDrafts((prev) => ({
-      ...prev,
-      [eventId]: {
-        ...(prev[eventId] || emptyEventDraft),
-        [field]: value,
-      },
-    }));
+    setEventDrafts((prev) => {
+      const current = prev[eventId] || emptyEventDraft;
+      const addingSpecialty =
+        (field === "dessert_caterer_required" || field === "drinks_caterer_required") &&
+        value === true && current[field] !== true;
+      return {
+        ...prev,
+        [eventId]: {
+          ...current,
+          [field]: value,
+          ...(addingSpecialty
+            ? { number_of_vendors_needed: String(Math.max(1, Number(current.number_of_vendors_needed || 1) + 1)) }
+            : {}),
+        },
+      };
+    });
   };
 
   const updateNewEvent = (
@@ -1189,7 +1198,7 @@ export default function MarketplaceRepositoryPage() {
           </label>
           {draft.catered_vip_section_enabled ? (
             <>
-              {renderYesNo("Is GA selling permitted?", draft.ga_food_sales_allowed, (value) => onChange("ga_food_sales_allowed", value))}
+              {renderYesNo("Are VIP Vendors allowed to also setup as a GA Vendor?", draft.ga_food_sales_allowed, (value) => onChange("ga_food_sales_allowed", value))}
               {draft.ga_food_sales_allowed ? renderYesNo("Waive fee for combined award", draft.waive_vendor_fee_for_combined_award, (value) => onChange("waive_vendor_fee_for_combined_award", value)) : null}
               <label className="flex items-center gap-2 rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-600">
                 <input type="checkbox" checked disabled />
