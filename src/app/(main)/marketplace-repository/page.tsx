@@ -201,6 +201,8 @@ type EventDraft = {
   waive_vendor_fee_for_combined_award: boolean | null;
   vendor_fee_payment_deadline: string;
   separate_vip_vendor_required: boolean;
+  dessert_caterer_required: boolean;
+  drinks_caterer_required: boolean;
   vip_guest_count: string;
   ga_ticket_quantity: string;
   ga_ticket_price: string;
@@ -280,6 +282,8 @@ const emptyEventDraft: EventDraft = {
   waive_vendor_fee_for_combined_award: null,
   vendor_fee_payment_deadline: "",
   separate_vip_vendor_required: false,
+  dessert_caterer_required: false,
+  drinks_caterer_required: false,
   vip_guest_count: "",
   ga_ticket_quantity: "0",
   ga_ticket_price: "0",
@@ -401,6 +405,8 @@ const toEventDraft = (event: MarketplaceRepositoryEvent): EventDraft => ({
     event.vendor_fee_payment_deadline,
   ),
   separate_vip_vendor_required: !!event.separate_vip_vendor_required,
+  dessert_caterer_required: !!event.dessert_caterer_required,
+  drinks_caterer_required: !!event.drinks_caterer_required,
   vip_guest_count: event.vip_guest_count != null ? String(event.vip_guest_count) : "",
   ga_ticket_quantity: event.ga_ticket_quantity != null ? String(event.ga_ticket_quantity) : "0",
   ga_ticket_price: event.ga_ticket_price != null ? String(event.ga_ticket_price) : "0",
@@ -494,6 +500,8 @@ const buildEventPayload = (draft: EventDraft): MarketplaceEventPayload => {
     waive_vendor_fee_for_combined_award: draft.waive_vendor_fee_for_combined_award,
     vendor_fee_payment_deadline: draft.vendor_fee_payment_deadline || null,
     separate_vip_vendor_required: draft.separate_vip_vendor_required,
+    dessert_caterer_required: draft.dessert_caterer_required,
+    drinks_caterer_required: draft.drinks_caterer_required,
     vip_guest_count: draft.vip_section_enabled
       ? numberOrNull(draft.vip_guest_count)
       : 0,
@@ -1171,7 +1179,7 @@ export default function MarketplaceRepositoryPage() {
               </label>
               <label className="flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm">
                 <input type="checkbox" checked={draft.catered_vip_section_enabled} onChange={(e) => onChange("catered_vip_section_enabled", e.target.checked)} />
-                VIP catering paid by coordinator
+                VIP catering needed
               </label>
             </>
           ) : null}
@@ -1181,11 +1189,19 @@ export default function MarketplaceRepositoryPage() {
           </label>
           {draft.catered_vip_section_enabled ? (
             <>
-              {renderYesNo("Vendors may sell food to GA guests", draft.ga_food_sales_allowed, (value) => onChange("ga_food_sales_allowed", value))}
+              {renderYesNo("Is GA selling permitted?", draft.ga_food_sales_allowed, (value) => onChange("ga_food_sales_allowed", value))}
               {draft.ga_food_sales_allowed ? renderYesNo("Waive fee for combined award", draft.waive_vendor_fee_for_combined_award, (value) => onChange("waive_vendor_fee_for_combined_award", value)) : null}
+              <label className="flex items-center gap-2 rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                <input type="checkbox" checked disabled />
+                Additional VIP catering service slot (required)
+              </label>
               <label className="flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm">
-                <input type="checkbox" checked={draft.separate_vip_vendor_required} onChange={(e) => onChange("separate_vip_vendor_required", e.target.checked)} />
-                Additional VIP catering service slot
+                <input type="checkbox" checked={draft.dessert_caterer_required} onChange={(e) => onChange("dessert_caterer_required", e.target.checked)} />
+                Additional Caterer for Desserts
+              </label>
+              <label className="flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm">
+                <input type="checkbox" checked={draft.drinks_caterer_required} onChange={(e) => onChange("drinks_caterer_required", e.target.checked)} />
+                Additional Caterer for Drinks
               </label>
               <p className="mt-1 text-xs text-gray-500">
                 This adds a VIP catering requirement to the event. A qualified vendor may still offer both VIP Catering and GA Sales.

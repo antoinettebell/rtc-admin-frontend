@@ -217,6 +217,8 @@ export interface MarketplaceEventPayload {
   waive_vendor_fee_for_combined_award?: boolean | null;
   vendor_fee_payment_deadline?: string | null;
   separate_vip_vendor_required?: boolean;
+  dessert_caterer_required?: boolean;
+  drinks_caterer_required?: boolean;
   vip_guest_count?: number | null;
   event_vendor_needs?: Array<{ vendor_type: "MERCHANDISE" | "SERVICE" | "OTHER"; type_description?: string | null; quantity: number; fee: number }>;
   event_vendor_electricity_fee?: number;
@@ -304,6 +306,8 @@ export interface MarketplaceRepositoryEvent {
   waive_vendor_fee_for_combined_award?: boolean | null;
   vendor_fee_payment_deadline?: string | null;
   separate_vip_vendor_required?: boolean;
+  dessert_caterer_required?: boolean;
+  drinks_caterer_required?: boolean;
   vip_guest_count?: number | null;
   ga_ticket_quantity?: number | null;
   ga_ticket_price?: number | null;
