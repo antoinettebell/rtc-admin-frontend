@@ -35,6 +35,10 @@ import {
   normalizeMarketplaceZonedDateInput,
 } from "@/helpers/marketplace-event-date";
 import { normalizeEventVendorNeedsForPayload } from "@/helpers/marketplace-event-vendor-needs";
+import {
+  buildMarketplacePaymentDeadline,
+  formatMarketplacePaymentDeadlineTimeInput,
+} from "@/helpers/marketplace-payment-deadline";
 
 const getPersonName = (user: any) =>
   [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
@@ -201,6 +205,8 @@ type EventDraft = {
   ga_food_sales_allowed: boolean | null;
   waive_vendor_fee_for_combined_award: boolean | null;
   vendor_fee_payment_deadline: string;
+  vendor_fee_payment_time: string;
+  vendor_fee_payment_deadline_original: string;
   separate_vip_vendor_required: boolean;
   dessert_caterer_required: boolean;
   drinks_caterer_required: boolean;
@@ -282,6 +288,8 @@ const emptyEventDraft: EventDraft = {
   ga_food_sales_allowed: null,
   waive_vendor_fee_for_combined_award: null,
   vendor_fee_payment_deadline: "",
+  vendor_fee_payment_time: "",
+  vendor_fee_payment_deadline_original: "",
   separate_vip_vendor_required: false,
   dessert_caterer_required: false,
   drinks_caterer_required: false,
@@ -405,6 +413,12 @@ const toEventDraft = (event: MarketplaceRepositoryEvent): EventDraft => ({
   vendor_fee_payment_deadline: normalizeMarketplaceCalendarDateInput(
     event.vendor_fee_payment_deadline,
   ),
+  vendor_fee_payment_time: formatMarketplacePaymentDeadlineTimeInput(
+    event.vendor_fee_payment_deadline,
+  ),
+  vendor_fee_payment_deadline_original: event.vendor_fee_payment_deadline
+    ? String(event.vendor_fee_payment_deadline)
+    : "",
   separate_vip_vendor_required: !!event.separate_vip_vendor_required,
   dessert_caterer_required: !!event.dessert_caterer_required,
   drinks_caterer_required: !!event.drinks_caterer_required,
@@ -451,6 +465,17 @@ const buildEventPayload = (draft: EventDraft): MarketplaceEventPayload => {
     ? "Food Truck"
     : draft.primary_service_style || null;
   const paymentResponsibility = getDerivedPaymentResponsibility(draft);
+  const vendorFeePaymentDeadline = buildMarketplacePaymentDeadline({
+    date: draft.vendor_fee_payment_deadline,
+    time: draft.vendor_fee_payment_time,
+    original: draft.vendor_fee_payment_deadline_original,
+    originalDate: normalizeMarketplaceCalendarDateInput(
+      draft.vendor_fee_payment_deadline_original,
+    ),
+    originalTime: formatMarketplacePaymentDeadlineTimeInput(
+      draft.vendor_fee_payment_deadline_original,
+    ),
+  });
 
   return {
     event_name: draft.event_name,
@@ -499,7 +524,7 @@ const buildEventPayload = (draft: EventDraft): MarketplaceEventPayload => {
     fully_catered_event: draft.fully_catered_event,
     ga_food_sales_allowed: draft.ga_food_sales_allowed,
     waive_vendor_fee_for_combined_award: draft.waive_vendor_fee_for_combined_award,
-    vendor_fee_payment_deadline: draft.vendor_fee_payment_deadline || null,
+    vendor_fee_payment_deadline: vendorFeePaymentDeadline,
     separate_vip_vendor_required: draft.separate_vip_vendor_required,
     dessert_caterer_required: draft.dessert_caterer_required,
     drinks_caterer_required: draft.drinks_caterer_required,
@@ -1219,15 +1244,26 @@ export default function MarketplaceRepositoryPage() {
             </>
           ) : null}
           {paymentVisibility.showPaymentDeadline ? (
-            <label className="text-sm">
-              Last Date to Accept Payments
-              <input
-                type="date"
-                className="mt-1 h-10 w-full rounded-md border bg-white px-3"
-                value={draft.vendor_fee_payment_deadline}
-                onChange={(e) => onChange("vendor_fee_payment_deadline", e.target.value)}
-              />
-            </label>
+            <>
+              <label className="text-sm">
+                Last Date to Accept Payments
+                <input
+                  type="date"
+                  className="mt-1 h-10 w-full rounded-md border bg-white px-3"
+                  value={draft.vendor_fee_payment_deadline}
+                  onChange={(e) => onChange("vendor_fee_payment_deadline", e.target.value)}
+                />
+              </label>
+              <label className="text-sm">
+                Last Time to Accept Payments
+                <input
+                  type="time"
+                  className="mt-1 h-10 w-full rounded-md border bg-white px-3"
+                  value={draft.vendor_fee_payment_time}
+                  onChange={(e) => onChange("vendor_fee_payment_time", e.target.value)}
+                />
+              </label>
+            </>
           ) : null}
           <label className="text-sm">
             Who is paying? *
