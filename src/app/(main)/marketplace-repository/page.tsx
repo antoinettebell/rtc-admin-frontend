@@ -34,6 +34,7 @@ import {
   normalizeMarketplaceCalendarDateInput,
   normalizeMarketplaceZonedDateInput,
 } from "@/helpers/marketplace-event-date";
+import { normalizeEventVendorNeedsForPayload } from "@/helpers/marketplace-event-vendor-needs";
 
 const getPersonName = (user: any) =>
   [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
@@ -509,7 +510,7 @@ const buildEventPayload = (draft: EventDraft): MarketplaceEventPayload => {
     ga_ticket_price: moneyOrZero(draft.ga_ticket_price),
     vip_ticket_quantity: draft.vip_section_enabled ? numberOrNull(draft.vip_ticket_quantity) || 0 : 0,
     vip_ticket_price: draft.vip_section_enabled ? moneyOrZero(draft.vip_ticket_price) : 0,
-    event_vendor_needs: draft.event_vendor_needs,
+    event_vendor_needs: normalizeEventVendorNeedsForPayload(draft.event_vendor_needs),
     event_vendor_electricity_fee: moneyOrZero(draft.event_vendor_electricity_fee),
     cuisine_preferences: normalizeArray(draft.cuisine_preferences),
     dietary_restrictions: normalizeArray(draft.dietary_restrictions),
