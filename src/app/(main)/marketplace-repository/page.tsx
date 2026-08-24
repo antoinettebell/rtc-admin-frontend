@@ -39,6 +39,7 @@ import {
   buildMarketplacePaymentDeadline,
   formatMarketplacePaymentDeadlineTimeInput,
 } from "@/helpers/marketplace-payment-deadline";
+import { mergeMarketplaceEventWithAdminDraft } from "@/helpers/marketplace-admin-event-draft";
 
 const getPersonName = (user: any) =>
   [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
@@ -630,7 +631,7 @@ export default function MarketplaceRepositoryPage() {
     setEventDrafts((prev) => ({
       ...prev,
       [event.event_id]: {
-        ...toEventDraft({ ...event, ...savedDraft }),
+        ...toEventDraft(mergeMarketplaceEventWithAdminDraft(event, savedDraft)),
         admin_reason: event.admin_draft?.reason || "",
       },
     }));
