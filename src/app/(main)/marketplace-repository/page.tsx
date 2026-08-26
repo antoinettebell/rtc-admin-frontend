@@ -681,8 +681,33 @@ export default function MarketplaceRepositoryPage() {
     try {
       const reopenMode = reopenModes[event.event_id];
       if (reopenMode && saveMode === "PUBLISH") {
+        const reopenPayload = buildEventPayload(draft);
+        if (["VENDOR", "BOTH"].includes(getDerivedPaymentResponsibility(draft))) {
+          const paymentDeadline = reopenPayload.vendor_fee_payment_deadline
+            ? new Date(reopenPayload.vendor_fee_payment_deadline)
+            : null;
+          const previousPaymentDeadline = event.vendor_fee_payment_deadline
+            ? new Date(event.vendor_fee_payment_deadline)
+            : null;
+          if (!paymentDeadline || Number.isNaN(paymentDeadline.getTime())) {
+            toast.error("Enter a new Last Date and Time to Accept Payments before reopening.");
+            return;
+          }
+          if (paymentDeadline.getTime() <= Date.now()) {
+            toast.error("Last Date and Time to Accept Payments must be in the future before reopening.");
+            return;
+          }
+          if (
+            previousPaymentDeadline &&
+            !Number.isNaN(previousPaymentDeadline.getTime()) &&
+            paymentDeadline.getTime() === previousPaymentDeadline.getTime()
+          ) {
+            toast.error("Update the Last Date and Time to Accept Payments before reopening.");
+            return;
+          }
+        }
         await marketplaceApiService.reopenRepositoryEvent(event.event_id, {
-          ...buildEventPayload(draft),
+          ...reopenPayload,
           reopen_mode: reopenMode,
         });
         toast.success("Marketplace event reopened");
@@ -797,7 +822,12 @@ export default function MarketplaceRepositoryPage() {
       [event.event_id]: archive ? "ARCHIVE" : "KEEP",
     }));
     startEditEvent(event);
-    toast.info("Please edit and enter a new future Close Date and Close Time, then publish changes to reopen the event.");
+    const requiresVendorFee = ["VENDOR", "BOTH"].includes(getDerivedPaymentResponsibility(event));
+    toast.info(
+      requiresVendorFee
+        ? "Please update the future Close Date/Time and Last Date/Time to Accept Payments, then publish to reopen this event."
+        : "Please edit and enter a new future Close Date and Close Time, then publish changes to reopen the event.",
+    );
   };
 
   const deleteEventImage = async (
@@ -1611,7 +1641,7 @@ export default function MarketplaceRepositoryPage() {
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   {reopenModes[editingEventId]
-                    ? "Enter a new future Close Date and Close Time, then publish to reopen this event. Awarded and paid vendors remain protected."
+                    ? `${["VENDOR", "BOTH"].includes(getDerivedPaymentResponsibility(eventDrafts[editingEventId])) ? "Update the Last Date and Time to Accept Payments as well as a new future Close Date and Close Time" : "Enter a new future Close Date and Close Time"}, then publish to reopen this event. Awarded and paid vendors remain protected.`
                     : "All required and optional coordinator event fields are available here."}
                 </p>
               </div>
