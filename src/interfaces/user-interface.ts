@@ -177,6 +177,7 @@ export interface FoodTruck {
   featured?: boolean;
   completed?: boolean;
   currentLocation?: string | null;
+  tap_to_pay_serial_number?: string | null;
   food_truck_count?: number;
   documents?: FoodTruckDocument[];
   truck_units?: FoodTruckTruckUnit[];
@@ -201,6 +202,7 @@ export interface VendorEmployee {
   last_name: string;
   zip_code: string;
   employee_login_id: string;
+  tap_to_pay_serial_number?: string | null;
   role: "EMPLOYEE";
   is_active: boolean;
   is_working: boolean;

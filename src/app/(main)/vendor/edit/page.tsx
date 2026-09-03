@@ -74,6 +74,7 @@ export default function VendorDetail() {
     logo: z.string().optional(),
     ssn: z.string().optional(),
     ein: z.string().optional(),
+    tap_to_pay_serial_number: z.string().trim().max(100).optional(),
   });
 
   // const passwordFormSchema = z
@@ -159,7 +160,7 @@ export default function VendorDetail() {
   const onSubmitFT = async (data: z.infer<typeof ftFormSchema>) => {
     if (!result?.user?.foodTruck?._id) return;
 
-    const { name, infoType, ssn, ein } = data;
+    const { name, infoType, ssn, ein, tap_to_pay_serial_number } = data;
     setLoadingFT(true);
 
     try {
@@ -199,6 +200,7 @@ export default function VendorDetail() {
           infoType,
           ssn,
           ein,
+          tap_to_pay_serial_number: tap_to_pay_serial_number || null,
           ...(logoUrl ? { logo: logoUrl } : {}),
           photos: finalPhotos,
         },
@@ -364,6 +366,8 @@ export default function VendorDetail() {
           logo: userRes?.data?.data?.user?.foodTruck?.logo || "",
           ssn: userRes?.data?.data?.user?.foodTruck?.ssn,
           ein: userRes?.data?.data?.user?.foodTruck?.ein,
+          tap_to_pay_serial_number:
+            userRes?.data?.data?.user?.foodTruck?.tap_to_pay_serial_number || "",
         });
         setPreviewPhotos(userRes?.data?.data?.user?.foodTruck?.photos || []);
         setSelectedPlan(userRes?.data?.data?.user?.foodTruck?.planId || "");
@@ -706,6 +710,13 @@ export default function VendorDetail() {
                       )}
                     />
                   </div>
+                </div>
+                <div className="w-full mb-2">
+                  <div className="text-sm font-semibold pb-1">Tap to Pay Serial Number</div>
+                  <Input
+                    placeholder="Enter serial number"
+                    {...ftRegister("tap_to_pay_serial_number")}
+                  />
                 </div>
                 <div className="w-full flex gap-3">
                   <div className="w-full mb-2">

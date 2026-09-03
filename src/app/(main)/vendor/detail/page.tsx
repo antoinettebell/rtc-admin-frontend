@@ -156,6 +156,7 @@ export default function VendorDetail() {
   const [employees, setEmployees] = useState<VendorEmployee[]>([]);
   const [employeeLoading, setEmployeeLoading] = useState<boolean>(false);
   const [employeeSaving, setEmployeeSaving] = useState<boolean>(false);
+  const [employeeSerialEdits, setEmployeeSerialEdits] = useState<Record<string, string>>({});
   const [employeeForm, setEmployeeForm] = useState({
     first_name: "",
     last_name: "",
@@ -1026,6 +1027,13 @@ export default function VendorDetail() {
                           Type:{" "}
                           <b className="capitalize">
                             {result.user.foodTruck?.infoType || "-"}
+                          </b>
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Tap to Pay Serial Number:{" "}
+                          <b>
+                            {result.user.foodTruck?.tap_to_pay_serial_number ||
+                              "Not assigned"}
                           </b>
                         </p>
                         <p className="text-sm text-muted-foreground">
@@ -2046,6 +2054,9 @@ export default function VendorDetail() {
                                   assignedLocation?.address ||
                                   "Unassigned location"}
                               </div>
+                              <div className="text-sm text-muted-foreground">
+                                Serial Number: {employee.tap_to_pay_serial_number || "Not assigned"}
+                              </div>
                             </div>
                             <div className="text-xs rounded-full border px-2 py-1">
                               {employee.is_archived
@@ -2084,6 +2095,44 @@ export default function VendorDetail() {
                                 />
                                 <span className="text-sm">Working</span>
                               </div>
+                            </div>
+                          )}
+
+                          {employeeTab === "current" && (
+                            <div className="flex flex-wrap items-end gap-2">
+                              <div className="min-w-[220px] flex-1">
+                                <label className="mb-1 block text-sm font-medium">
+                                  Tap to Pay Serial Number
+                                </label>
+                                <Input
+                                  value={
+                                    employeeSerialEdits[employee._id] ??
+                                    employee.tap_to_pay_serial_number ??
+                                    ""
+                                  }
+                                  onChange={(event) =>
+                                    setEmployeeSerialEdits((previous) => ({
+                                      ...previous,
+                                      [employee._id]: event.target.value,
+                                    }))
+                                  }
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  const value =
+                                    employeeSerialEdits[employee._id] ??
+                                    employee.tap_to_pay_serial_number ??
+                                    "";
+                                  updateEmployee(employee, {
+                                    tap_to_pay_serial_number: value.trim() || null,
+                                  });
+                                }}
+                              >
+                                Save serial
+                              </Button>
                             </div>
                           )}
 
