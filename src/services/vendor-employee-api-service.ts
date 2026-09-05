@@ -15,6 +15,44 @@ export type VendorEmployeePayload = {
   is_working?: boolean;
 };
 
+export type VendorEmployeeUpdatePayload = Partial<
+  Pick<
+    VendorEmployee,
+    | "assigned_location_id"
+    | "assigned_truck_unit_id"
+    | "first_name"
+    | "last_name"
+    | "zip_code"
+    | "phone_number"
+    | "address_line1"
+    | "address_city"
+    | "address_state"
+    | "address_zip"
+    | "employee_id_photo_url"
+    | "employee_tax_identifier_type"
+    | "employee_rate"
+    | "tap_to_pay_serial_number"
+    | "is_active"
+    | "is_working"
+    | "weekly_schedule"
+    | "schedule_assignments"
+  >
+> & {
+  employee_tax_identifier?: string;
+  archive_schedule?: boolean;
+};
+
+export type VendorEmployeeTimecard = {
+  employee_session_id: string;
+  started_at: string;
+  ended_at: string | null;
+  total_break_minutes: number;
+  gross_hours_worked?: number | null;
+  net_hours_worked?: number | null;
+  is_active: boolean;
+  is_archived?: boolean;
+};
+
 class VendorEmployeeApiService extends BaseAPI {
   list(params: {
     vendorUserId: string;
@@ -35,7 +73,7 @@ class VendorEmployeeApiService extends BaseAPI {
     );
   }
 
-  update(id: string, data: Partial<VendorEmployee>) {
+  update(id: string, data: VendorEmployeeUpdatePayload) {
     return this.put<IResponse<{ vendoremployee: VendorEmployee }>>(
       `${APIEndpoint.VENDOR_EMPLOYEE}/admin/${id}`,
       data,
@@ -59,6 +97,29 @@ class VendorEmployeeApiService extends BaseAPI {
     return this.put<IResponse<{ vendoremployee: VendorEmployee }>>(
       `${APIEndpoint.VENDOR_EMPLOYEE}/admin/${id}/reset-pin`,
       { resetUrl },
+    );
+  }
+
+  shiftHistory(id: string, range: "day" | "week" = "week") {
+    return this.get<IResponse<{ sessions: VendorEmployeeTimecard[] }>>(
+      `${APIEndpoint.VENDOR_EMPLOYEE}/admin/${id}/shift-history`,
+      { params: { range } },
+    );
+  }
+
+  updateShiftHistory(
+    id: string,
+    sessionId: string,
+    data: {
+      started_at: string;
+      ended_at: string;
+      total_break_minutes: number;
+      reason: string;
+    },
+  ) {
+    return this.put<IResponse<{ session: VendorEmployeeTimecard }>>(
+      `${APIEndpoint.VENDOR_EMPLOYEE}/admin/${id}/shift-history/${sessionId}`,
+      data,
     );
   }
 }

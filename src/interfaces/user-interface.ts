@@ -197,12 +197,41 @@ export interface VendorEmployee {
   employee_internal_id: string;
   vendor_user_id: string;
   food_truck_id: string;
-  assigned_location_id: string;
+  assigned_location_id: string | null;
+  assigned_truck_unit_id?: string | null;
+  assigned_truck_unit_name?: string | null;
   first_name: string;
   last_name: string;
   zip_code: string;
+  phone_number?: string | null;
+  address_line1?: string | null;
+  address_city?: string | null;
+  address_state?: string | null;
+  address_zip?: string | null;
+  employee_id_photo_url?: string | null;
+  employee_tax_identifier_type?: "EIN" | "SSN" | null;
+  employee_tax_identifier_masked?: string | null;
+  employee_rate?: number | null;
   employee_login_id: string;
   tap_to_pay_serial_number?: string | null;
+  weekly_schedule?: Array<{
+    day: "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
+    enabled: boolean;
+    clock_in: string;
+    clock_out: string;
+  }>;
+  schedule_assignments?: Array<{
+    truck_unit_id: string;
+    truck_unit_name?: string | null;
+    location_id: string;
+    location_name?: string | null;
+    days: Array<{
+      day: "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
+      enabled: boolean;
+      clock_in: string;
+      clock_out: string;
+    }>;
+  }>;
   role: "EMPLOYEE";
   is_active: boolean;
   is_working: boolean;

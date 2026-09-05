@@ -7,6 +7,7 @@ import {
   KeyRound,
   LoaderCircle,
   MapPin,
+  Pencil,
   Plus,
   Soup,
   SquareUserRound,
@@ -61,7 +62,11 @@ import {
   getVendorPlanCapabilities,
   VendorPlanFeatureList,
 } from "@/components/vendor-plan-feature-list";
-import { vendorEmployeeApiService } from "@/services/vendor-employee-api-service";
+import {
+  vendorEmployeeApiService,
+  type VendorEmployeeTimecard,
+  type VendorEmployeeUpdatePayload,
+} from "@/services/vendor-employee-api-service";
 import {
   AddressAutocompleteInput,
   geocodeAddress,
@@ -129,6 +134,105 @@ const getDocumentComplianceStatus = (document: FoodTruckDocument) =>
     ? "ARCHIVED"
     : document.compliance_status || "NEEDS_SYNC";
 
+type EmployeeProfileDraft = {
+  first_name: string;
+  last_name: string;
+  zip_code: string;
+  phone_number: string;
+  address_line1: string;
+  address_city: string;
+  address_state: string;
+  address_zip: string;
+  employee_id_photo_url: string;
+  employee_tax_identifier_type: "EIN" | "SSN";
+  employee_tax_identifier: string;
+  employee_rate: string;
+  assigned_location_id: string;
+  assigned_truck_unit_id: string;
+  tap_to_pay_serial_number: string;
+};
+
+type EmployeeScheduleDay = {
+  day: "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
+  enabled: boolean;
+  clock_in: string;
+  clock_out: string;
+};
+
+type EmployeeScheduleAssignmentDraft = {
+  truck_unit_id: string;
+  location_id: string;
+  days: EmployeeScheduleDay[];
+};
+
+const employeeScheduleDays: Array<[EmployeeScheduleDay["day"], string]> = [
+  ["sun", "Sun"], ["mon", "Mon"], ["tue", "Tue"], ["wed", "Wed"],
+  ["thu", "Thu"], ["fri", "Fri"], ["sat", "Sat"],
+];
+
+const buildScheduleDays = (rows: EmployeeScheduleDay[] = []) =>
+  employeeScheduleDays.map(([day]) => {
+    const existing = rows.find((row) => row.day === day);
+    return {
+      day,
+      enabled: !!existing?.enabled,
+      clock_in: existing?.clock_in || "09:00",
+      clock_out: existing?.clock_out || "17:00",
+    };
+  });
+
+const buildEmployeeScheduleDraft = (
+  employee: VendorEmployee,
+): EmployeeScheduleAssignmentDraft[] => {
+  if (employee.schedule_assignments?.length) {
+    return employee.schedule_assignments.map((assignment) => ({
+      truck_unit_id: assignment.truck_unit_id || "",
+      location_id: assignment.location_id || "",
+      days: buildScheduleDays(assignment.days),
+    }));
+  }
+  if (employee.weekly_schedule?.length) {
+    return [{
+      truck_unit_id: employee.assigned_truck_unit_id || "",
+      location_id: employee.assigned_location_id || "",
+      days: buildScheduleDays(employee.weekly_schedule),
+    }];
+  }
+  return [];
+};
+
+const buildEmployeeProfileDraft = (
+  employee: VendorEmployee,
+): EmployeeProfileDraft => ({
+  first_name: employee.first_name || "",
+  last_name: employee.last_name || "",
+  zip_code: employee.zip_code || "",
+  phone_number: employee.phone_number || "",
+  address_line1: employee.address_line1 || "",
+  address_city: employee.address_city || "",
+  address_state: employee.address_state || "",
+  address_zip: employee.address_zip || "",
+  employee_id_photo_url: employee.employee_id_photo_url || "",
+  employee_tax_identifier_type:
+    employee.employee_tax_identifier_type === "EIN" ? "EIN" : "SSN",
+  employee_tax_identifier: "",
+  employee_rate:
+    employee.employee_rate === null || employee.employee_rate === undefined
+      ? ""
+      : String(employee.employee_rate),
+  assigned_location_id: employee.assigned_location_id || "",
+  assigned_truck_unit_id: employee.assigned_truck_unit_id || "",
+  tap_to_pay_serial_number: employee.tap_to_pay_serial_number || "",
+});
+
+const toDateTimeLocalValue = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 16);
+};
+
 export default function VendorDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -157,6 +261,26 @@ export default function VendorDetail() {
   const [employeeLoading, setEmployeeLoading] = useState<boolean>(false);
   const [employeeSaving, setEmployeeSaving] = useState<boolean>(false);
   const [employeeSerialEdits, setEmployeeSerialEdits] = useState<Record<string, string>>({});
+  const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
+  const [employeeProfileDrafts, setEmployeeProfileDrafts] = useState<
+    Record<string, EmployeeProfileDraft>
+  >({});
+  const [employeeScheduleDrafts, setEmployeeScheduleDrafts] = useState<
+    Record<string, EmployeeScheduleAssignmentDraft[]>
+  >({});
+  const [employeeTimecards, setEmployeeTimecards] = useState<
+    Record<string, VendorEmployeeTimecard[]>
+  >({});
+  const [timecardLoadingEmployeeId, setTimecardLoadingEmployeeId] = useState<
+    string | null
+  >(null);
+  const [editingTimecardId, setEditingTimecardId] = useState<string | null>(null);
+  const [timecardDrafts, setTimecardDrafts] = useState<
+    Record<
+      string,
+      { started_at: string; ended_at: string; total_break_minutes: string; reason: string }
+    >
+  >({});
   const [employeeForm, setEmployeeForm] = useState({
     first_name: "",
     last_name: "",
@@ -385,12 +509,6 @@ export default function VendorDetail() {
   );
   const canManageEmployees = !!vendorPlanCapabilities.employeeLogin;
 
-  React.useEffect(() => {
-    if (activeTab === "employees" && !canManageEmployees) {
-      setActiveTab("profile");
-    }
-  }, [activeTab, canManageEmployees]);
-
   const normalizeDocumentName = (value?: string | null) =>
     String(value || "")
       .trim()
@@ -518,9 +636,8 @@ export default function VendorDetail() {
 
   React.useEffect(() => {
     if (activeTab !== "employees") return;
-    if (!canManageEmployees) return;
     loadEmployees();
-  }, [activeTab, canManageEmployees, loadEmployees]);
+  }, [activeTab, loadEmployees]);
 
   const resetEmployeeForm = () => {
     setEmployeeForm({
@@ -573,7 +690,7 @@ export default function VendorDetail() {
 
   const updateEmployee = (
     employee: VendorEmployee,
-    data: Partial<VendorEmployee>,
+    data: VendorEmployeeUpdatePayload,
   ) => {
     vendorEmployeeApiService
       .update(employee._id, data)
@@ -585,6 +702,221 @@ export default function VendorDetail() {
         console.log(e);
         toast.error(e?.response?.data?.message || "Could not update employee.");
       });
+  };
+
+  const openEmployeeEditor = (employee: VendorEmployee) => {
+    setEmployeeProfileDrafts((previous) => ({
+      ...previous,
+      [employee._id]: previous[employee._id] || buildEmployeeProfileDraft(employee),
+    }));
+    setEmployeeScheduleDrafts((previous) => ({
+      ...previous,
+      [employee._id]: previous[employee._id] || buildEmployeeScheduleDraft(employee),
+    }));
+    setEditingEmployeeId(employee._id);
+  };
+
+  const updateEmployeeDraft = (
+    employeeId: string,
+    field: keyof EmployeeProfileDraft,
+    value: string,
+  ) => {
+    setEmployeeProfileDrafts((previous) => ({
+      ...previous,
+      [employeeId]: {
+        ...(previous[employeeId] || buildEmployeeProfileDraft(
+          employees.find((employee) => employee._id === employeeId)!,
+        )),
+        [field]: value,
+      },
+    }));
+  };
+
+  const saveEmployeeProfile = async (employee: VendorEmployee) => {
+    const draft = employeeProfileDrafts[employee._id] || buildEmployeeProfileDraft(employee);
+    if (!draft.first_name.trim() || !draft.last_name.trim() || !draft.zip_code.trim()) {
+      toast.error("First name, last name, and zip code are required.");
+      return;
+    }
+    const parsedRate = draft.employee_rate.trim()
+      ? Number(draft.employee_rate)
+      : null;
+    if (parsedRate !== null && (!Number.isFinite(parsedRate) || parsedRate < 0)) {
+      toast.error("Employee rate must be a valid non-negative amount.");
+      return;
+    }
+    if (
+      Boolean(draft.assigned_location_id) !==
+      Boolean(draft.assigned_truck_unit_id)
+    ) {
+      toast.error("Choose both an assigned location and truck unit, or leave both unchanged.");
+      return;
+    }
+
+    setEmployeeSaving(true);
+    try {
+      await vendorEmployeeApiService.update(employee._id, {
+        first_name: draft.first_name.trim(),
+        last_name: draft.last_name.trim(),
+        zip_code: draft.zip_code.trim(),
+        phone_number: draft.phone_number.trim() || null,
+        address_line1: draft.address_line1.trim() || null,
+        address_city: draft.address_city.trim() || null,
+        address_state: draft.address_state.trim() || null,
+        address_zip: draft.address_zip.trim() || null,
+        employee_id_photo_url: draft.employee_id_photo_url.trim() || null,
+        employee_tax_identifier_type: draft.employee_tax_identifier_type,
+        ...(draft.employee_tax_identifier.trim()
+          ? { employee_tax_identifier: draft.employee_tax_identifier.trim() }
+          : {}),
+        employee_rate: parsedRate,
+        ...(draft.assigned_location_id && draft.assigned_truck_unit_id
+          ? {
+              assigned_location_id: draft.assigned_location_id,
+              assigned_truck_unit_id: draft.assigned_truck_unit_id,
+            }
+          : {}),
+        tap_to_pay_serial_number: draft.tap_to_pay_serial_number.trim() || null,
+      });
+      toast.success("Employee profile updated.");
+      setEditingEmployeeId(null);
+      await loadEmployees();
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message || "Could not update employee profile.",
+      );
+    } finally {
+      setEmployeeSaving(false);
+    }
+  };
+
+  const updateScheduleAssignment = (
+    employeeId: string,
+    assignmentIndex: number,
+    update: Partial<EmployeeScheduleAssignmentDraft>,
+  ) => {
+    setEmployeeScheduleDrafts((previous) => ({
+      ...previous,
+      [employeeId]: (previous[employeeId] || []).map((assignment, index) =>
+        index === assignmentIndex ? { ...assignment, ...update } : assignment,
+      ),
+    }));
+  };
+
+  const updateScheduleDay = (
+    employeeId: string,
+    assignmentIndex: number,
+    day: EmployeeScheduleDay["day"],
+    update: Partial<EmployeeScheduleDay>,
+  ) => {
+    setEmployeeScheduleDrafts((previous) => ({
+      ...previous,
+      [employeeId]: (previous[employeeId] || []).map((assignment, index) =>
+        index === assignmentIndex
+          ? {
+              ...assignment,
+              days: assignment.days.map((row) =>
+                row.day === day ? { ...row, ...update } : row,
+              ),
+            }
+          : assignment,
+      ),
+    }));
+  };
+
+  const saveEmployeeSchedule = async (employee: VendorEmployee) => {
+    const assignments = employeeScheduleDrafts[employee._id] || [];
+    const enabledDays = assignments.flatMap((assignment) =>
+      assignment.days.filter((day) => day.enabled).map((day) => day.day),
+    );
+    if (!assignments.length || !enabledDays.length) {
+      toast.error("Add at least one scheduled workday.");
+      return;
+    }
+    if (new Set(enabledDays).size !== enabledDays.length) {
+      toast.error("Each weekday can only appear on one schedule card.");
+      return;
+    }
+    if (assignments.some((assignment) => !assignment.location_id || !assignment.truck_unit_id)) {
+      toast.error("Every schedule card needs a location and truck unit.");
+      return;
+    }
+    setEmployeeSaving(true);
+    try {
+      await vendorEmployeeApiService.update(employee._id, {
+        schedule_assignments: assignments,
+      });
+      toast.success("Employee schedule updated.");
+      await loadEmployees();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Could not update employee schedule.");
+    } finally {
+      setEmployeeSaving(false);
+    }
+  };
+
+  const loadEmployeeTimecards = async (employee: VendorEmployee) => {
+    setTimecardLoadingEmployeeId(employee._id);
+    try {
+      const response = await vendorEmployeeApiService.shiftHistory(employee._id);
+      setEmployeeTimecards((previous) => ({
+        ...previous,
+        [employee._id]: response.data?.data?.sessions || [],
+      }));
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Could not load timecards.");
+    } finally {
+      setTimecardLoadingEmployeeId(null);
+    }
+  };
+
+  const openTimecardEditor = (timecard: VendorEmployeeTimecard) => {
+    setTimecardDrafts((previous) => ({
+      ...previous,
+      [timecard.employee_session_id]: {
+        started_at: toDateTimeLocalValue(timecard.started_at),
+        ended_at: toDateTimeLocalValue(timecard.ended_at),
+        total_break_minutes: String(timecard.total_break_minutes || 0),
+        reason: "",
+      },
+    }));
+    setEditingTimecardId(timecard.employee_session_id);
+  };
+
+  const saveTimecard = async (
+    employee: VendorEmployee,
+    timecard: VendorEmployeeTimecard,
+  ) => {
+    const draft = timecardDrafts[timecard.employee_session_id];
+    if (!draft?.started_at || !draft.ended_at || !draft.reason.trim()) {
+      toast.error("Start, end, and an adjustment reason are required.");
+      return;
+    }
+    const breakMinutes = Number(draft.total_break_minutes);
+    if (!Number.isFinite(breakMinutes) || breakMinutes < 0) {
+      toast.error("Break minutes must be zero or greater.");
+      return;
+    }
+    setEmployeeSaving(true);
+    try {
+      await vendorEmployeeApiService.updateShiftHistory(
+        employee._id,
+        timecard.employee_session_id,
+        {
+          started_at: new Date(draft.started_at).toISOString(),
+          ended_at: new Date(draft.ended_at).toISOString(),
+          total_break_minutes: breakMinutes,
+          reason: draft.reason.trim(),
+        },
+      );
+      toast.success("Timecard updated.");
+      setEditingTimecardId(null);
+      await loadEmployeeTimecards(employee);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Could not update timecard.");
+    } finally {
+      setEmployeeSaving(false);
+    }
   };
 
   const archiveEmployee = (employee: VendorEmployee) => {
@@ -965,14 +1297,12 @@ export default function VendorDetail() {
               >
                 Locations
               </TabsTrigger>
-              {canManageEmployees && (
-                <TabsTrigger
-                  value="employees"
-                  className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
-                >
-                  Employees
-                </TabsTrigger>
-              )}
+              <TabsTrigger
+                value="employees"
+                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+              >
+                Employees
+              </TabsTrigger>
               <TabsTrigger
                 value="availability"
                 className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
@@ -1918,8 +2248,7 @@ export default function VendorDetail() {
               </div>
             </TabsContent>
 
-	            {canManageEmployees && (
-	              <TabsContent value="employees">
+            <TabsContent value="employees">
 	                <div className="flex items-center gap-3 mt-3">
 	                  <div className="whitespace-nowrap font-semibold text-xl">
 	                    Employees
@@ -2136,6 +2465,139 @@ export default function VendorDetail() {
                             </div>
                           )}
 
+                          {employeeTab === "current" && (
+                            <div className="flex justify-end">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                  editingEmployeeId === employee._id
+                                    ? setEditingEmployeeId(null)
+                                    : openEmployeeEditor(employee)
+                                }
+                              >
+                                <Pencil size={16} />
+                                {editingEmployeeId === employee._id
+                                  ? "Close editor"
+                                  : "Edit employee"}
+                              </Button>
+                            </div>
+                          )}
+
+                          {employeeTab === "current" &&
+                            editingEmployeeId === employee._id && (() => {
+                              const draft =
+                                employeeProfileDrafts[employee._id] ||
+                                buildEmployeeProfileDraft(employee);
+                              return (
+                                <div className="rounded-md border bg-muted/20 p-3">
+                                  <div className="mb-3 font-semibold">
+                                    Support employee editor
+                                  </div>
+                                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                                    <label className="text-sm">First name<Input value={draft.first_name} onChange={(event) => updateEmployeeDraft(employee._id, "first_name", event.target.value)} /></label>
+                                    <label className="text-sm">Last name<Input value={draft.last_name} onChange={(event) => updateEmployeeDraft(employee._id, "last_name", event.target.value)} /></label>
+                                    <label className="text-sm">ZIP code<Input value={draft.zip_code} onChange={(event) => updateEmployeeDraft(employee._id, "zip_code", event.target.value)} /></label>
+                                    <label className="text-sm">Phone number<Input value={draft.phone_number} onChange={(event) => updateEmployeeDraft(employee._id, "phone_number", event.target.value)} /></label>
+                                    <label className="text-sm">Hourly wage<Input type="number" min="0" step="0.01" value={draft.employee_rate} onChange={(event) => updateEmployeeDraft(employee._id, "employee_rate", event.target.value)} /></label>
+                                    <label className="text-sm">Tap to Pay serial<Input value={draft.tap_to_pay_serial_number} onChange={(event) => updateEmployeeDraft(employee._id, "tap_to_pay_serial_number", event.target.value)} /></label>
+                                    <label className="text-sm md:col-span-2">Address line 1<Input value={draft.address_line1} onChange={(event) => updateEmployeeDraft(employee._id, "address_line1", event.target.value)} /></label>
+                                    <label className="text-sm">City<Input value={draft.address_city} onChange={(event) => updateEmployeeDraft(employee._id, "address_city", event.target.value)} /></label>
+                                    <label className="text-sm">State<Input value={draft.address_state} onChange={(event) => updateEmployeeDraft(employee._id, "address_state", event.target.value)} /></label>
+                                    <label className="text-sm">Address ZIP<Input value={draft.address_zip} onChange={(event) => updateEmployeeDraft(employee._id, "address_zip", event.target.value)} /></label>
+                                    <label className="text-sm">ID photo URL<Input value={draft.employee_id_photo_url} onChange={(event) => updateEmployeeDraft(employee._id, "employee_id_photo_url", event.target.value)} /></label>
+                                    <label className="text-sm">Assigned location<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={draft.assigned_location_id} onChange={(event) => updateEmployeeDraft(employee._id, "assigned_location_id", event.target.value)}><option value="">Unassigned</option>{(result.user.foodTruck?.locations || []).map((location: FoodTruckLocation) => <option key={location._id} value={location._id}>{location.title || location.address || "Location"}</option>)}</select></label>
+                                    <label className="text-sm">Assigned truck unit<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={draft.assigned_truck_unit_id} onChange={(event) => updateEmployeeDraft(employee._id, "assigned_truck_unit_id", event.target.value)}><option value="">Unassigned</option>{(result.user.foodTruck?.truck_units || []).filter((unit) => !unit.is_archived).map((unit) => <option key={unit._id} value={unit._id || ""}>{unit.name || "Truck unit"}</option>)}</select></label>
+                                    <label className="text-sm">Tax ID type<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={draft.employee_tax_identifier_type} onChange={(event) => updateEmployeeDraft(employee._id, "employee_tax_identifier_type", event.target.value)}><option value="SSN">SSN</option><option value="EIN">EIN</option></select></label>
+                                    <label className="text-sm md:col-span-2">Replace masked tax ID only<Input type="password" inputMode="numeric" placeholder={employee.employee_tax_identifier_masked || "Leave blank to keep current value"} value={draft.employee_tax_identifier} onChange={(event) => updateEmployeeDraft(employee._id, "employee_tax_identifier", event.target.value)} /></label>
+                                  </div>
+                                  <div className="mt-4 border-t pt-4">
+                                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                                      <div>
+                                        <div className="font-medium">Weekly schedule</div>
+                                        <div className="text-xs text-muted-foreground">Each enabled day can belong to only one truck and location.</div>
+                                      </div>
+                                      <Button type="button" size="sm" variant="outline" onClick={() => setEmployeeScheduleDrafts((previous) => ({ ...previous, [employee._id]: [...(previous[employee._id] || []), { truck_unit_id: "", location_id: "", days: buildScheduleDays() }] }))}>Add schedule card</Button>
+                                    </div>
+                                    {(employeeScheduleDrafts[employee._id] || []).map((assignment, assignmentIndex) => (
+                                      <div key={`${employee._id}-schedule-${assignmentIndex}`} className="mb-3 rounded border p-3">
+                                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                          <label className="text-sm">Location<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={assignment.location_id} onChange={(event) => updateScheduleAssignment(employee._id, assignmentIndex, { location_id: event.target.value })}><option value="">Choose location</option>{(result.user.foodTruck?.locations || []).map((location: FoodTruckLocation) => <option key={location._id} value={location._id}>{location.title || location.address || "Location"}</option>)}</select></label>
+                                          <label className="text-sm">Truck unit<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={assignment.truck_unit_id} onChange={(event) => updateScheduleAssignment(employee._id, assignmentIndex, { truck_unit_id: event.target.value })}><option value="">Choose truck unit</option>{(result.user.foodTruck?.truck_units || []).filter((unit) => !unit.is_archived).map((unit) => <option key={unit._id} value={unit._id || ""}>{unit.name || "Truck unit"}</option>)}</select></label>
+                                        </div>
+                                        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                                          {employeeScheduleDays.map(([day, label]) => {
+                                            const row = assignment.days.find((item) => item.day === day)!;
+                                            return <div key={day} className="rounded border p-2"><label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={row.enabled} onChange={(event) => updateScheduleDay(employee._id, assignmentIndex, day, { enabled: event.target.checked })} />{label}</label><div className="mt-2 flex gap-2"><input className="h-8 min-w-0 flex-1 rounded border bg-background px-2 text-xs" type="time" disabled={!row.enabled} value={row.clock_in} onChange={(event) => updateScheduleDay(employee._id, assignmentIndex, day, { clock_in: event.target.value })} /><input className="h-8 min-w-0 flex-1 rounded border bg-background px-2 text-xs" type="time" disabled={!row.enabled} value={row.clock_out} onChange={(event) => updateScheduleDay(employee._id, assignmentIndex, day, { clock_out: event.target.value })} /></div></div>;
+                                          })}
+                                        </div>
+                                        <div className="mt-3 flex justify-end"><Button type="button" size="sm" variant="ghost" onClick={() => setEmployeeScheduleDrafts((previous) => ({ ...previous, [employee._id]: (previous[employee._id] || []).filter((_, index) => index !== assignmentIndex) }))}>Remove card</Button></div>
+                                      </div>
+                                    ))}
+                                    <div className="flex justify-end"><Button type="button" variant="outline" disabled={employeeSaving} onClick={() => saveEmployeeSchedule(employee)}>Save schedule</Button></div>
+                                  </div>
+                                  <div className="mt-3 flex justify-end gap-2">
+                                    <Button type="button" variant="outline" onClick={() => setEditingEmployeeId(null)}>Cancel</Button>
+                                    <Button type="button" disabled={employeeSaving} onClick={() => saveEmployeeProfile(employee)}>{employeeSaving && <LoaderCircle size={16} className="animate-spin" />}Save employee</Button>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                          {employeeTab === "current" && (
+                            <div className="rounded-md border p-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                  <div className="font-semibold">Timecards</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    Edit completed shifts only. Every edit requires a reason and is retained in the audit history.
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  disabled={timecardLoadingEmployeeId === employee._id}
+                                  onClick={() => loadEmployeeTimecards(employee)}
+                                >
+                                  {timecardLoadingEmployeeId === employee._id && (
+                                    <LoaderCircle size={16} className="animate-spin" />
+                                  )}
+                                  Load timecards
+                                </Button>
+                              </div>
+                              {(employeeTimecards[employee._id] || []).map((timecard) => {
+                                const isEditing = editingTimecardId === timecard.employee_session_id;
+                                const draft = timecardDrafts[timecard.employee_session_id];
+                                return (
+                                  <div key={timecard.employee_session_id} className="mt-3 rounded border p-3 text-sm">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <div>
+                                        <div>{new Date(timecard.started_at).toLocaleString()}</div>
+                                        <div className="text-muted-foreground">
+                                          {timecard.is_active ? "Active shift — cannot edit" : `Net hours: ${Number(timecard.net_hours_worked || 0).toFixed(2)}`}
+                                        </div>
+                                      </div>
+                                      {!timecard.is_active && !timecard.is_archived && (
+                                        <Button type="button" size="sm" variant="outline" onClick={() => isEditing ? setEditingTimecardId(null) : openTimecardEditor(timecard)}>
+                                          <Pencil size={14} />{isEditing ? "Close" : "Edit"}
+                                        </Button>
+                                      )}
+                                    </div>
+                                    {isEditing && draft && (
+                                      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <label>Start<input className="mt-1 h-9 w-full rounded-md border bg-background px-3" type="datetime-local" value={draft.started_at} onChange={(event) => setTimecardDrafts((previous) => ({ ...previous, [timecard.employee_session_id]: { ...draft, started_at: event.target.value } }))} /></label>
+                                        <label>End<input className="mt-1 h-9 w-full rounded-md border bg-background px-3" type="datetime-local" value={draft.ended_at} onChange={(event) => setTimecardDrafts((previous) => ({ ...previous, [timecard.employee_session_id]: { ...draft, ended_at: event.target.value } }))} /></label>
+                                        <label>Break minutes<Input type="number" min="0" value={draft.total_break_minutes} onChange={(event) => setTimecardDrafts((previous) => ({ ...previous, [timecard.employee_session_id]: { ...draft, total_break_minutes: event.target.value } }))} /></label>
+                                        <label>Adjustment reason<Input value={draft.reason} onChange={(event) => setTimecardDrafts((previous) => ({ ...previous, [timecard.employee_session_id]: { ...draft, reason: event.target.value } }))} /></label>
+                                        <div className="md:col-span-2 flex justify-end"><Button type="button" disabled={employeeSaving} onClick={() => saveTimecard(employee, timecard)}>Save timecard</Button></div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
                           <div className="flex flex-wrap gap-2">
                             {employeeTab === "current" && (
                               <Button
@@ -2169,8 +2631,7 @@ export default function VendorDetail() {
 	                    })}
 	                  </div>
 	                )}
-	              </TabsContent>
-	            )}
+              </TabsContent>
 
             <TabsContent value="availability">
               <div className="flex items-center gap-3 mt-3">
