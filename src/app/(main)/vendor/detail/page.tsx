@@ -900,6 +900,7 @@ export default function VendorDetail() {
   const saveTimecard = async (
     employee: VendorEmployee,
     timecard: VendorEmployeeTimecard,
+    range: "current_week" | "archived" = "current_week",
   ) => {
     const draft = timecardDrafts[timecard.employee_session_id];
     if (!draft?.started_at || !draft.ended_at || !draft.reason.trim()) {
@@ -925,7 +926,7 @@ export default function VendorDetail() {
       );
       toast.success("Timecard updated.");
       setEditingTimecardId(null);
-      await loadEmployeeTimecards(employee, "current_week");
+      await loadEmployeeTimecards(employee, range);
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Could not update timecard.");
     } finally {
@@ -2618,7 +2619,7 @@ export default function VendorDetail() {
                                 <div>
                                   <div className="font-semibold">Archived Timecards</div>
                                   <div className="text-sm text-muted-foreground">
-                                    Completed timecards from prior archived periods. They remain available for support review but cannot be edited.
+                                    Completed timecards from prior archived periods. Admin corrections require a reason and are retained in the audit history.
                                   </div>
                                 </div>
                                 <Button
@@ -2633,16 +2634,38 @@ export default function VendorDetail() {
                                   Load archived timecards
                                 </Button>
                               </div>
-                              {(employeeArchivedTimecards[employee._id] || []).map((timecard) => (
-                                <div key={timecard.employee_session_id} className="mt-3 rounded border bg-muted/30 p-3 text-sm">
-                                  <div>{new Date(timecard.started_at).toLocaleString()}</div>
-                                  <div className="text-muted-foreground">
-                                    {timecard.ended_at
-                                      ? `Ended ${new Date(timecard.ended_at).toLocaleString()} · Net hours: ${Number(timecard.net_hours_worked || 0).toFixed(2)}`
-                                      : "No recorded end time"}
+                              {(employeeArchivedTimecards[employee._id] || []).map((timecard) => {
+                                const isEditing = editingTimecardId === timecard.employee_session_id;
+                                const draft = timecardDrafts[timecard.employee_session_id];
+                                return (
+                                  <div key={timecard.employee_session_id} className="mt-3 rounded border bg-muted/30 p-3 text-sm">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <div>
+                                        <div>{new Date(timecard.started_at).toLocaleString()}</div>
+                                        <div className="text-muted-foreground">
+                                          {timecard.ended_at
+                                            ? `Ended ${new Date(timecard.ended_at).toLocaleString()} · Net hours: ${Number(timecard.net_hours_worked || 0).toFixed(2)}`
+                                            : "No recorded end time"}
+                                        </div>
+                                      </div>
+                                      {!timecard.is_active && (
+                                        <Button type="button" size="sm" variant="outline" onClick={() => isEditing ? setEditingTimecardId(null) : openTimecardEditor(timecard)}>
+                                          <Pencil size={14} />{isEditing ? "Close" : "Edit"}
+                                        </Button>
+                                      )}
+                                    </div>
+                                    {isEditing && draft && (
+                                      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <label>Start<input className="mt-1 h-9 w-full rounded-md border bg-background px-3" type="datetime-local" value={draft.started_at} onChange={(event) => setTimecardDrafts((previous) => ({ ...previous, [timecard.employee_session_id]: { ...draft, started_at: event.target.value } }))} /></label>
+                                        <label>End<input className="mt-1 h-9 w-full rounded-md border bg-background px-3" type="datetime-local" value={draft.ended_at} onChange={(event) => setTimecardDrafts((previous) => ({ ...previous, [timecard.employee_session_id]: { ...draft, ended_at: event.target.value } }))} /></label>
+                                        <label>Break minutes<Input type="number" min="0" value={draft.total_break_minutes} onChange={(event) => setTimecardDrafts((previous) => ({ ...previous, [timecard.employee_session_id]: { ...draft, total_break_minutes: event.target.value } }))} /></label>
+                                        <label>Adjustment reason<Input value={draft.reason} onChange={(event) => setTimecardDrafts((previous) => ({ ...previous, [timecard.employee_session_id]: { ...draft, reason: event.target.value } }))} /></label>
+                                        <div className="md:col-span-2 flex justify-end"><Button type="button" disabled={employeeSaving} onClick={() => saveTimecard(employee, timecard, "archived")}>Save timecard</Button></div>
+                                      </div>
+                                    )}
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
 
