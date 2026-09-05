@@ -271,6 +271,9 @@ export default function VendorDetail() {
   const [employeeTimecards, setEmployeeTimecards] = useState<
     Record<string, VendorEmployeeTimecard[]>
   >({});
+  const [employeeArchivedTimecards, setEmployeeArchivedTimecards] = useState<
+    Record<string, VendorEmployeeTimecard[]>
+  >({});
   const [timecardLoadingEmployeeId, setTimecardLoadingEmployeeId] = useState<
     string | null
   >(null);
@@ -855,14 +858,25 @@ export default function VendorDetail() {
     }
   };
 
-  const loadEmployeeTimecards = async (employee: VendorEmployee) => {
+  const loadEmployeeTimecards = async (
+    employee: VendorEmployee,
+    range: "current_week" | "archived" = "current_week",
+  ) => {
     setTimecardLoadingEmployeeId(employee._id);
     try {
-      const response = await vendorEmployeeApiService.shiftHistory(employee._id);
-      setEmployeeTimecards((previous) => ({
-        ...previous,
-        [employee._id]: response.data?.data?.sessions || [],
-      }));
+      const response = await vendorEmployeeApiService.shiftHistory(employee._id, range);
+      const sessions = response.data?.data?.sessions || [];
+      if (range === "archived") {
+        setEmployeeArchivedTimecards((previous) => ({
+          ...previous,
+          [employee._id]: sessions,
+        }));
+      } else {
+        setEmployeeTimecards((previous) => ({
+          ...previous,
+          [employee._id]: sessions,
+        }));
+      }
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Could not load timecards.");
     } finally {
@@ -911,7 +925,7 @@ export default function VendorDetail() {
       );
       toast.success("Timecard updated.");
       setEditingTimecardId(null);
-      await loadEmployeeTimecards(employee);
+      await loadEmployeeTimecards(employee, "current_week");
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Could not update timecard.");
     } finally {
@@ -2548,21 +2562,21 @@ export default function VendorDetail() {
                             <div className="rounded-md border p-3">
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div>
-                                  <div className="font-semibold">Timecards</div>
+                                  <div className="font-semibold">Current Week Timecards</div>
                                   <div className="text-sm text-muted-foreground">
-                                    Edit completed shifts only. Every edit requires a reason and is retained in the audit history.
+                                    Monday through today. Edit completed shifts only; every edit requires a reason and is retained in the audit history.
                                   </div>
                                 </div>
                                 <Button
                                   type="button"
                                   variant="outline"
                                   disabled={timecardLoadingEmployeeId === employee._id}
-                                  onClick={() => loadEmployeeTimecards(employee)}
+                                  onClick={() => loadEmployeeTimecards(employee, "current_week")}
                                 >
                                   {timecardLoadingEmployeeId === employee._id && (
                                     <LoaderCircle size={16} className="animate-spin" />
                                   )}
-                                  Load timecards
+                                  Load current week
                                 </Button>
                               </div>
                               {(employeeTimecards[employee._id] || []).map((timecard) => {
@@ -2595,6 +2609,40 @@ export default function VendorDetail() {
                                   </div>
                                 );
                               })}
+                            </div>
+                          )}
+
+                          {employeeTab === "current" && (
+                            <div className="rounded-md border p-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                  <div className="font-semibold">Archived Timecards</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    Completed timecards from prior archived periods. They remain available for support review but cannot be edited.
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  disabled={timecardLoadingEmployeeId === employee._id}
+                                  onClick={() => loadEmployeeTimecards(employee, "archived")}
+                                >
+                                  {timecardLoadingEmployeeId === employee._id && (
+                                    <LoaderCircle size={16} className="animate-spin" />
+                                  )}
+                                  Load archived timecards
+                                </Button>
+                              </div>
+                              {(employeeArchivedTimecards[employee._id] || []).map((timecard) => (
+                                <div key={timecard.employee_session_id} className="mt-3 rounded border bg-muted/30 p-3 text-sm">
+                                  <div>{new Date(timecard.started_at).toLocaleString()}</div>
+                                  <div className="text-muted-foreground">
+                                    {timecard.ended_at
+                                      ? `Ended ${new Date(timecard.ended_at).toLocaleString()} · Net hours: ${Number(timecard.net_hours_worked || 0).toFixed(2)}`
+                                      : "No recorded end time"}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           )}
 
