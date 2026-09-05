@@ -102,7 +102,12 @@ class VendorEmployeeApiService extends BaseAPI {
 
   shiftHistory(
     id: string,
-    range: "day" | "week" | "current_week" | "archived" = "week",
+    range:
+      | "day"
+      | "week"
+      | "current_week"
+      | "pending_archive"
+      | "archived" = "week",
   ) {
     return this.get<IResponse<{ sessions: VendorEmployeeTimecard[] }>>(
       `${APIEndpoint.VENDOR_EMPLOYEE}/admin/${id}/shift-history`,
