@@ -6,11 +6,35 @@ import { BaseAPI } from "./base-api";
 export type VendorEmployeePayload = {
   vendor_user_id: string;
   food_truck_id: string;
-  assigned_location_id: string;
+  assigned_location_id?: string;
+  assigned_truck_unit_id?: string;
   first_name: string;
   last_name: string;
   zip_code: string;
   pin: string;
+  phone_number?: string;
+  address_line1?: string;
+  address_city?: string;
+  address_state?: string;
+  address_zip?: string;
+  employee_id_photo_url?: string;
+  employee_tax_identifier_type?: "EIN" | "SSN";
+  employee_tax_identifier?: string;
+  employee_rate?: number | null;
+  tap_to_pay_serial_number?: string;
+  role?: "EMPLOYEE" | "MANAGER";
+  manager_scope?: "NONE" | "TRUCK_UNIT" | "ALL_TRUCKS";
+  manager_truck_unit_id?: string;
+  schedule_assignments?: Array<{
+    truck_unit_id: string;
+    location_id: string;
+    days: Array<{
+      day: "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
+      enabled: boolean;
+      clock_in: string;
+      clock_out: string;
+    }>;
+  }>;
   is_active?: boolean;
   is_working?: boolean;
 };
@@ -32,6 +56,9 @@ export type VendorEmployeeUpdatePayload = Partial<
     | "employee_tax_identifier_type"
     | "employee_rate"
     | "tap_to_pay_serial_number"
+    | "role"
+    | "manager_scope"
+    | "manager_truck_unit_id"
     | "is_active"
     | "is_working"
     | "weekly_schedule"

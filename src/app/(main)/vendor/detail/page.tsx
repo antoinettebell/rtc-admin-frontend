@@ -72,6 +72,8 @@ import {
   geocodeAddress,
 } from "@/components/address-autocomplete-input";
 import { vendorComplianceApiService } from "@/services/vendor-compliance-api-service";
+import { FileSelect } from "@/components/file-select";
+import { fileApiService } from "@/services/file-api-service";
 
 const adminComplianceDocumentTypeMap: Record<string, string> = {
   PERMIT: "HEALTH_PERMIT",
@@ -150,6 +152,9 @@ type EmployeeProfileDraft = {
   assigned_location_id: string;
   assigned_truck_unit_id: string;
   tap_to_pay_serial_number: string;
+  role: "EMPLOYEE" | "MANAGER";
+  manager_scope: "NONE" | "TRUCK_UNIT" | "ALL_TRUCKS";
+  manager_truck_unit_id: string;
 };
 
 type EmployeeScheduleDay = {
@@ -164,6 +169,50 @@ type EmployeeScheduleAssignmentDraft = {
   location_id: string;
   days: EmployeeScheduleDay[];
 };
+
+type EmployeeCreateForm = {
+  first_name: string;
+  last_name: string;
+  zip_code: string;
+  phone_number: string;
+  address_line1: string;
+  address_city: string;
+  address_state: string;
+  address_zip: string;
+  employee_tax_identifier_type: "EIN" | "SSN";
+  employee_tax_identifier: string;
+  employee_rate: string;
+  employee_id_photo_url: string;
+  tap_to_pay_serial_number: string;
+  assigned_location_id: string;
+  assigned_truck_unit_id: string;
+  pin: string;
+  role: "EMPLOYEE" | "MANAGER";
+  manager_scope: "NONE" | "TRUCK_UNIT" | "ALL_TRUCKS";
+  manager_truck_unit_id: string;
+};
+
+const emptyEmployeeCreateForm = (): EmployeeCreateForm => ({
+  first_name: "",
+  last_name: "",
+  zip_code: "",
+  phone_number: "",
+  address_line1: "",
+  address_city: "",
+  address_state: "",
+  address_zip: "",
+  employee_tax_identifier_type: "SSN",
+  employee_tax_identifier: "",
+  employee_rate: "",
+  employee_id_photo_url: "",
+  tap_to_pay_serial_number: "",
+  assigned_location_id: "",
+  assigned_truck_unit_id: "",
+  pin: "",
+  role: "EMPLOYEE",
+  manager_scope: "NONE",
+  manager_truck_unit_id: "",
+});
 
 const employeeScheduleDays: Array<[EmployeeScheduleDay["day"], string]> = [
   ["sun", "Sun"], ["mon", "Mon"], ["tue", "Tue"], ["wed", "Wed"],
@@ -223,6 +272,9 @@ const buildEmployeeProfileDraft = (
   assigned_location_id: employee.assigned_location_id || "",
   assigned_truck_unit_id: employee.assigned_truck_unit_id || "",
   tap_to_pay_serial_number: employee.tap_to_pay_serial_number || "",
+  role: employee.role === "MANAGER" ? "MANAGER" : "EMPLOYEE",
+  manager_scope: employee.manager_scope || "NONE",
+  manager_truck_unit_id: employee.manager_truck_unit_id || "",
 });
 
 const toDateTimeLocalValue = (value?: string | null) => {
@@ -268,6 +320,11 @@ export default function VendorDetail() {
   const [employeeScheduleDrafts, setEmployeeScheduleDrafts] = useState<
     Record<string, EmployeeScheduleAssignmentDraft[]>
   >({});
+  const [employeeCreateScheduleAssignments, setEmployeeCreateScheduleAssignments] = useState<
+    EmployeeScheduleAssignmentDraft[]
+  >([]);
+  const [employeeCreatePhotoFile, setEmployeeCreatePhotoFile] = useState<File | null>(null);
+  const [employeePhotoFiles, setEmployeePhotoFiles] = useState<Record<string, File | null>>({});
   const [employeeTimecards, setEmployeeTimecards] = useState<
     Record<string, VendorEmployeeTimecard[]>
   >({});
@@ -287,13 +344,9 @@ export default function VendorDetail() {
       { started_at: string; ended_at: string; total_break_minutes: string; reason: string }
     >
   >({});
-  const [employeeForm, setEmployeeForm] = useState({
-    first_name: "",
-    last_name: "",
-    zip_code: "",
-    assigned_location_id: "",
-    pin: "",
-  });
+  const [employeeForm, setEmployeeForm] = useState<EmployeeCreateForm>(
+    emptyEmployeeCreateForm,
+  );
 
   const [changeFeature, setChangeFeature] = useState<User | null>(null);
   const [changingFeature, setChangingFeature] = useState<boolean>(false);
@@ -646,16 +699,12 @@ export default function VendorDetail() {
   }, [activeTab, loadEmployees]);
 
   const resetEmployeeForm = () => {
-    setEmployeeForm({
-      first_name: "",
-      last_name: "",
-      zip_code: "",
-      assigned_location_id: "",
-      pin: "",
-    });
+    setEmployeeForm(emptyEmployeeCreateForm());
+    setEmployeeCreateScheduleAssignments([]);
+    setEmployeeCreatePhotoFile(null);
   };
 
-  const addEmployee = () => {
+  const addEmployee = async () => {
     if (!canManageEmployees) {
       toast.error("Employee management is not enabled for this vendor plan.");
       return;
@@ -667,31 +716,82 @@ export default function VendorDetail() {
       !employeeForm.first_name.trim() ||
       !employeeForm.last_name.trim() ||
       !employeeForm.zip_code.trim() ||
-      !employeeForm.assigned_location_id ||
       !employeeForm.pin.trim()
     ) {
       toast.error("Complete all employee fields.");
       return;
     }
 
+    const employeeRate = employeeForm.employee_rate.trim()
+      ? Number(employeeForm.employee_rate)
+      : null;
+    if (employeeRate !== null && (!Number.isFinite(employeeRate) || employeeRate < 0)) {
+      toast.error("Employee rate must be a valid non-negative amount.");
+      return;
+    }
+    if (Boolean(employeeForm.assigned_location_id) !== Boolean(employeeForm.assigned_truck_unit_id)) {
+      toast.error("Choose both an assigned location and truck unit, or leave both unassigned.");
+      return;
+    }
+    if (
+      employeeForm.role === "MANAGER" &&
+      employeeForm.manager_scope === "TRUCK_UNIT" &&
+      !employeeForm.manager_truck_unit_id
+    ) {
+      toast.error("Choose the food truck this manager can oversee.");
+      return;
+    }
+    const enabledScheduleDays = employeeCreateScheduleAssignments.flatMap(
+      (assignment) => assignment.days.filter((day) => day.enabled).map((day) => day.day),
+    );
+    if (new Set(enabledScheduleDays).size !== enabledScheduleDays.length) {
+      toast.error("Each scheduled weekday can only appear on one schedule card.");
+      return;
+    }
+    if (
+      employeeCreateScheduleAssignments.some(
+        (assignment) => !assignment.location_id || !assignment.truck_unit_id,
+      )
+    ) {
+      toast.error("Every schedule card needs a location and food truck.");
+      return;
+    }
+
     setEmployeeSaving(true);
-    vendorEmployeeApiService
-      .create({
+    try {
+      const uploadedPhotoUrl = employeeCreatePhotoFile
+        ? (await fileApiService.upload(employeeCreatePhotoFile))?.data?.data?.file
+        : employeeForm.employee_id_photo_url.trim();
+      await vendorEmployeeApiService.create({
         vendor_user_id: vendorUserId,
         food_truck_id: foodTruckId,
         ...employeeForm,
-      })
-      .then(() => {
-        toast.success("Employee added.");
-        resetEmployeeForm();
-        setEmployeeTab("current");
-        loadEmployees();
-      })
-      .catch((e) => {
-        console.log(e);
-        toast.error(e?.response?.data?.message || "Could not add employee.");
-      })
-      .finally(() => setEmployeeSaving(false));
+        phone_number: employeeForm.phone_number.trim(),
+        address_line1: employeeForm.address_line1.trim(),
+        address_city: employeeForm.address_city.trim(),
+        address_state: employeeForm.address_state.trim(),
+        address_zip: employeeForm.address_zip.trim(),
+        employee_tax_identifier: employeeForm.employee_tax_identifier.trim(),
+        employee_rate: employeeRate,
+        employee_id_photo_url: uploadedPhotoUrl || "",
+        tap_to_pay_serial_number: employeeForm.tap_to_pay_serial_number.trim(),
+        manager_scope:
+          employeeForm.role === "MANAGER" ? employeeForm.manager_scope : "NONE",
+        manager_truck_unit_id:
+          employeeForm.role === "MANAGER" && employeeForm.manager_scope === "TRUCK_UNIT"
+            ? employeeForm.manager_truck_unit_id
+            : "",
+        schedule_assignments: employeeCreateScheduleAssignments,
+      });
+      toast.success("Employee added.");
+      resetEmployeeForm();
+      setEmployeeTab("current");
+      loadEmployees();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Could not add employee.");
+    } finally {
+      setEmployeeSaving(false);
+    }
   };
 
   const updateEmployee = (
@@ -758,9 +858,21 @@ export default function VendorDetail() {
       toast.error("Choose both an assigned location and truck unit, or leave both unchanged.");
       return;
     }
+    if (
+      draft.role === "MANAGER" &&
+      draft.manager_scope === "TRUCK_UNIT" &&
+      !draft.manager_truck_unit_id
+    ) {
+      toast.error("Choose the food truck this manager can oversee.");
+      return;
+    }
 
     setEmployeeSaving(true);
     try {
+      const pendingPhotoFile = employeePhotoFiles[employee._id];
+      const uploadedPhotoUrl = pendingPhotoFile
+        ? (await fileApiService.upload(pendingPhotoFile))?.data?.data?.file
+        : draft.employee_id_photo_url.trim();
       await vendorEmployeeApiService.update(employee._id, {
         first_name: draft.first_name.trim(),
         last_name: draft.last_name.trim(),
@@ -770,7 +882,7 @@ export default function VendorDetail() {
         address_city: draft.address_city.trim() || null,
         address_state: draft.address_state.trim() || null,
         address_zip: draft.address_zip.trim() || null,
-        employee_id_photo_url: draft.employee_id_photo_url.trim() || null,
+        employee_id_photo_url: uploadedPhotoUrl || null,
         employee_tax_identifier_type: draft.employee_tax_identifier_type,
         ...(draft.employee_tax_identifier.trim()
           ? { employee_tax_identifier: draft.employee_tax_identifier.trim() }
@@ -783,8 +895,15 @@ export default function VendorDetail() {
             }
           : {}),
         tap_to_pay_serial_number: draft.tap_to_pay_serial_number.trim() || null,
+        role: draft.role,
+        manager_scope: draft.role === "MANAGER" ? draft.manager_scope : "NONE",
+        manager_truck_unit_id:
+          draft.role === "MANAGER" && draft.manager_scope === "TRUCK_UNIT"
+            ? draft.manager_truck_unit_id
+            : null,
       });
       toast.success("Employee profile updated.");
+      setEmployeePhotoFiles((previous) => ({ ...previous, [employee._id]: null }));
       setEditingEmployeeId(null);
       await loadEmployees();
     } catch (error: any) {
@@ -807,6 +926,36 @@ export default function VendorDetail() {
         index === assignmentIndex ? { ...assignment, ...update } : assignment,
       ),
     }));
+  };
+
+  const updateCreateScheduleAssignment = (
+    assignmentIndex: number,
+    update: Partial<EmployeeScheduleAssignmentDraft>,
+  ) => {
+    setEmployeeCreateScheduleAssignments((previous) =>
+      previous.map((assignment, index) =>
+        index === assignmentIndex ? { ...assignment, ...update } : assignment,
+      ),
+    );
+  };
+
+  const updateCreateScheduleDay = (
+    assignmentIndex: number,
+    day: EmployeeScheduleDay["day"],
+    update: Partial<EmployeeScheduleDay>,
+  ) => {
+    setEmployeeCreateScheduleAssignments((previous) =>
+      previous.map((assignment, index) =>
+        index === assignmentIndex
+          ? {
+              ...assignment,
+              days: assignment.days.map((row) =>
+                row.day === day ? { ...row, ...update } : row,
+              ),
+            }
+          : assignment,
+      ),
+    );
   };
 
   const updateScheduleDay = (
@@ -2279,81 +2428,46 @@ export default function VendorDetail() {
 	                  <div className="border-b w-full"></div>
 	                </div>
 
-	                <div className="border rounded-md p-3 mb-4">
-                  <div className="font-semibold mb-3">Add Employee</div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
-                    <Input
-                      value={employeeForm.first_name}
-                      placeholder="First name"
-                      onChange={(e) =>
-                        setEmployeeForm((prev) => ({
-                          ...prev,
-                          first_name: e.target.value,
-                        }))
-                      }
-                    />
-                    <Input
-                      value={employeeForm.last_name}
-                      placeholder="Last name"
-                      onChange={(e) =>
-                        setEmployeeForm((prev) => ({
-                          ...prev,
-                          last_name: e.target.value,
-                        }))
-                      }
-                    />
-                    <Input
-                      value={employeeForm.zip_code}
-                      placeholder="Zip"
-                      onChange={(e) =>
-                        setEmployeeForm((prev) => ({
-                          ...prev,
-                          zip_code: e.target.value,
-                        }))
-                      }
-                    />
-                    <select
-                      value={employeeForm.assigned_location_id}
-                      className="border rounded-md px-3 py-2 bg-background"
-                      onChange={(e) =>
-                        setEmployeeForm((prev) => ({
-                          ...prev,
-                          assigned_location_id: e.target.value,
-                        }))
-                      }
-                    >
-                      <option value="">Location</option>
-                      {(result.user.foodTruck?.locations || []).map(
-                        (location: FoodTruckLocation) => (
-                          <option key={location._id} value={location._id}>
-                            {location.title || location.address || "Location"}
-                          </option>
-                        ),
-                      )}
-                    </select>
-                    <Input
-                      value={employeeForm.pin}
-                      placeholder="PIN"
-                      type="password"
-                      onChange={(e) =>
-                        setEmployeeForm((prev) => ({
-                          ...prev,
-                          pin: e.target.value,
-                        }))
-                      }
-                    />
-                    <Button
-                      type="button"
-                      disabled={employeeSaving}
-                      onClick={addEmployee}
-                    >
-                      <Plus size={16} />
-                      Add
-                      {employeeSaving && (
-                        <LoaderCircle size={16} className="animate-spin" />
-                      )}
-                    </Button>
+	                <div className="border rounded-md p-4 mb-4">
+                  <div className="font-semibold">Add Employee</div>
+                  <p className="mt-1 text-sm text-muted-foreground">Create a complete employee profile on the vendor's behalf. Required: name, ZIP code, and a four-digit PIN.</p>
+                  <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <label className="min-w-0 text-sm">First name<Input value={employeeForm.first_name} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, first_name: event.target.value }))} /></label>
+                    <label className="min-w-0 text-sm">Last name<Input value={employeeForm.last_name} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, last_name: event.target.value }))} /></label>
+                    <label className="min-w-0 text-sm">Employee ZIP code<Input value={employeeForm.zip_code} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, zip_code: event.target.value }))} /></label>
+                    <label className="min-w-0 text-sm">Phone number<Input value={employeeForm.phone_number} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, phone_number: event.target.value }))} /></label>
+                    <label className="min-w-0 text-sm">Hourly wage<Input type="number" min="0" step="0.01" value={employeeForm.employee_rate} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, employee_rate: event.target.value }))} /></label>
+                    <label className="min-w-0 text-sm">Temporary PIN<Input type="password" inputMode="numeric" maxLength={4} value={employeeForm.pin} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, pin: event.target.value }))} /></label>
+                    <label className="min-w-0 text-sm md:col-span-2">Address line 1<AddressAutocompleteInput value={employeeForm.address_line1} placeholder="Start typing a street address" className="mt-1 min-w-0" onValueChange={(value) => setEmployeeForm((prev) => ({ ...prev, address_line1: value }))} onAddressSelect={(selection) => setEmployeeForm((prev) => ({ ...prev, address_line1: selection.street_address || selection.address, address_city: selection.city, address_state: selection.state, address_zip: selection.zipcode, zip_code: selection.zipcode || prev.zip_code }))} /></label>
+                    <label className="min-w-0 text-sm">City<Input value={employeeForm.address_city} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, address_city: event.target.value }))} /></label>
+                    <label className="min-w-0 text-sm">State<Input value={employeeForm.address_state} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, address_state: event.target.value }))} /></label>
+                    <label className="min-w-0 text-sm">Address ZIP<Input value={employeeForm.address_zip} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, address_zip: event.target.value }))} /></label>
+                    <label className="min-w-0 text-sm">Tap to Pay serial number<Input value={employeeForm.tap_to_pay_serial_number} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, tap_to_pay_serial_number: event.target.value }))} /></label>
+                    <div className="min-w-0 text-sm xl:col-span-2"><div className="mb-1">Employee ID photo</div><FileSelect field={{}} file={employeeCreatePhotoFile} setFile={setEmployeeCreatePhotoFile} removeImage={() => setEmployeeCreatePhotoFile(null)} uploadMessage="Upload employee ID photo" className="h-28" /></div>
+                    <label className="min-w-0 text-sm">Tax ID type<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={employeeForm.employee_tax_identifier_type} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, employee_tax_identifier_type: event.target.value as "EIN" | "SSN" }))}><option value="SSN">SSN</option><option value="EIN">EIN</option></select></label>
+                    <label className="min-w-0 text-sm xl:col-span-2">Employee EIN/SSN<Input type="password" inputMode="numeric" value={employeeForm.employee_tax_identifier} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, employee_tax_identifier: event.target.value }))} /></label>
+                    <label className="min-w-0 text-sm">Assigned location<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={employeeForm.assigned_location_id} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, assigned_location_id: event.target.value }))}><option value="">Unassigned</option>{(result.user.foodTruck?.locations || []).map((location: FoodTruckLocation) => <option key={location._id} value={location._id}>{location.title || location.address || "Location"}</option>)}</select></label>
+                    <label className="min-w-0 text-sm">Assigned food truck<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={employeeForm.assigned_truck_unit_id} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, assigned_truck_unit_id: event.target.value }))}><option value="">Unassigned</option>{(result.user.foodTruck?.truck_units || []).filter((unit) => !unit.is_archived).map((unit) => <option key={unit._id} value={unit._id || ""}>{unit.name || "Food truck"}</option>)}</select></label>
+                    <label className="min-w-0 text-sm">Role<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={employeeForm.role} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, role: event.target.value as "EMPLOYEE" | "MANAGER", manager_scope: event.target.value === "MANAGER" ? prev.manager_scope : "NONE", manager_truck_unit_id: event.target.value === "MANAGER" ? prev.manager_truck_unit_id : "" }))}><option value="EMPLOYEE">Employee</option><option value="MANAGER">Manager</option></select></label>
+                    {employeeForm.role === "MANAGER" && <><label className="min-w-0 text-sm">Manager access<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={employeeForm.manager_scope} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, manager_scope: event.target.value as "NONE" | "TRUCK_UNIT" | "ALL_TRUCKS", manager_truck_unit_id: event.target.value === "TRUCK_UNIT" ? prev.manager_truck_unit_id : "" }))}><option value="NONE">None</option><option value="TRUCK_UNIT">One food truck</option><option value="ALL_TRUCKS">All food trucks</option></select></label>{employeeForm.manager_scope === "TRUCK_UNIT" && <label className="min-w-0 text-sm">Manager food truck<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={employeeForm.manager_truck_unit_id} onChange={(event) => setEmployeeForm((prev) => ({ ...prev, manager_truck_unit_id: event.target.value }))}><option value="">Choose food truck</option>{(result.user.foodTruck?.truck_units || []).filter((unit) => !unit.is_archived).map((unit) => <option key={unit._id} value={unit._id || ""}>{unit.name || "Food truck"}</option>)}</select></label>}</>}
                   </div>
+                  <div className="mt-4 border-t pt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div><div className="font-medium">Initial weekly schedule</div><div className="text-xs text-muted-foreground">Optional, but required for scheduled clock-in and automatic clock-out.</div></div>
+                      <Button type="button" size="sm" variant="outline" onClick={() => setEmployeeCreateScheduleAssignments((previous) => [...previous, { truck_unit_id: "", location_id: "", days: buildScheduleDays() }])}>Add schedule card</Button>
+                    </div>
+                    {employeeCreateScheduleAssignments.map((assignment, assignmentIndex) => (
+                      <div key={`new-employee-schedule-${assignmentIndex}`} className="mt-3 rounded border p-3">
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                          <label className="min-w-0 text-sm">Location<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={assignment.location_id} onChange={(event) => updateCreateScheduleAssignment(assignmentIndex, { location_id: event.target.value })}><option value="">Choose location</option>{(result.user.foodTruck?.locations || []).map((location: FoodTruckLocation) => <option key={location._id} value={location._id}>{location.title || location.address || "Location"}</option>)}</select></label>
+                          <label className="min-w-0 text-sm">Food truck<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={assignment.truck_unit_id} onChange={(event) => updateCreateScheduleAssignment(assignmentIndex, { truck_unit_id: event.target.value })}><option value="">Choose food truck</option>{(result.user.foodTruck?.truck_units || []).filter((unit) => !unit.is_archived).map((unit) => <option key={unit._id} value={unit._id || ""}>{unit.name || "Food truck"}</option>)}</select></label>
+                        </div>
+                        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">{employeeScheduleDays.map(([day, label]) => { const row = assignment.days.find((item) => item.day === day)!; return <div key={day} className="min-w-0 rounded border p-2"><label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={row.enabled} onChange={(event) => updateCreateScheduleDay(assignmentIndex, day, { enabled: event.target.checked })} />{label}</label><div className="mt-2 flex gap-2"><input className="h-8 min-w-0 flex-1 rounded border bg-background px-2 text-xs" type="time" disabled={!row.enabled} value={row.clock_in} onChange={(event) => updateCreateScheduleDay(assignmentIndex, day, { clock_in: event.target.value })} /><input className="h-8 min-w-0 flex-1 rounded border bg-background px-2 text-xs" type="time" disabled={!row.enabled} value={row.clock_out} onChange={(event) => updateCreateScheduleDay(assignmentIndex, day, { clock_out: event.target.value })} /></div></div>; })}</div>
+                        <div className="mt-3 flex justify-end"><Button type="button" size="sm" variant="ghost" onClick={() => setEmployeeCreateScheduleAssignments((previous) => previous.filter((_, index) => index !== assignmentIndex))}>Remove card</Button></div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" onClick={resetEmployeeForm}>Clear</Button><Button type="button" disabled={employeeSaving} onClick={addEmployee}><Plus size={16} />Add employee{employeeSaving && <LoaderCircle size={16} className="animate-spin" />}</Button></div>
                 </div>
 
                 <div className="flex gap-2 mb-4">
@@ -2393,24 +2507,24 @@ export default function VendorDetail() {
                           key={employee._id}
                           className="border rounded-md p-3 flex flex-col gap-3"
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="font-semibold">
+                          <div className="flex min-w-0 items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="break-words font-semibold">
                                 {employee.first_name} {employee.last_name}
                               </div>
-                              <div className="text-sm text-muted-foreground">
+                              <div className="break-all text-sm text-muted-foreground">
                                 {employee.employee_login_id}
                               </div>
-                              <div className="text-sm text-muted-foreground">
+                              <div className="break-words text-sm text-muted-foreground">
                                 {assignedLocation?.title ||
                                   assignedLocation?.address ||
                                   "Unassigned location"}
                               </div>
-                              <div className="text-sm text-muted-foreground">
+                              <div className="break-all text-sm text-muted-foreground">
                                 Serial Number: {employee.tap_to_pay_serial_number || "Not assigned"}
                               </div>
                             </div>
-                            <div className="text-xs rounded-full border px-2 py-1">
+                            <div className="shrink-0 text-xs rounded-full border px-2 py-1">
                               {employee.is_archived
                                 ? "Archived"
                                 : employee.is_active
@@ -2450,7 +2564,7 @@ export default function VendorDetail() {
                             </div>
                           )}
 
-                          {employeeTab === "current" && (
+                          {true && (
                             <div className="flex flex-wrap items-end gap-2">
                               <div className="min-w-[220px] flex-1">
                                 <label className="mb-1 block text-sm font-medium">
@@ -2488,7 +2602,7 @@ export default function VendorDetail() {
                             </div>
                           )}
 
-                          {employeeTab === "current" && (
+                          {true && (
                             <div className="flex justify-end">
                               <Button
                                 type="button"
@@ -2507,8 +2621,8 @@ export default function VendorDetail() {
                             </div>
                           )}
 
-                          {employeeTab === "current" &&
-                            editingEmployeeId === employee._id && (() => {
+                          {editingEmployeeId === employee._id &&
+                            (() => {
                               const draft =
                                 employeeProfileDrafts[employee._id] ||
                                 buildEmployeeProfileDraft(employee);
@@ -2524,13 +2638,15 @@ export default function VendorDetail() {
                                     <label className="text-sm">Phone number<Input value={draft.phone_number} onChange={(event) => updateEmployeeDraft(employee._id, "phone_number", event.target.value)} /></label>
                                     <label className="text-sm">Hourly wage<Input type="number" min="0" step="0.01" value={draft.employee_rate} onChange={(event) => updateEmployeeDraft(employee._id, "employee_rate", event.target.value)} /></label>
                                     <label className="text-sm">Tap to Pay serial<Input value={draft.tap_to_pay_serial_number} onChange={(event) => updateEmployeeDraft(employee._id, "tap_to_pay_serial_number", event.target.value)} /></label>
-                                    <label className="text-sm md:col-span-2">Address line 1<Input value={draft.address_line1} onChange={(event) => updateEmployeeDraft(employee._id, "address_line1", event.target.value)} /></label>
+                                    <label className="text-sm md:col-span-2">Address line 1<AddressAutocompleteInput value={draft.address_line1} placeholder="Start typing a street address" className="mt-1 min-w-0" onValueChange={(value) => updateEmployeeDraft(employee._id, "address_line1", value)} onAddressSelect={(selection) => setEmployeeProfileDrafts((previous) => ({ ...previous, [employee._id]: { ...(previous[employee._id] || draft), address_line1: selection.street_address || selection.address, address_city: selection.city, address_state: selection.state, address_zip: selection.zipcode, zip_code: selection.zipcode || draft.zip_code } }))} /></label>
                                     <label className="text-sm">City<Input value={draft.address_city} onChange={(event) => updateEmployeeDraft(employee._id, "address_city", event.target.value)} /></label>
                                     <label className="text-sm">State<Input value={draft.address_state} onChange={(event) => updateEmployeeDraft(employee._id, "address_state", event.target.value)} /></label>
                                     <label className="text-sm">Address ZIP<Input value={draft.address_zip} onChange={(event) => updateEmployeeDraft(employee._id, "address_zip", event.target.value)} /></label>
-                                    <label className="text-sm">ID photo URL<Input value={draft.employee_id_photo_url} onChange={(event) => updateEmployeeDraft(employee._id, "employee_id_photo_url", event.target.value)} /></label>
+                                    <div className="text-sm"><div className="mb-1">Employee ID photo</div><FileSelect field={{}} file={employeePhotoFiles[employee._id] || null} setFile={(file) => setEmployeePhotoFiles((previous) => ({ ...previous, [employee._id]: file }))} imgSrc={draft.employee_id_photo_url || undefined} removeImage={() => updateEmployeeDraft(employee._id, "employee_id_photo_url", "")} uploadMessage="Upload employee ID photo" className="h-28" /></div>
                                     <label className="text-sm">Assigned location<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={draft.assigned_location_id} onChange={(event) => updateEmployeeDraft(employee._id, "assigned_location_id", event.target.value)}><option value="">Unassigned</option>{(result.user.foodTruck?.locations || []).map((location: FoodTruckLocation) => <option key={location._id} value={location._id}>{location.title || location.address || "Location"}</option>)}</select></label>
                                     <label className="text-sm">Assigned truck unit<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={draft.assigned_truck_unit_id} onChange={(event) => updateEmployeeDraft(employee._id, "assigned_truck_unit_id", event.target.value)}><option value="">Unassigned</option>{(result.user.foodTruck?.truck_units || []).filter((unit) => !unit.is_archived).map((unit) => <option key={unit._id} value={unit._id || ""}>{unit.name || "Truck unit"}</option>)}</select></label>
+                                    <label className="text-sm">Role<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={draft.role} onChange={(event) => updateEmployeeDraft(employee._id, "role", event.target.value)}><option value="EMPLOYEE">Employee</option><option value="MANAGER">Manager</option></select></label>
+                                    {draft.role === "MANAGER" && <><label className="text-sm">Manager access<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={draft.manager_scope} onChange={(event) => updateEmployeeDraft(employee._id, "manager_scope", event.target.value)}><option value="NONE">None</option><option value="TRUCK_UNIT">One food truck</option><option value="ALL_TRUCKS">All food trucks</option></select></label>{draft.manager_scope === "TRUCK_UNIT" && <label className="text-sm">Manager food truck<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={draft.manager_truck_unit_id} onChange={(event) => updateEmployeeDraft(employee._id, "manager_truck_unit_id", event.target.value)}><option value="">Choose food truck</option>{(result.user.foodTruck?.truck_units || []).filter((unit) => !unit.is_archived).map((unit) => <option key={unit._id} value={unit._id || ""}>{unit.name || "Food truck"}</option>)}</select></label>}</>}
                                     <label className="text-sm">Tax ID type<select className="mt-1 h-9 w-full rounded-md border bg-background px-3" value={draft.employee_tax_identifier_type} onChange={(event) => updateEmployeeDraft(employee._id, "employee_tax_identifier_type", event.target.value)}><option value="SSN">SSN</option><option value="EIN">EIN</option></select></label>
                                     <label className="text-sm md:col-span-2">Replace masked tax ID only<Input type="password" inputMode="numeric" placeholder={employee.employee_tax_identifier_masked || "Leave blank to keep current value"} value={draft.employee_tax_identifier} onChange={(event) => updateEmployeeDraft(employee._id, "employee_tax_identifier", event.target.value)} /></label>
                                   </div>
@@ -2567,7 +2683,7 @@ export default function VendorDetail() {
                               );
                             })()}
 
-                          {employeeTab === "current" && (
+                          {true && (
                             <div className="rounded-md border p-3">
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div>
@@ -2621,7 +2737,7 @@ export default function VendorDetail() {
                             </div>
                           )}
 
-                          {employeeTab === "current" && (
+                          {true && (
                             <div className="rounded-md border p-3">
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div>
@@ -2675,7 +2791,7 @@ export default function VendorDetail() {
                             </div>
                           )}
 
-                          {employeeTab === "current" && (
+                          {true && (
                             <div className="rounded-md border p-3">
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div>

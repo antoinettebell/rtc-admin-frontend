@@ -8,6 +8,9 @@ type AddressSelection = {
   lat: string;
   long: string;
   zipcode: string;
+  street_address: string;
+  city: string;
+  state: string;
 };
 
 type AddressLookupResult =
@@ -63,11 +66,20 @@ function loadGoogleMapsPlaces() {
   return window.__rtcGoogleMapsPromise;
 }
 
-function getAddressPart(place: any, type: string) {
+function getAddressPart(place: any, type: string, useShortName = false) {
   const component = place.address_components?.find((item: any) =>
     item.types?.includes(type),
   );
-  return component?.long_name || "";
+  return (useShortName ? component?.short_name : component?.long_name) || "";
+}
+
+function getStreetAddress(place: any) {
+  return [
+    getAddressPart(place, "street_number"),
+    getAddressPart(place, "route"),
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export async function geocodeAddress(
@@ -115,6 +127,11 @@ export async function geocodeAddress(
             lat: String(lat),
             long: String(lng),
             zipcode: getAddressPart(place, "postal_code") || zipcode || "",
+            street_address: getStreetAddress(place),
+            city:
+              getAddressPart(place, "locality") ||
+              getAddressPart(place, "postal_town"),
+            state: getAddressPart(place, "administrative_area_level_1", true),
           },
         });
       },
@@ -164,6 +181,11 @@ export function AddressAutocompleteInput({
             lat: String(lat),
             long: String(lng),
             zipcode: getAddressPart(place, "postal_code"),
+            street_address: getStreetAddress(place),
+            city:
+              getAddressPart(place, "locality") ||
+              getAddressPart(place, "postal_town"),
+            state: getAddressPart(place, "administrative_area_level_1", true),
           });
         });
       })

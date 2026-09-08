@@ -232,7 +232,9 @@ export interface VendorEmployee {
       clock_out: string;
     }>;
   }>;
-  role: "EMPLOYEE";
+  role: "EMPLOYEE" | "MANAGER";
+  manager_scope?: "NONE" | "TRUCK_UNIT" | "ALL_TRUCKS";
+  manager_truck_unit_id?: string | null;
   is_active: boolean;
   is_working: boolean;
   is_archived: boolean;
