@@ -334,6 +334,9 @@ export default function VendorDetail() {
   const [employeePendingArchiveTimecards, setEmployeePendingArchiveTimecards] = useState<
     Record<string, VendorEmployeeTimecard[]>
   >({});
+  const [selectedPendingArchiveTimecardIds, setSelectedPendingArchiveTimecardIds] = useState<
+    Record<string, string[]>
+  >({});
   const [timecardLoadingEmployeeId, setTimecardLoadingEmployeeId] = useState<
     string | null
   >(null);
@@ -1028,6 +1031,10 @@ export default function VendorDetail() {
           ...previous,
           [employee._id]: sessions,
         }));
+        setSelectedPendingArchiveTimecardIds((previous) => ({
+          ...previous,
+          [employee._id]: [],
+        }));
       } else {
         setEmployeeTimecards((previous) => ({
           ...previous,
@@ -1086,6 +1093,44 @@ export default function VendorDetail() {
       await loadEmployeeTimecards(employee, range);
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Could not update timecard.");
+    } finally {
+      setEmployeeSaving(false);
+    }
+  };
+
+  const togglePendingArchiveTimecard = (employeeId: string, sessionId: string) => {
+    setSelectedPendingArchiveTimecardIds((previous) => {
+      const selected = previous[employeeId] || [];
+      return {
+        ...previous,
+        [employeeId]: selected.includes(sessionId)
+          ? selected.filter((id) => id !== sessionId)
+          : [...selected, sessionId],
+      };
+    });
+  };
+
+  const archiveSelectedTimecards = async (employee: VendorEmployee) => {
+    const sessionIds = selectedPendingArchiveTimecardIds[employee._id] || [];
+    if (!sessionIds.length) {
+      toast.error("Select one or more completed timecards to archive.");
+      return;
+    }
+    if (!window.confirm(`Archive ${sessionIds.length} selected timecard${sessionIds.length === 1 ? "" : "s"}? Vendor access will become read-only, while support corrections remain audited.`)) {
+      return;
+    }
+    setEmployeeSaving(true);
+    try {
+      await vendorEmployeeApiService.archiveShiftHistory(employee._id, sessionIds);
+      toast.success(`${sessionIds.length} timecard${sessionIds.length === 1 ? "" : "s"} archived.`);
+      setSelectedPendingArchiveTimecardIds((previous) => ({
+        ...previous,
+        [employee._id]: [],
+      }));
+      await loadEmployeeTimecards(employee, "pending_archive");
+      await loadEmployeeTimecards(employee, "archived");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Could not archive selected timecards.");
     } finally {
       setEmployeeSaving(false);
     }
@@ -2707,6 +2752,7 @@ export default function VendorDetail() {
                               {(employeePendingArchiveTimecards[employee._id] || []).map((timecard) => {
                                 const isEditing = editingTimecardId === timecard.employee_session_id;
                                 const draft = timecardDrafts[timecard.employee_session_id];
+                                const isSelectedForArchive = (selectedPendingArchiveTimecardIds[employee._id] || []).includes(timecard.employee_session_id);
                                 return (
                                   <div key={timecard.employee_session_id} className="mt-3 rounded border bg-amber-50/50 p-3 text-sm">
                                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -2718,9 +2764,19 @@ export default function VendorDetail() {
                                             : "No recorded end time"}
                                         </div>
                                       </div>
-                                      <Button type="button" size="sm" variant="outline" onClick={() => isEditing ? setEditingTimecardId(null) : openTimecardEditor(timecard)}>
-                                        <Pencil size={14} />{isEditing ? "Close" : "Edit"}
-                                      </Button>
+                                      <div className="flex items-center gap-2">
+                                        <label className="flex items-center gap-1 text-xs font-medium text-amber-900">
+                                          <input
+                                            type="checkbox"
+                                            checked={isSelectedForArchive}
+                                            onChange={() => togglePendingArchiveTimecard(employee._id, timecard.employee_session_id)}
+                                          />
+                                          Archive
+                                        </label>
+                                        <Button type="button" size="sm" variant="outline" onClick={() => isEditing ? setEditingTimecardId(null) : openTimecardEditor(timecard)}>
+                                          <Pencil size={14} />{isEditing ? "Close" : "Edit"}
+                                        </Button>
+                                      </div>
                                     </div>
                                     {isEditing && draft && (
                                       <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -2734,6 +2790,19 @@ export default function VendorDetail() {
                                   </div>
                                 );
                               })}
+                              {(employeePendingArchiveTimecards[employee._id] || []).length > 0 && (
+                                <div className="mt-3 flex justify-end">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={employeeSaving || !(selectedPendingArchiveTimecardIds[employee._id] || []).length}
+                                    onClick={() => archiveSelectedTimecards(employee)}
+                                  >
+                                    <Archive size={16} />
+                                    Archive selected ({(selectedPendingArchiveTimecardIds[employee._id] || []).length})
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           )}
 

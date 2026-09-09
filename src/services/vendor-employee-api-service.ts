@@ -157,6 +157,13 @@ class VendorEmployeeApiService extends BaseAPI {
       data,
     );
   }
+
+  archiveShiftHistory(id: string, sessionIds: string[]) {
+    return this.post<IResponse<{ archived_count: number }>>(
+      `${APIEndpoint.VENDOR_EMPLOYEE}/admin/${id}/shift-history/archive`,
+      { session_ids: sessionIds },
+    );
+  }
 }
 
 export const vendorEmployeeApiService = new VendorEmployeeApiService();
