@@ -65,8 +65,11 @@ export function VendorMenuCsvImport({
           comboItemNames: "Fries|Side Salad",
           comboItemIds: "",
           comboItemQuantities: "2|1",
-          comboSideOptions: "Fries|Side Salad|Chips",
-          comboSideCosts: "Side Salad:2.00|Chips:1.00",
+          comboItemAdditionalCosts: "Side Salad:2.00",
+          comboAddOnItemIds: "",
+          comboAddOnNames: "Chips",
+          comboAddOnQuantities: "1",
+          comboAddOnAdditionalCosts: "Chips:1.00",
           comboSidesPerOrder: 1,
           newDish: "FALSE",
           popularDish: "FALSE",
@@ -133,6 +136,12 @@ export function VendorMenuCsvImport({
     StringHelper.downloadCSV(
       menuItems.map((item) => {
         const anyItem = item as any;
+        const comboDetails = Array.isArray(anyItem.subItem)
+          ? anyItem.subItem.filter((subItem: { isAddOn?: boolean }) => !subItem.isAddOn)
+          : [];
+        const comboAddOns = Array.isArray(anyItem.subItem)
+          ? anyItem.subItem.filter((subItem: { isAddOn?: boolean }) => subItem.isAddOn)
+          : [];
         const dietIds = Array.isArray(anyItem.diet)
           ? anyItem.diet
               .map((diet: { _id?: string } | string) =>
@@ -172,8 +181,7 @@ export function VendorMenuCsvImport({
             .join("|"),
           toppingCosts: serializePaidOptionCosts(anyItem.toppingOptions),
           toppingsPerOrder: anyItem.toppingsPerOrder ?? "",
-          comboItemNames: Array.isArray(anyItem.subItem)
-            ? anyItem.subItem
+          comboItemNames: comboDetails
                 .map(
                   (subItem: {
                     menuItem?: { name?: string } | string;
@@ -184,10 +192,8 @@ export function VendorMenuCsvImport({
                       : subItem.menuItem?.name,
                 )
                 .filter(Boolean)
-                .join("|")
-            : "",
-          comboItemIds: Array.isArray(anyItem.subItem)
-            ? anyItem.subItem
+                .join("|"),
+          comboItemIds: comboDetails
                 .map(
                   (subItem: {
                     menuItem?: { _id?: string } | string;
@@ -198,17 +204,31 @@ export function VendorMenuCsvImport({
                       : subItem.menuItem?._id,
                 )
                 .filter(Boolean)
-                .join("|")
-            : "",
-          comboItemQuantities: Array.isArray(anyItem.subItem)
-            ? anyItem.subItem
+                .join("|"),
+          comboItemQuantities: comboDetails
                 .map((subItem: { qty?: number }) => subItem.qty ?? 1)
-                .join("|")
-            : "",
-          comboSideOptions: Array.isArray(anyItem.comboSideOptions)
-            ? anyItem.comboSideOptions.filter(Boolean).join("|")
-            : "",
-          comboSideCosts: serializePaidOptionCosts(anyItem.comboSideOptionCosts),
+                .join("|"),
+          comboItemAdditionalCosts: comboDetails
+            .filter((subItem: { hasAdditionalCost?: boolean; additionalCost?: number }) => subItem.hasAdditionalCost && Number(subItem.additionalCost || 0) > 0)
+            .map((subItem: { menuItem?: { _id?: string; name?: string } | string; additionalCost?: number }) => `${typeof subItem.menuItem === "string" ? subItem.menuItem : subItem.menuItem?.name || subItem.menuItem?._id || ""}:${Number(subItem.additionalCost || 0)}`)
+            .filter(Boolean)
+            .join("|"),
+          comboAddOnItemIds: comboAddOns
+            .map((subItem: { menuItem?: { _id?: string } | string }) => typeof subItem.menuItem === "string" ? subItem.menuItem : subItem.menuItem?._id)
+            .filter(Boolean)
+            .join("|"),
+          comboAddOnNames: comboAddOns
+            .map((subItem: { menuItem?: { name?: string } | string }) => typeof subItem.menuItem === "string" ? "" : subItem.menuItem?.name)
+            .filter(Boolean)
+            .join("|"),
+          comboAddOnQuantities: comboAddOns
+            .map((subItem: { qty?: number }) => subItem.qty ?? 1)
+            .join("|"),
+          comboAddOnAdditionalCosts: comboAddOns
+            .filter((subItem: { hasAdditionalCost?: boolean; additionalCost?: number }) => subItem.hasAdditionalCost && Number(subItem.additionalCost || 0) > 0)
+            .map((subItem: { menuItem?: { _id?: string; name?: string } | string; additionalCost?: number }) => `${typeof subItem.menuItem === "string" ? subItem.menuItem : subItem.menuItem?.name || subItem.menuItem?._id || ""}:${Number(subItem.additionalCost || 0)}`)
+            .filter(Boolean)
+            .join("|"),
           comboSidesPerOrder: anyItem.comboSidesPerOrder ?? 1,
           newDish: anyItem.newDish ? "TRUE" : "FALSE",
           popularDish: anyItem.popularDish ? "TRUE" : "FALSE",
