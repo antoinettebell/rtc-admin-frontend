@@ -69,7 +69,6 @@ export function VendorMenuCsvImport({
           comboAddOnItemIds: "",
           comboAddOnNames: "Chips",
           comboAddOnQuantities: "1",
-          comboAddOnAdditionalCosts: "Chips:1.00",
           comboSidesPerOrder: 1,
           newDish: "FALSE",
           popularDish: "FALSE",
@@ -223,11 +222,6 @@ export function VendorMenuCsvImport({
             .join("|"),
           comboAddOnQuantities: comboAddOns
             .map((subItem: { qty?: number }) => subItem.qty ?? 1)
-            .join("|"),
-          comboAddOnAdditionalCosts: comboAddOns
-            .filter((subItem: { hasAdditionalCost?: boolean; additionalCost?: number }) => subItem.hasAdditionalCost && Number(subItem.additionalCost || 0) > 0)
-            .map((subItem: { menuItem?: { _id?: string; name?: string } | string; additionalCost?: number }) => `${typeof subItem.menuItem === "string" ? subItem.menuItem : subItem.menuItem?.name || subItem.menuItem?._id || ""}:${Number(subItem.additionalCost || 0)}`)
-            .filter(Boolean)
             .join("|"),
           comboSidesPerOrder: anyItem.comboSidesPerOrder ?? 1,
           newDish: anyItem.newDish ? "TRUE" : "FALSE",
