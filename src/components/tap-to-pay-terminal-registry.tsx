@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, RefreshCw } from "lucide-react";
+import { Copy, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,15 @@ const dateTime = (value?: string) => value ? new Date(value).toLocaleString() : 
 export function TapToPayTerminalRegistry({ foodTruckId }: { foodTruckId: string }) {
   const [updatingId, setUpdatingId] = React.useState<string | null>(null);
   const [selectedTerminalId, setSelectedTerminalId] = React.useState("");
+  const [showAdd, setShowAdd] = React.useState(false);
+  const [adding, setAdding] = React.useState(false);
+  const [newDevice, setNewDevice] = React.useState({
+    device_id: "",
+    device_label: "",
+    environment: "production" as "production" | "test",
+    status: "ACTIVE" as "ACTIVE" | "HISTORICAL",
+    reason: "Backfilled from CyberSource Acceptance Devices",
+  });
   const { data, isFetching, refetch } = useQuery({
     queryKey: ["tap-to-pay-terminals", foodTruckId],
     queryFn: async () => {
@@ -93,6 +102,39 @@ export function TapToPayTerminalRegistry({ foodTruckId }: { foodTruckId: string 
     }
   };
 
+  const addExistingDevice = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!newDevice.device_id.trim()) {
+      toast.error("Enter the complete Acceptance Devices ID.");
+      return;
+    }
+    setAdding(true);
+    try {
+      const response = await foodTruckApiService.addTapToPayTerminal(foodTruckId, {
+        ...newDevice,
+        device_id: newDevice.device_id.trim(),
+        device_label: newDevice.device_label.trim(),
+        reason: newDevice.reason.trim(),
+      });
+      const terminalId = response.data.data.terminal?._id;
+      await refetch();
+      if (terminalId) setSelectedTerminalId(terminalId);
+      setShowAdd(false);
+      setNewDevice({
+        device_id: "",
+        device_label: "",
+        environment: "production",
+        status: "ACTIVE",
+        reason: "Backfilled from CyberSource Acceptance Devices",
+      });
+      toast.success("Existing Tap to Pay device added.");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error?.response?.data?.error?.message || error?.message || "Unable to add device.");
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -102,10 +144,56 @@ export function TapToPayTerminalRegistry({ foodTruckId }: { foodTruckId: string 
             Full Acceptance Devices IDs, current state, reactivation controls, and safe diagnostics. Historical devices are retained for support.
           </p>
         </div>
-        <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Refresh
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => setShowAdd((value) => !value)}>
+            <Plus className="mr-2 h-4 w-4" /> Add Existing Device
+          </Button>
+          <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Refresh
+          </Button>
+        </div>
       </div>
+
+      {showAdd ? (
+        <form onSubmit={addExistingDevice} className="rounded-lg border p-4 space-y-4">
+          <div>
+            <h3 className="font-semibold">Add Existing CyberSource Device</h3>
+            <p className="text-sm text-muted-foreground">Copy the complete ID from CyberSource Acceptance Devices. This action is retained in the support history.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="text-sm font-medium">
+              Full Acceptance Devices ID
+              <input className="mt-1 w-full rounded-md border bg-background px-3 py-2 font-mono" value={newDevice.device_id} onChange={(event) => setNewDevice((value) => ({ ...value, device_id: event.target.value }))} required />
+            </label>
+            <label className="text-sm font-medium">
+              Device label
+              <input className="mt-1 w-full rounded-md border bg-background px-3 py-2" placeholder="Vendor iPhone" value={newDevice.device_label} onChange={(event) => setNewDevice((value) => ({ ...value, device_label: event.target.value }))} />
+            </label>
+            <label className="text-sm font-medium">
+              Environment
+              <select className="mt-1 w-full rounded-md border bg-background px-3 py-2" value={newDevice.environment} onChange={(event) => setNewDevice((value) => ({ ...value, environment: event.target.value as "production" | "test" }))}>
+                <option value="production">Production</option>
+                <option value="test">Test</option>
+              </select>
+            </label>
+            <label className="text-sm font-medium">
+              Initial status
+              <select className="mt-1 w-full rounded-md border bg-background px-3 py-2" value={newDevice.status} onChange={(event) => setNewDevice((value) => ({ ...value, status: event.target.value as "ACTIVE" | "HISTORICAL" }))}>
+                <option value="ACTIVE">Active</option>
+                <option value="HISTORICAL">Historical</option>
+              </select>
+            </label>
+          </div>
+          <label className="block text-sm font-medium">
+            Support note
+            <input className="mt-1 w-full rounded-md border bg-background px-3 py-2" value={newDevice.reason} onChange={(event) => setNewDevice((value) => ({ ...value, reason: event.target.value }))} />
+          </label>
+          <div className="flex gap-2">
+            <Button type="submit" disabled={adding}>{adding ? "Adding…" : "Add Device"}</Button>
+            <Button type="button" variant="outline" onClick={() => setShowAdd(false)} disabled={adding}>Cancel</Button>
+          </div>
+        </form>
+      ) : null}
 
       {terminals.length === 0 ? (
         <div className="rounded-lg border p-6 text-sm text-muted-foreground">No Tap to Pay devices have been registered.</div>

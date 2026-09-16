@@ -16,6 +16,22 @@ type FoodTruckUpdatePayload = Omit<Partial<FoodTruck>, "locations"> & {
 } & Record<string, unknown>;
 
 class FoodTruckApiService extends BaseAPI {
+  addTapToPayTerminal(
+    id: string,
+    data: {
+      device_id: string;
+      device_label?: string;
+      environment: "production" | "test";
+      status: "ACTIVE" | "HISTORICAL";
+      reason?: string;
+    },
+  ) {
+    return this.post<IResponse<{ terminal: Record<string, any> }>>(
+      `${APIEndpoint.FOOD_TRUCK}/${id}/tap-to-pay-terminals`,
+      data,
+    );
+  }
+
   listTapToPayTerminals(id: string) {
     return this.get<IResponse<{
       terminals: Array<Record<string, any>>;
