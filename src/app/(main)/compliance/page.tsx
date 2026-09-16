@@ -85,6 +85,23 @@ const getVendorName = (document: ComplianceDocument) => {
   return truck || "-";
 };
 
+const formatDateOnly = (value?: string | null) => {
+  if (!value) return "-";
+  const isoDate = String(value).match(/^(\d{4}-\d{2}-\d{2})/);
+  return isoDate?.[1] || dayjs(value).format("YYYY-MM-DD");
+};
+
+const getOcrExpirationDate = (document: ComplianceDocument) => {
+  const fields = document.extracted_fields || {};
+  return fields.expiration_date
+    || fields.expirationDate
+    || fields.expiry_date
+    || fields.expiryDate
+    || fields.expires_at
+    || fields.expiresAt
+    || null;
+};
+
 export default function CompliancePage() {
   const [reviewStatus, setReviewStatus] = React.useState("");
   const [documentType, setDocumentType] = React.useState("");
@@ -541,9 +558,18 @@ export default function CompliancePage() {
                   </td>
                   <td className="p-3">{formatLabel(document.ocr_status)}</td>
                   <td className="p-3">
-                    {document.expiration_date
-                      ? dayjs(document.expiration_date).format("YYYY-MM-DD")
-                      : "-"}
+                    <div>Effective: {formatDateOnly(document.expiration_date)}</div>
+                    {document.ocr_status === "manual_review" ? (
+                      <div className="mt-1 text-xs text-amber-700">
+                        <div>
+                          Vendor: {formatDateOnly(
+                            document.vendor_entered_expiration_date
+                              || document.expiration_date
+                          )}
+                        </div>
+                        <div>OCR: {formatDateOnly(getOcrExpirationDate(document))}</div>
+                      </div>
+                    ) : null}
                   </td>
                   <td className="p-3">
                     <Badge

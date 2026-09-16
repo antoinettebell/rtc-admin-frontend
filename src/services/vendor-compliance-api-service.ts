@@ -15,6 +15,7 @@ export type ComplianceDocument = {
   size_bytes?: number | null;
   issue_date?: string | null;
   expiration_date?: string | null;
+  vendor_entered_expiration_date?: string | null;
   extracted_fields?: Record<string, any>;
   ocr_status: string;
   ocr_error_message?: string | null;
@@ -72,6 +73,7 @@ class VendorComplianceApiService extends BaseAPI {
     return this.get<{
       data: {
         complianceDocumentList: ComplianceDocument[];
+        records?: ComplianceDocument[];
         total: number;
         page: number;
         totalPages: number;
