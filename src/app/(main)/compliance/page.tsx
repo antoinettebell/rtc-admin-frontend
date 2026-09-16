@@ -102,6 +102,19 @@ const getOcrExpirationDate = (document: ComplianceDocument) => {
     || null;
 };
 
+const getOcrIssueDate = (document: ComplianceDocument) => {
+  const fields = document.extracted_fields || {};
+  return fields.issue_date
+    || fields.issueDate
+    || fields.issued_date
+    || fields.issuedDate
+    || fields.effective_date
+    || fields.effectiveDate
+    || fields.inspection_date
+    || fields.inspectionDate
+    || null;
+};
+
 export default function CompliancePage() {
   const [reviewStatus, setReviewStatus] = React.useState("");
   const [documentType, setDocumentType] = React.useState("");
@@ -142,7 +155,9 @@ export default function CompliancePage() {
     }) =>
       vendorComplianceApiService.reviewDocument(document.document_id, {
         review_status: nextStatus,
-        expiration_date: document.expiration_date || undefined,
+        ...(document.document_type === "HEALTH_PERMIT"
+          ? { issue_date: document.issue_date || undefined }
+          : { expiration_date: document.expiration_date || undefined }),
       }),
     onSuccess: () => {
       toast.success("Compliance document updated");
@@ -535,7 +550,7 @@ export default function CompliancePage() {
                 <th className="p-3 font-medium">Vendor</th>
                 <th className="p-3 font-medium">Document</th>
                 <th className="p-3 font-medium">OCR</th>
-                <th className="p-3 font-medium">Expires</th>
+                <th className="p-3 font-medium">Document Date</th>
                 <th className="p-3 font-medium">Status</th>
                 <th className="p-3 font-medium">Uploaded</th>
                 <th className="p-3 font-medium text-right">Actions</th>
@@ -558,16 +573,32 @@ export default function CompliancePage() {
                   </td>
                   <td className="p-3">{formatLabel(document.ocr_status)}</td>
                   <td className="p-3">
-                    <div>Effective: {formatDateOnly(document.expiration_date)}</div>
+                    <div>
+                      {document.document_type === "HEALTH_PERMIT"
+                        ? "Inspected"
+                        : "Expires"}: {formatDateOnly(
+                          document.document_type === "HEALTH_PERMIT"
+                            ? document.issue_date
+                            : document.expiration_date
+                        )}
+                    </div>
                     {document.ocr_status === "manual_review" ? (
                       <div className="mt-1 text-xs text-amber-700">
                         <div>
                           Vendor: {formatDateOnly(
-                            document.vendor_entered_expiration_date
-                              || document.expiration_date
+                            document.document_type === "HEALTH_PERMIT"
+                              ? document.vendor_entered_issue_date || document.issue_date
+                              : document.vendor_entered_expiration_date
+                                || document.expiration_date
                           )}
                         </div>
-                        <div>OCR: {formatDateOnly(getOcrExpirationDate(document))}</div>
+                        <div>
+                          OCR: {formatDateOnly(
+                            document.document_type === "HEALTH_PERMIT"
+                              ? getOcrIssueDate(document)
+                              : getOcrExpirationDate(document)
+                          )}
+                        </div>
                       </div>
                     ) : null}
                   </td>

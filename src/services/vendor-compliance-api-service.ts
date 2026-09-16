@@ -14,6 +14,7 @@ export type ComplianceDocument = {
   mime_type?: string | null;
   size_bytes?: number | null;
   issue_date?: string | null;
+  vendor_entered_issue_date?: string | null;
   expiration_date?: string | null;
   vendor_entered_expiration_date?: string | null;
   extracted_fields?: Record<string, any>;
@@ -104,6 +105,7 @@ class VendorComplianceApiService extends BaseAPI {
       title?: string;
       document_type: string;
 	      replace_existing?: boolean;
+	      issue_date?: string | null;
 	      expiration_date?: string | null;
 	      sanitation_grade?: string | null;
 	    },
@@ -113,6 +115,7 @@ class VendorComplianceApiService extends BaseAPI {
     if (data.title) fd.append("title", data.title);
     fd.append("document_type", data.document_type);
 	    if (data.replace_existing) fd.append("replace_existing", "true");
+	    if (data.issue_date) fd.append("issue_date", data.issue_date);
 	    if (data.expiration_date) fd.append("expiration_date", data.expiration_date);
 	    if (data.sanitation_grade) fd.append("sanitation_grade", data.sanitation_grade);
 

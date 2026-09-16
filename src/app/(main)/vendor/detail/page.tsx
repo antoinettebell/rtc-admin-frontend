@@ -590,6 +590,17 @@ export default function VendorDetail() {
 	    const normalizedSanitationGrade = documentSanitationGrade
 	      .trim()
 	      .toUpperCase();
+	    if (
+	      expirationRequiredDocumentTypes.has(documentType) &&
+	      !documentExpirationDate
+	    ) {
+	      toast.error(
+	        documentType === "PERMIT"
+	          ? "Enter the inspection date before uploading."
+	          : "Enter the expiration date before uploading.",
+	      );
+	      return;
+	    }
 	    if (documentType === "PERMIT" && !normalizedSanitationGrade) {
 	      toast.error("Enter the Sanitation Grade before uploading.");
 	      return;
@@ -611,12 +622,18 @@ export default function VendorDetail() {
     setDocumentSaving(true);
     try {
       const complianceDocumentType = adminComplianceDocumentTypeMap[documentType];
-      const uploadPayload = {
+	      const uploadPayload = {
         title: documentTitle.trim() || documentFile.name,
         document_type: complianceDocumentType || documentType,
         replace_existing: replaceExisting,
+	        issue_date:
+	          complianceDocumentType === "HEALTH_PERMIT" && documentExpirationDate
+	            ? documentExpirationDate
+	            : undefined,
 	        expiration_date:
-	          complianceDocumentType && documentExpirationDate
+	          complianceDocumentType &&
+              complianceDocumentType !== "HEALTH_PERMIT" &&
+              documentExpirationDate
 	            ? documentExpirationDate
 	            : undefined,
 	        sanitation_grade:
@@ -1872,11 +1889,14 @@ export default function VendorDetail() {
                     </div>
 	                    <div>
 	                      <div className="text-sm font-medium mb-1">
-	                        Expiration Date
+	                        {documentType === "PERMIT"
+	                          ? "Inspection Date"
+	                          : "Expiration Date"}
 	                      </div>
 	                      <Input
                         type="date"
                         value={documentExpirationDate}
+                        max={documentType === "PERMIT" ? dayjs().format("YYYY-MM-DD") : undefined}
                         disabled={!expirationRequiredDocumentTypes.has(documentType)}
                         onChange={(event) =>
                           setDocumentExpirationDate(event.target.value)
