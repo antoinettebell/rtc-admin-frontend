@@ -74,6 +74,7 @@ import {
 import { vendorComplianceApiService } from "@/services/vendor-compliance-api-service";
 import { FileSelect } from "@/components/file-select";
 import { fileApiService } from "@/services/file-api-service";
+import { TapToPayTerminalRegistry } from "@/components/tap-to-pay-terminal-registry";
 
 const adminComplianceDocumentTypeMap: Record<string, string> = {
   PERMIT: "HEALTH_PERMIT",
@@ -1521,6 +1522,12 @@ export default function VendorDetail() {
                 Employees
               </TabsTrigger>
               <TabsTrigger
+                value="tap-to-pay"
+                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+              >
+                Tap to Pay Devices
+              </TabsTrigger>
+              <TabsTrigger
                 value="availability"
                 className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
               >
@@ -2950,6 +2957,12 @@ export default function VendorDetail() {
 	                  </div>
 	                )}
               </TabsContent>
+
+            <TabsContent value="tap-to-pay">
+              {result.user.foodTruck?._id ? (
+                <TapToPayTerminalRegistry foodTruckId={result.user.foodTruck._id} />
+              ) : null}
+            </TabsContent>
 
             <TabsContent value="availability">
               <div className="flex items-center gap-3 mt-3">

@@ -16,6 +16,28 @@ type FoodTruckUpdatePayload = Omit<Partial<FoodTruck>, "locations"> & {
 } & Record<string, unknown>;
 
 class FoodTruckApiService extends BaseAPI {
+  listTapToPayTerminals(id: string) {
+    return this.get<IResponse<{
+      terminals: Array<Record<string, any>>;
+      events: Array<Record<string, any>>;
+    }>>(`${APIEndpoint.FOOD_TRUCK}/${id}/tap-to-pay-terminals`);
+  }
+
+  updateTapToPayTerminal(
+    id: string,
+    terminalId: string,
+    data: {
+      action: "REQUIRE_REACTIVATION" | "CLEAR_REACTIVATION" | "MARK_HISTORICAL" | "RESTORE_ACTIVE" | "UPDATE_LABEL";
+      reason?: string | null;
+      device_label?: string | null;
+    },
+  ) {
+    return this.patch<IResponse<{ terminal: Record<string, any> }>>(
+      `${APIEndpoint.FOOD_TRUCK}/${id}/tap-to-pay-terminals/${terminalId}`,
+      data,
+    );
+  }
+
   update(id: string, data: FoodTruckUpdatePayload) {
     return this.put<IResponse<boolean>>(
       `${APIEndpoint.FOOD_TRUCK}/${id}`,
