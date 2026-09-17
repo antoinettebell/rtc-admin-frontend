@@ -39,6 +39,29 @@ const sanitationGrade = (document: ComplianceDocument) => {
   const fields = document.extracted_fields || {};
   return fields.sanitation_grade || fields.manual_sanitation_grade || fields.grade || fields.letter_grade || null;
 };
+const firstExtractedValue = (
+  fields: Record<string, any> = {},
+  names: string[],
+) => {
+  for (const name of names) {
+    const value = fields[name];
+    if (value !== undefined && value !== null && value !== "") return value;
+  }
+  return null;
+};
+const ocrIssueDate = (document: ComplianceDocument) => firstExtractedValue(
+  document.extracted_fields,
+  ["issue_date", "issueDate", "issued_date", "issuedDate", "effective_date", "effectiveDate", "inspection_date", "inspectionDate"],
+);
+const ocrExpirationDate = (document: ComplianceDocument) => firstExtractedValue(
+  document.extracted_fields,
+  ["expiration_date", "expirationDate", "expiry_date", "expiryDate", "expires_at", "expiresAt", "exp_date", "expDate", "valid_until", "validUntil", "valid_through", "validThrough"],
+);
+const displayDetectedDate = (value: any) => {
+  if (!value) return "Not detected";
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format("YYYY-MM-DD") : String(value);
+};
 
 export function VendorComplianceTab({ foodTruckId }: { foodTruckId: string }) {
   const [dateDrafts, setDateDrafts] = React.useState<Record<string, DateDraft>>({});
@@ -220,6 +243,9 @@ export function VendorComplianceTab({ foodTruckId }: { foodTruckId: string }) {
     };
     const isWorking = workingId === document.document_id;
     const isEditing = editingId === document.document_id;
+    const detectedIssueDate = ocrIssueDate(document);
+    const detectedExpirationDate = ocrExpirationDate(document);
+    const hasDetectedDates = !!detectedIssueDate || !!detectedExpirationDate;
     return (
       <div key={document.document_id} className="border-t first:border-t-0">
         <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
@@ -238,6 +264,20 @@ export function VendorComplianceTab({ foodTruckId }: { foodTruckId: string }) {
                 {isSanitation && sanitationGrade(document) ? ` · Grade ${String(sanitationGrade(document)).toUpperCase()}` : ""}
                 {document.ocr_error_message ? ` · ${document.ocr_error_message}` : ""}
               </div>
+              {hasDetectedDates ? (
+                <div className="mt-2 rounded-md border bg-muted/30 px-3 py-2 text-xs">
+                  <div>
+                    <span className="font-semibold">Vendor entered:</span>{" "}
+                    {isSanitation ? "Inspection" : "Issue"} {dateValue(document.vendor_entered_issue_date) || "Not provided"}
+                    {hasExpiration ? ` · Expiration ${dateValue(document.vendor_entered_expiration_date) || "Not provided"}` : ""}
+                  </div>
+                  <div className="mt-1">
+                    <span className="font-semibold">OCR detected:</span>{" "}
+                    {isSanitation ? "Inspection" : "Issue"} {displayDetectedDate(detectedIssueDate)}
+                    {hasExpiration ? ` · Expiration ${displayDetectedDate(detectedExpirationDate)}` : ""}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
