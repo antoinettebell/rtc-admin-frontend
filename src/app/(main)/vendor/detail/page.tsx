@@ -295,10 +295,10 @@ const formatTrainingDate = (value?: string | null) => {
 };
 
 const tapToPayTrainingItemLabels: Record<string, string> = {
-  PREBUILT_MENU_ONLY: "Use Tap to Pay only for customer orders created from RTC's prebuilt menu.",
-  FOLLOW_ACTIVATION_INSTRUCTIONS: "Follow the Apple and CyberSource activation instructions.",
-  AUTHORIZED_TO_ACCEPT_TERMS: "Authorized to accept the applicable Tap to Pay Terms and Conditions for the vendor.",
-  RTC_USE_ONLY: "Do not use Tap to Pay outside RTC.",
+  PREBUILT_MENU_ONLY: "Use Tap to Pay only for customer orders created from RDC's prebuilt menu.",
+  FOLLOW_ACTIVATION_INSTRUCTIONS: "Follow the Tap to Pay setup instructions shown and activation prompts in RDC.",
+  AUTHORIZED_TO_ACCEPT_TERMS: "Authorized to accept the applicable Tap to Pay Terms and Conditions presented during setup for the vendor.",
+  RTC_USE_ONLY: "Understands Tap to Pay cannot be used outside the RDC application.",
   ACCESS_ENDS_WITH_EMPLOYMENT: "Tap to Pay access ends when employment is terminated or archived.",
 };
 
@@ -2686,7 +2686,7 @@ export default function VendorDetail() {
                           <div className="rounded-md border bg-muted/20 p-3">
                             <div className="flex flex-wrap items-start justify-between gap-2">
                               <div>
-                                <div className="font-semibold">Tap to Pay on iPhone Training</div>
+                                <div className="font-semibold">Tap to Pay Training</div>
                                 <div className="text-xs text-muted-foreground">Read-only annual employee acknowledgment record</div>
                               </div>
                               <Badge variant={currentTraining ? "default" : "secondary"}>
