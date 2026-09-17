@@ -21,7 +21,6 @@ import {
   Bell,
   BadgeDollarSign,
   CreditCard,
-  ShieldCheck,
   CalendarCheck,
   FolderArchive,
   Store,
@@ -118,12 +117,6 @@ const navMain = [
     title: "Marketplace Payments",
     url: "/marketplace-payments",
     icon: CreditCard,
-    items: [],
-  },
-  {
-    title: "Compliance",
-    url: "/compliance",
-    icon: ShieldCheck,
     items: [],
   },
   {

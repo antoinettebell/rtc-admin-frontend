@@ -75,6 +75,7 @@ import { vendorComplianceApiService } from "@/services/vendor-compliance-api-ser
 import { FileSelect } from "@/components/file-select";
 import { fileApiService } from "@/services/file-api-service";
 import { TapToPayTerminalRegistry } from "@/components/tap-to-pay-terminal-registry";
+import { VendorComplianceTab } from "@/components/vendor-compliance-tab";
 
 const adminComplianceDocumentTypeMap: Record<string, string> = {
   PERMIT: "HEALTH_PERMIT",
@@ -1514,6 +1515,12 @@ export default function VendorDetail() {
                 Documents
               </TabsTrigger>
               <TabsTrigger
+                value="compliance"
+                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+              >
+                Compliance
+              </TabsTrigger>
+              <TabsTrigger
                 value="menu-categories"
                 className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
               >
@@ -2078,6 +2085,16 @@ export default function VendorDetail() {
                   </div>
                 ) : null}
               </div>
+            </TabsContent>
+
+            <TabsContent value="compliance">
+              {result?.user?.foodTruck?._id ? (
+                <VendorComplianceTab foodTruckId={result.user.foodTruck._id} />
+              ) : (
+                <div className="rounded-lg border p-6 text-sm text-muted-foreground">
+                  This vendor does not have a food truck profile yet.
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="details">

@@ -9,6 +9,7 @@ export type ComplianceDocument = {
   version: number;
   title?: string | null;
   file_url: string;
+  access_url?: string | null;
   file_key?: string | null;
   original_name?: string | null;
   mime_type?: string | null;
@@ -70,6 +71,7 @@ class VendorComplianceApiService extends BaseAPI {
     limit?: number;
     review_status?: string;
     document_type?: string;
+    food_truck_id?: string;
   }) {
     return this.get<{
       data: {
@@ -87,13 +89,26 @@ class VendorComplianceApiService extends BaseAPI {
     payload: {
       review_status: "verified" | "rejected" | "expired";
       review_notes?: string;
-      expiration_date?: string;
-      issue_date?: string;
+      expiration_date?: string | null;
+      issue_date?: string | null;
       extracted_fields?: Record<string, any>;
     },
   ) {
     return this.patch(
       `${APIEndpoint.VENDOR_COMPLIANCE}/admin/documents/${documentId}/review`,
+      payload,
+    );
+  }
+
+  updateDocumentDates(
+    documentId: string,
+    payload: {
+      expiration_date?: string | null;
+      issue_date?: string | null;
+    },
+  ) {
+    return this.patch(
+      `${APIEndpoint.VENDOR_COMPLIANCE}/admin/documents/${documentId}`,
       payload,
     );
   }
@@ -108,6 +123,7 @@ class VendorComplianceApiService extends BaseAPI {
 	      issue_date?: string | null;
 	      expiration_date?: string | null;
 	      sanitation_grade?: string | null;
+	      review_status?: "pending_review" | "verified";
 	    },
 	  ) {
     const fd = new FormData();
@@ -118,6 +134,7 @@ class VendorComplianceApiService extends BaseAPI {
 	    if (data.issue_date) fd.append("issue_date", data.issue_date);
 	    if (data.expiration_date) fd.append("expiration_date", data.expiration_date);
 	    if (data.sanitation_grade) fd.append("sanitation_grade", data.sanitation_grade);
+	    if (data.review_status) fd.append("review_status", data.review_status);
 
     return this.post(
       `${APIEndpoint.VENDOR_COMPLIANCE}/food-truck/${foodTruckId}/documents`,
