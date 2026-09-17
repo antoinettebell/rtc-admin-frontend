@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import dayjs from "dayjs";
-import { CheckCircle2, ExternalLink, FileText, RefreshCw, Save, Upload, XCircle } from "lucide-react";
+import { CheckCircle2, ExternalLink, FileText, Pencil, RefreshCw, Save, XCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +62,7 @@ export function VendorComplianceTab({ foodTruckId }: { foodTruckId: string }) {
   const [dateDrafts, setDateDrafts] = React.useState<Record<string, DateDraft>>({});
   const [replacementFiles, setReplacementFiles] = React.useState<Record<string, File | null>>({});
   const [workingId, setWorkingId] = React.useState<string | null>(null);
+  const [editingId, setEditingId] = React.useState<string | null>(null);
 
   const documentsQuery = useQuery({
     queryKey: ["vendor-compliance-documents", foodTruckId],
@@ -131,6 +132,36 @@ export function VendorComplianceTab({ foodTruckId }: { foodTruckId: string }) {
     };
   };
 
+  const startEditing = (document: ComplianceDocument) => {
+    setDateDrafts((current) => ({
+      ...current,
+      [document.document_id]: {
+        issueDate: dateValue(document.issue_date),
+        expirationDate: dateValue(document.expiration_date),
+      },
+    }));
+    setReplacementFiles((current) => ({
+      ...current,
+      [document.document_id]: null,
+    }));
+    setEditingId(document.document_id);
+  };
+
+  const cancelEditing = (document: ComplianceDocument) => {
+    setDateDrafts((current) => ({
+      ...current,
+      [document.document_id]: {
+        issueDate: dateValue(document.issue_date),
+        expirationDate: dateValue(document.expiration_date),
+      },
+    }));
+    setReplacementFiles((current) => ({
+      ...current,
+      [document.document_id]: null,
+    }));
+    setEditingId(null);
+  };
+
   const saveDates = async (document: ComplianceDocument) => {
     setWorkingId(document.document_id);
     try {
@@ -140,6 +171,7 @@ export function VendorComplianceTab({ foodTruckId }: { foodTruckId: string }) {
       );
       toast.success("Compliance dates updated");
       await refresh();
+      setEditingId(null);
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Unable to update compliance dates");
     } finally {
@@ -196,6 +228,7 @@ export function VendorComplianceTab({ foodTruckId }: { foodTruckId: string }) {
       toast.success("Replacement uploaded and ready for verification");
       setReplacementFiles((current) => ({ ...current, [document.document_id]: null }));
       await refresh();
+      setEditingId(null);
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Unable to replace document");
     } finally {
@@ -237,6 +270,7 @@ export function VendorComplianceTab({ foodTruckId }: { foodTruckId: string }) {
             expirationDate: dateValue(document.expiration_date),
           };
           const isWorking = workingId === document.document_id;
+          const isEditing = editingId === document.document_id;
           const documentUrl = document.access_url || document.file_url;
           const isImage = String(document.mime_type || "").startsWith("image/");
 
@@ -253,9 +287,22 @@ export function VendorComplianceTab({ foodTruckId }: { foodTruckId: string }) {
                       : "date unavailable"}
                   </div>
                 </div>
-                <Badge className={statusClasses[document.review_status] || "bg-slate-100 text-slate-700"}>
-                  {formatStatus(document.review_status)}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className={statusClasses[document.review_status] || "bg-slate-100 text-slate-700"}>
+                    {formatStatus(document.review_status)}
+                  </Badge>
+                  {!isEditing ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isWorking || !!editingId}
+                      onClick={() => startEditing(document)}
+                    >
+                      <Pencil className="mr-1 h-4 w-4" />
+                      Edit
+                    </Button>
+                  ) : null}
+                </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-[180px_1fr]">
@@ -274,37 +321,60 @@ export function VendorComplianceTab({ foodTruckId }: { foodTruckId: string }) {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="space-y-1 text-sm">
-                      <span className="font-medium">
-                        {isSanitation ? "Inspection Date" : "Issue Date"}
-                      </span>
-                      <Input
-                        type="date"
-                        value={draft.issueDate}
-                        max={isSanitation ? dayjs().format("YYYY-MM-DD") : undefined}
-                        onChange={(event) => updateDraft(
-                          document.document_id,
-                          "issueDate",
-                          event.target.value,
-                        )}
-                      />
-                    </label>
-                    {hasExpiration ? (
+                  {isEditing ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <label className="space-y-1 text-sm">
-                        <span className="font-medium">Expiration Date</span>
+                        <span className="font-medium">
+                          {isSanitation ? "Inspection Date" : "Issue Date"}
+                        </span>
                         <Input
                           type="date"
-                          value={draft.expirationDate}
+                          value={draft.issueDate}
+                          max={isSanitation ? dayjs().format("YYYY-MM-DD") : undefined}
                           onChange={(event) => updateDraft(
                             document.document_id,
-                            "expirationDate",
+                            "issueDate",
                             event.target.value,
                           )}
                         />
                       </label>
-                    ) : null}
-                  </div>
+                      {hasExpiration ? (
+                        <label className="space-y-1 text-sm">
+                          <span className="font-medium">Expiration Date</span>
+                          <Input
+                            type="date"
+                            value={draft.expirationDate}
+                            onChange={(event) => updateDraft(
+                              document.document_id,
+                              "expirationDate",
+                              event.target.value,
+                            )}
+                          />
+                        </label>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-md border bg-muted/20 p-3 text-sm">
+                        <div className="text-xs font-medium text-muted-foreground">
+                          {isSanitation ? "Inspection Date" : "Issue Date"}
+                        </div>
+                        <div className="mt-1 font-medium">
+                          {draft.issueDate || "Not provided"}
+                        </div>
+                      </div>
+                      {hasExpiration ? (
+                        <div className="rounded-md border bg-muted/20 p-3 text-sm">
+                          <div className="text-xs font-medium text-muted-foreground">
+                            Expiration Date
+                          </div>
+                          <div className="mt-1 font-medium">
+                            {draft.expirationDate || "Not provided"}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
 
                   {isSanitation && sanitationGrade(document) ? (
                     <div className="text-sm">
@@ -319,9 +389,10 @@ export function VendorComplianceTab({ foodTruckId }: { foodTruckId: string }) {
                 </div>
               </div>
 
+              {isEditing ? (
               <div className="mt-4 rounded-md border bg-muted/20 p-3">
                 <div className="mb-2 text-sm font-medium">Replace document</div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="space-y-2">
                   <Input
                     type="file"
                     accept="image/*,application/pdf"
@@ -331,16 +402,12 @@ export function VendorComplianceTab({ foodTruckId }: { foodTruckId: string }) {
                       [document.document_id]: event.target.files?.[0] || null,
                     }))}
                   />
-                  <Button
-                    variant="outline"
-                    disabled={isWorking || !replacementFiles[document.document_id]}
-                    onClick={() => replaceDocument(document)}
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Replacement
-                  </Button>
+                  <div className="text-xs text-muted-foreground">
+                    Optional. The replacement file and date changes are applied when you select Save Changes.
+                  </div>
                 </div>
               </div>
+              ) : null}
 
               <div className="mt-4 flex flex-wrap justify-end gap-2">
                 <Button
@@ -351,22 +418,37 @@ export function VendorComplianceTab({ foodTruckId }: { foodTruckId: string }) {
                   <ExternalLink className="mr-2 h-4 w-4" />
                   Open
                 </Button>
-                <Button variant="outline" disabled={isWorking} onClick={() => saveDates(document)}>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Dates
-                </Button>
-                <Button disabled={isWorking} onClick={() => reviewDocument(document, "verified")}>
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Verify
-                </Button>
-                <Button
-                  variant="destructive"
-                  disabled={isWorking}
-                  onClick={() => reviewDocument(document, "rejected")}
-                >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Reject
-                </Button>
+                {isEditing ? (
+                  <>
+                    <Button variant="outline" disabled={isWorking} onClick={() => cancelEditing(document)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      disabled={isWorking}
+                      onClick={() => replacementFiles[document.document_id]
+                        ? replaceDocument(document)
+                        : saveDates(document)}
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Changes
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button disabled={isWorking} onClick={() => reviewDocument(document, "verified")}>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Verify
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      disabled={isWorking}
+                      onClick={() => reviewDocument(document, "rejected")}
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Reject
+                    </Button>
+                  </>
+                )}
               </div>
             </section>
           );
