@@ -23,6 +23,9 @@ export type ComplianceDocument = {
   ocr_error_message?: string | null;
   review_status: string;
   review_notes?: string | null;
+  archived_at?: string | null;
+  archived_reason?: string | null;
+  replaced_by_document_id?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -72,6 +75,7 @@ class VendorComplianceApiService extends BaseAPI {
     review_status?: string;
     document_type?: string;
     food_truck_id?: string;
+    archived?: boolean;
   }) {
     return this.get<{
       data: {
@@ -110,6 +114,13 @@ class VendorComplianceApiService extends BaseAPI {
     return this.patch(
       `${APIEndpoint.VENDOR_COMPLIANCE}/admin/documents/${documentId}`,
       payload,
+    );
+  }
+
+  archiveDocument(documentId: string, payload?: { reason?: string }) {
+    return this.patch(
+      `${APIEndpoint.VENDOR_COMPLIANCE}/admin/documents/${documentId}/archive`,
+      payload || {},
     );
   }
 
