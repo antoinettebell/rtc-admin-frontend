@@ -41,7 +41,13 @@ type DiagnosticEvent = {
 
 const dateTime = (value?: string) => value ? new Date(value).toLocaleString() : "—";
 
-export function TapToPayTerminalRegistry({ foodTruckId }: { foodTruckId: string }) {
+export function TapToPayTerminalRegistry({
+  foodTruckId,
+  employeeInternalId = null,
+}: {
+  foodTruckId: string;
+  employeeInternalId?: string | null;
+}) {
   const [updatingId, setUpdatingId] = React.useState<string | null>(null);
   const [selectedTerminalId, setSelectedTerminalId] = React.useState("");
   const [showAdd, setShowAdd] = React.useState(false);
@@ -61,16 +67,36 @@ export function TapToPayTerminalRegistry({ foodTruckId }: { foodTruckId: string 
     },
     enabled: !!foodTruckId,
   });
-  const terminals = (data?.terminals || []) as Terminal[];
+  const terminals = React.useMemo(
+    () => (data?.terminals || []) as Terminal[],
+    [data?.terminals],
+  );
   const events = (data?.events || []) as DiagnosticEvent[];
   const selectedTerminal = terminals.find((terminal) => terminal._id === selectedTerminalId)
     || terminals[0];
 
   React.useEffect(() => {
-    if (terminals.length && !terminals.some((terminal) => terminal._id === selectedTerminalId)) {
-      setSelectedTerminalId(terminals[0]._id);
+    if (employeeInternalId) {
+      const employeeTerminal = terminals.find(
+        (terminal) => terminal.employee_internal_id === employeeInternalId,
+      );
+      if (employeeTerminal) {
+        setSelectedTerminalId(employeeTerminal._id);
+      }
     }
-  }, [terminals, selectedTerminalId]);
+  }, [employeeInternalId, terminals]);
+
+  React.useEffect(() => {
+    setSelectedTerminalId((current) =>
+      terminals.length && !terminals.some((terminal) => terminal._id === current)
+        ? terminals[0]._id
+        : current,
+    );
+  }, [terminals]);
+
+  const requestedEmployeeTerminal = employeeInternalId
+    ? terminals.find((terminal) => terminal.employee_internal_id === employeeInternalId)
+    : null;
 
   const update = async (
     terminal: Terminal,
@@ -193,6 +219,12 @@ export function TapToPayTerminalRegistry({ foodTruckId }: { foodTruckId: string 
             <Button type="button" variant="outline" onClick={() => setShowAdd(false)} disabled={adding}>Cancel</Button>
           </div>
         </form>
+      ) : null}
+
+      {employeeInternalId && !isFetching && terminals.length > 0 && !requestedEmployeeTerminal ? (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          This employee does not have a registered Tap to Pay device yet. All vendor devices remain available below for support review.
+        </div>
       ) : null}
 
       {terminals.length === 0 ? (

@@ -214,6 +214,16 @@ export interface VendorEmployee {
   employee_rate?: number | null;
   employee_login_id: string;
   tap_to_pay_serial_number?: string | null;
+  tap_to_pay_training_acknowledgments?: Array<{
+    _id?: string;
+    version: string;
+    checked_items: string[];
+    signed_name: string;
+    signed_date: string;
+    acknowledged_at: string;
+    expires_at: string;
+    archived_at?: string | null;
+  }>;
   weekly_schedule?: Array<{
     day: "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
     enabled: boolean;

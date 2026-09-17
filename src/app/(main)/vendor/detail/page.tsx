@@ -7,6 +7,7 @@ import {
   KeyRound,
   LoaderCircle,
   MapPin,
+  MonitorSmartphone,
   Pencil,
   Plus,
   Soup,
@@ -287,6 +288,20 @@ const toDateTimeLocalValue = (value?: string | null) => {
   return offsetDate.toISOString().slice(0, 16);
 };
 
+const formatTrainingDate = (value?: string | null) => {
+  if (!value) return "Not recorded";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+};
+
+const tapToPayTrainingItemLabels: Record<string, string> = {
+  PREBUILT_MENU_ONLY: "Use Tap to Pay only for customer orders created from RTC's prebuilt menu.",
+  FOLLOW_ACTIVATION_INSTRUCTIONS: "Follow the Apple and CyberSource activation instructions.",
+  AUTHORIZED_TO_ACCEPT_TERMS: "Authorized to accept the applicable Tap to Pay Terms and Conditions for the vendor.",
+  RTC_USE_ONLY: "Do not use Tap to Pay outside RTC.",
+  ACCESS_ENDS_WITH_EMPLOYMENT: "Tap to Pay access ends when employment is terminated or archived.",
+};
+
 export default function VendorDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -306,6 +321,7 @@ export default function VendorDetail() {
   const [reason, setReason] = useState<string>("");
   const [changing, setChanging] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("profile");
+  const [selectedTapToPayEmployeeId, setSelectedTapToPayEmployeeId] = useState<string | null>(null);
   const [planColor, setPlanColor] = useState<string>("");
   const [locations, setLocations] = useState<Record<string, string>>({});
   const [employeeTab, setEmployeeTab] = useState<"current" | "archived">(
@@ -2591,6 +2607,20 @@ export default function VendorDetail() {
                         (location: FoodTruckLocation) =>
                           location._id === employee.assigned_location_id,
                       );
+                      const trainingRecords = [...(employee.tap_to_pay_training_acknowledgments || [])]
+                        .sort(
+                          (left, right) =>
+                            new Date(right.acknowledged_at).getTime() -
+                            new Date(left.acknowledged_at).getTime(),
+                        );
+                      const currentTraining = trainingRecords.find(
+                        (record) =>
+                          !record.archived_at &&
+                          new Date(record.expires_at).getTime() > Date.now(),
+                      );
+                      const archivedTraining = trainingRecords.filter(
+                        (record) => record !== currentTraining,
+                      );
                       return (
                         <div
                           key={employee._id}
@@ -2653,6 +2683,53 @@ export default function VendorDetail() {
                             </div>
                           )}
 
+                          <div className="rounded-md border bg-muted/20 p-3">
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div>
+                                <div className="font-semibold">Tap to Pay on iPhone Training</div>
+                                <div className="text-xs text-muted-foreground">Read-only annual employee acknowledgment record</div>
+                              </div>
+                              <Badge variant={currentTraining ? "default" : "secondary"}>
+                                {currentTraining ? "100% Current" : "0% Incomplete"}
+                              </Badge>
+                            </div>
+                            {currentTraining ? (
+                              <div className="mt-3 space-y-2 text-sm">
+                                <div>
+                                  Signed by <span className="font-medium">{currentTraining.signed_name}</span> on {formatTrainingDate(currentTraining.signed_date || currentTraining.acknowledged_at)} · Valid through {formatTrainingDate(currentTraining.expires_at)}
+                                </div>
+                                <ul className="space-y-1 text-xs text-muted-foreground">
+                                  {(currentTraining.checked_items || []).map((item) => (
+                                    <li key={item}>✓ {tapToPayTrainingItemLabels[item] || item}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : (
+                              <p className="mt-3 text-sm text-muted-foreground">
+                                This employee has not completed current Tap to Pay training. Setup and payment remain blocked until acknowledgment is complete.
+                              </p>
+                            )}
+                            <details className="mt-3 border-t pt-3">
+                              <summary className="cursor-pointer text-sm font-medium">
+                                Archived training ({archivedTraining.length})
+                              </summary>
+                              {archivedTraining.length ? (
+                                <div className="mt-2 space-y-2">
+                                  {archivedTraining.map((record, index) => (
+                                    <div key={record._id || `${record.acknowledged_at}-${index}`} className="rounded border bg-background p-2 text-xs">
+                                      <div className="font-medium">{record.signed_name} · Version {record.version}</div>
+                                      <div className="text-muted-foreground">
+                                        Signed {formatTrainingDate(record.signed_date || record.acknowledged_at)} · Expired/archived {formatTrainingDate(record.archived_at || record.expires_at)}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="mt-2 text-xs text-muted-foreground">No archived training records.</p>
+                              )}
+                            </details>
+                          </div>
+
                           {true && (
                             <div className="flex flex-wrap items-end gap-2">
                               <div className="min-w-[220px] flex-1">
@@ -2692,7 +2769,18 @@ export default function VendorDetail() {
                           )}
 
                           {true && (
-                            <div className="flex justify-end">
+                            <div className="flex flex-wrap justify-end gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedTapToPayEmployeeId(employee.employee_internal_id);
+                                  setActiveTab("tap-to-pay");
+                                }}
+                              >
+                                <MonitorSmartphone size={16} />
+                                Manage Tap to Pay Device
+                              </Button>
                               <Button
                                 type="button"
                                 variant="outline"
@@ -2997,7 +3085,10 @@ export default function VendorDetail() {
 
             <TabsContent value="tap-to-pay">
               {result.user.foodTruck?._id ? (
-                <TapToPayTerminalRegistry foodTruckId={result.user.foodTruck._id} />
+                <TapToPayTerminalRegistry
+                  foodTruckId={result.user.foodTruck._id}
+                  employeeInternalId={selectedTapToPayEmployeeId}
+                />
               ) : null}
             </TabsContent>
 
