@@ -12,7 +12,7 @@ export const NameDetail = ({
   name: string;
   email: string;
   contact?: string;
-  avatarClassName: string;
+  avatarClassName?: string;
 }) => {
   return (
     <div className="flex gap-2.5 px-1.5 items-center h-[64px]">
