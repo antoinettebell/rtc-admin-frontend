@@ -24,6 +24,7 @@ import {
   CalendarCheck,
   FolderArchive,
   Store,
+  Megaphone,
 } from "lucide-react";
 import { NavMain } from "@/components/core/nav-main";
 
@@ -118,6 +119,17 @@ const navMain = [
     url: "/marketplace-payments",
     icon: CreditCard,
     items: [],
+  },
+  {
+    title: "Marketing",
+    url: "/marketing",
+    icon: Megaphone,
+    items: [
+      {
+        title: "Campaign Approval",
+        url: "/marketing/campaign-approval",
+      },
+    ],
   },
   {
     title: "Settings",
