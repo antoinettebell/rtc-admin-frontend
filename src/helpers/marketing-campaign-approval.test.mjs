@@ -13,6 +13,7 @@ import {
   reasonLabel,
   reduceCampaignApprovalUi,
   replaceCampaign,
+  toggleVendorSelection,
 } from "./marketing-campaign-approval.js";
 
 test("pending is expanded and approved is collapsed by default", () => {
@@ -53,6 +54,7 @@ test("uses the required queue empty states", () => {
 test("uses the authenticated RTC backend campaign endpoints", () => {
   assert.equal(campaignApprovalEndpoints.pending, "/api/v1/marketing/campaigns/pending");
   assert.equal(campaignApprovalEndpoints.approved, "/api/v1/marketing/campaigns/approved");
+  assert.equal(campaignApprovalEndpoints.eligibleVendors, "/api/v1/marketing/campaigns/eligible-vendors");
   assert.equal(campaignApprovalEndpoints.generate, "/api/v1/marketing/campaigns/generate");
   assert.equal(campaignApprovalEndpoints.details("campaign one"), "/api/v1/marketing/campaigns/campaign%20one");
   assert.equal(campaignApprovalEndpoints.approve("one"), "/api/v1/marketing/campaigns/one/approve");
@@ -89,4 +91,12 @@ test("processing and in-flight actions disable regeneration and approval", () =>
   assert.equal(campaignActionsDisabled({ campaignId: "one", generationStatus: "PROCESSING" }), true);
   assert.equal(campaignActionsDisabled({ campaignId: "one", generationStatus: "COMPLETED" }, "one"), true);
   assert.equal(campaignActionsDisabled({ campaignId: "one", generationStatus: "COMPLETED" }), false);
+});
+
+test("eligible vendor checkbox selection is deduplicated and removable", () => {
+  let selected = toggleVendorSelection([], "vendor-1", true);
+  selected = toggleVendorSelection(selected, "vendor-1", true);
+  selected = toggleVendorSelection(selected, "vendor-2", true);
+  assert.deepEqual(selected, ["vendor-1", "vendor-2"]);
+  assert.deepEqual(toggleVendorSelection(selected, "vendor-1", false), ["vendor-2"]);
 });
