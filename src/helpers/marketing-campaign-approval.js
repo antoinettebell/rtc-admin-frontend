@@ -3,6 +3,7 @@ export const REASON_LABELS = Object.freeze({
   SCHEDULE_CHANGE: "Schedule Updated",
   CONTENT_CHANGE: "Vendor Content Changed",
   MONTHLY_REFRESH: "Monthly Refresh",
+  MANUAL_GENERATION: "Manual Generation",
   MANUAL_REGENERATION: "Regenerated",
 });
 
@@ -25,10 +26,18 @@ export const emptyCampaignMessage = (section) => section === "approved"
 export const campaignApprovalEndpoints = Object.freeze({
   pending: "/api/v1/marketing/campaigns/pending",
   approved: "/api/v1/marketing/campaigns/approved",
+  generate: "/api/v1/marketing/campaigns/generate",
   details: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}`,
   approve: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}/approve`,
   regenerate: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}/regenerate`,
 });
+
+export const campaignVideoDownloadName = (campaign) => {
+  const business = String(campaign?.businessName || "vendor-spotlight")
+    .trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const id = String(campaign?.campaignId || "video").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 12);
+  return `${business || "vendor-spotlight"}-${id || "video"}.mp4`;
+};
 
 export const replaceCampaign = (campaigns, campaign) => {
   const index = campaigns.findIndex((item) => item.campaignId === campaign.campaignId);

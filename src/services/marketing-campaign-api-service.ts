@@ -43,6 +43,13 @@ class MarketingCampaignApiService extends BaseAPI {
     );
   }
 
+  generate(requestId: string) {
+    return this.post<IResponse<{ results: Array<{ action: string; campaign: MarketingCampaign | null }> }>>(
+      campaignApprovalEndpoints.generate,
+      { requestId },
+    );
+  }
+
   getDetails(campaignId: string) {
     return this.get<IResponse<{ campaign: MarketingCampaignDetail }>>(
       campaignApprovalEndpoints.details(campaignId),

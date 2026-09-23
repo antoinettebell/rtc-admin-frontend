@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronDown, Eye, FileText, Loader2, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, Download, Eye, FileText, Loader2, Plus, RefreshCw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useUser } from "@/hooks/use-user";
 import {
   approveCampaignState, campaignActionsDisabled, campaignTypeLabel, emptyCampaignMessage,
-  preserveUsableRendition, reasonLabel, replaceCampaign,
+  campaignVideoDownloadName, preserveUsableRendition, reasonLabel, replaceCampaign,
 } from "@/helpers/marketing-campaign-approval";
 import {
   marketingCampaignApiService, MarketingCampaign, MarketingCampaignDetail,
@@ -114,6 +114,9 @@ export default function MarketingCampaignApprovalPage() {
   const [approveTarget, setApproveTarget] = useState<MarketingCampaign | null>(null);
   const [regenerateTarget, setRegenerateTarget] = useState<MarketingCampaign | null>(null);
   const [regenerationReason, setRegenerationReason] = useState("");
+  const [generateConfirmOpen, setGenerateConfirmOpen] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const generationRequestId = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     if (user?.userType !== "SUPER_ADMIN") { setLoading(false); return; }
@@ -147,9 +150,9 @@ export default function MarketingCampaignApprovalPage() {
           setPending((rows) => rows.map((row) => row.campaignId === campaignId
             ? preserveUsableRendition(row, updated) : row));
           if (updated.generationStatus === "COMPLETED") {
-            toast({ title: "Regeneration completed", description: `${updated.businessName} is ready for review.` });
+            toast({ title: "Campaign generation completed", description: `${updated.businessName} is ready for review.` });
           } else if (updated.generationStatus === "FAILED") {
-            toast({ title: "Regeneration failed", description: "The prior usable video remains available.", variant: "destructive" });
+            toast({ title: "Campaign generation failed", description: "Existing approved ads were preserved.", variant: "destructive" });
           }
         } catch { /* Keep the current usable rendition and retry status polling. */ }
       }
@@ -182,6 +185,39 @@ export default function MarketingCampaignApprovalPage() {
     finally { setBusyCampaignId(null); }
   };
 
+  const generateVendorSpotlights = async () => {
+    if (generating) return;
+    setGenerating(true);
+    try {
+      generationRequestId.current ??= typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `manual-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const requestId = generationRequestId.current;
+      const response = await marketingCampaignApiService.generate(requestId);
+      const campaigns = response.data.data.results
+        .map((result) => result.campaign)
+        .filter((campaign): campaign is MarketingCampaign => (
+          Boolean(campaign) && campaign?.approvalStatus === "PENDING_APPROVAL"
+        ));
+      setPending((rows) => campaigns.reduce(
+        (next, campaign) => replaceCampaign(next, campaign), rows,
+      ));
+      setPendingOpen(true);
+      setGenerateConfirmOpen(false);
+      generationRequestId.current = null;
+      toast({
+        title: "Vendor Spotlight generation started",
+        description: `${campaigns.length} campaign${campaigns.length === 1 ? "" : "s"} added to the review workflow.`,
+      });
+    } catch {
+      toast({
+        title: "Generation request failed",
+        description: "No automatic retry was submitted. Existing campaigns were preserved.",
+        variant: "destructive",
+      });
+    } finally { setGenerating(false); }
+  };
+
   const openDetails = async (campaignId: string) => {
     setDetail(null); setDetailLoading(true);
     try { setDetail((await marketingCampaignApiService.getDetails(campaignId)).data.data.campaign); }
@@ -206,10 +242,13 @@ export default function MarketingCampaignApprovalPage() {
         <TableCell>{campaignTypeLabel(campaign.campaignType)}</TableCell>
         <TableCell>{reasonLabel(campaign.reason)}</TableCell>
         <TableCell>{formatDate(archived ? campaign.approvedAt : campaign.generatedAt)}</TableCell>
-        <TableCell><Badge variant={campaign.generationStatus === "FAILED" ? "destructive" : "secondary"}>{campaign.generationStatus === "PROCESSING" ? "Processing / Regenerating" : campaign.generationStatus}</Badge></TableCell>
+        <TableCell><Badge variant={campaign.generationStatus === "FAILED" ? "destructive" : "secondary"}>{campaign.generationStatus === "PROCESSING" ? "Processing / Generating" : campaign.generationStatus}</Badge></TableCell>
         {!archived ? <TableCell>{campaign.regenerationCount}</TableCell> : null}
         <TableCell><div className="flex flex-wrap justify-end gap-2">
           <Button size="sm" variant="outline" onClick={() => setPreview(campaign)} disabled={!campaign.videoUrl}><Eye className="mr-1 h-4 w-4" /> Preview Video</Button>
+          {campaign.videoUrl ? <Button size="sm" variant="outline" asChild>
+            <a href={campaign.videoUrl} download={campaignVideoDownloadName(campaign)} target="_blank" rel="noreferrer"><Download className="mr-1 h-4 w-4" /> Download Video</a>
+          </Button> : <Button size="sm" variant="outline" disabled><Download className="mr-1 h-4 w-4" /> Download Video</Button>}
           <Button size="sm" variant="outline" onClick={() => void openDetails(campaign.campaignId)}><FileText className="mr-1 h-4 w-4" /> View Details</Button>
           {!archived ? <>
             <Button size="sm" variant="outline" disabled={disabled} onClick={() => setRegenerateTarget(campaign)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate</Button>
@@ -221,7 +260,9 @@ export default function MarketingCampaignApprovalPage() {
   );
 
   return <div className="space-y-4">
-    <div><h1 className="text-2xl font-semibold">Marketing Campaign Approval</h1><p className="text-sm text-muted-foreground">Review current campaign renditions, request a replacement, or archive approved keepers.</p></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Marketing Campaign Approval</h1><p className="text-sm text-muted-foreground">Review current campaign renditions, request a replacement, or archive approved keepers.</p></div>
+      <Button onClick={() => setGenerateConfirmOpen(true)} disabled={generating}><Plus className="mr-2 h-4 w-4" /> Generate New Vendor Spotlights</Button>
+    </div>
     {loading ? <div className="flex justify-center rounded-md border bg-white p-12"><Loader2 className="h-7 w-7 animate-spin" /></div> : <>
       <Collapsible open={pendingOpen} onOpenChange={setPendingOpen} className="rounded-md border bg-white">
         <CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Pending Campaigns ({pending.length})</h2><p className="text-sm text-muted-foreground">Completed campaigns awaiting admin review.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${pendingOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger>
@@ -248,5 +289,14 @@ export default function MarketingCampaignApprovalPage() {
         <DialogFooter><Button variant="outline" onClick={() => setRegenerateTarget(null)}>Cancel</Button><Button onClick={() => void regenerateSelected()} disabled={Boolean(busyCampaignId)}>Regenerate</Button></DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={generateConfirmOpen} onOpenChange={(open) => {
+      setGenerateConfirmOpen(open);
+      if (!open && !generating) generationRequestId.current = null;
+    }}>
+      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Generate new Vendor Spotlights?</AlertDialogTitle><AlertDialogDescription>This runs one new paid generation for each currently eligible featured vendor. Existing pending and approved ads remain unchanged, and every successful new ad is added to Pending Campaigns.</AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogFooter><AlertDialogCancel disabled={generating}>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => void generateVendorSpotlights()} disabled={generating}>{generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Generate New Ads</AlertDialogAction></AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>;
 }
