@@ -26,6 +26,7 @@ export const emptyCampaignMessage = (section) => section === "approved"
 export const campaignApprovalEndpoints = Object.freeze({
   pending: "/api/v1/marketing/campaigns/pending",
   approved: "/api/v1/marketing/campaigns/approved",
+  eligibleVendors: "/api/v1/marketing/campaigns/eligible-vendors",
   generate: "/api/v1/marketing/campaigns/generate",
   details: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}`,
   approve: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}/approve`,
@@ -61,6 +62,10 @@ export const preserveUsableRendition = (current, replacement) => ({
 
 export const campaignActionsDisabled = (campaign, busyCampaignId = null) =>
   campaign?.generationStatus === "PROCESSING" || busyCampaignId === campaign?.campaignId;
+
+export const toggleVendorSelection = (current, vendorId, checked) => checked
+  ? [...new Set([...current, vendorId])]
+  : current.filter((value) => value !== vendorId);
 
 export const reduceCampaignApprovalUi = (state, action) => {
   switch (action.type) {

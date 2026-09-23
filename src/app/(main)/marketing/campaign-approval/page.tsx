@@ -5,6 +5,7 @@ import { ChevronDown, Download, Eye, FileText, Loader2, Plus, RefreshCw } from "
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -22,9 +23,10 @@ import { useUser } from "@/hooks/use-user";
 import {
   approveCampaignState, campaignActionsDisabled, campaignTypeLabel, emptyCampaignMessage,
   campaignVideoDownloadName, preserveUsableRendition, reasonLabel, replaceCampaign,
+  toggleVendorSelection,
 } from "@/helpers/marketing-campaign-approval";
 import {
-  marketingCampaignApiService, MarketingCampaign, MarketingCampaignDetail,
+  EligibleMarketingVendor, marketingCampaignApiService, MarketingCampaign, MarketingCampaignDetail,
 } from "@/services/marketing-campaign-api-service";
 
 const formatDate = (value?: string | null) => {
@@ -104,6 +106,8 @@ export default function MarketingCampaignApprovalPage() {
   const { toast } = useToast();
   const [pending, setPending] = useState<MarketingCampaign[]>([]);
   const [approved, setApproved] = useState<MarketingCampaign[]>([]);
+  const [eligibleVendors, setEligibleVendors] = useState<EligibleMarketingVendor[]>([]);
+  const [selectedVendorIds, setSelectedVendorIds] = useState<string[]>([]);
   const [pendingOpen, setPendingOpen] = useState(true);
   const [approvedOpen, setApprovedOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -122,11 +126,13 @@ export default function MarketingCampaignApprovalPage() {
     if (user?.userType !== "SUPER_ADMIN") { setLoading(false); return; }
     setLoading(true);
     try {
-      const [pendingResponse, approvedResponse] = await Promise.all([
+      const [pendingResponse, approvedResponse, eligibleVendorResponse] = await Promise.all([
         marketingCampaignApiService.listPending(), marketingCampaignApiService.listApproved(),
+        marketingCampaignApiService.listEligibleVendors(),
       ]);
       setPending(pendingResponse.data.data.campaigns);
       setApproved(approvedResponse.data.data.campaigns);
+      setEligibleVendors(eligibleVendorResponse.data.data.vendors);
     } catch {
       toast({ title: "Campaign load failed", description: "The campaign queues could not be loaded.", variant: "destructive" });
     } finally { setLoading(false); }
@@ -193,7 +199,7 @@ export default function MarketingCampaignApprovalPage() {
         ? crypto.randomUUID()
         : `manual-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const requestId = generationRequestId.current;
-      const response = await marketingCampaignApiService.generate(requestId);
+      const response = await marketingCampaignApiService.generate(requestId, selectedVendorIds);
       const campaigns = response.data.data.results
         .map((result) => result.campaign)
         .filter((campaign): campaign is MarketingCampaign => (
@@ -204,6 +210,7 @@ export default function MarketingCampaignApprovalPage() {
       ));
       setPendingOpen(true);
       setGenerateConfirmOpen(false);
+      setSelectedVendorIds([]);
       generationRequestId.current = null;
       toast({
         title: "Vendor Spotlight generation started",
@@ -290,13 +297,28 @@ export default function MarketingCampaignApprovalPage() {
       </DialogContent>
     </Dialog>
 
-    <AlertDialog open={generateConfirmOpen} onOpenChange={(open) => {
+    <Dialog open={generateConfirmOpen} onOpenChange={(open) => {
       setGenerateConfirmOpen(open);
       if (!open && !generating) generationRequestId.current = null;
     }}>
-      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Generate new Vendor Spotlights?</AlertDialogTitle><AlertDialogDescription>This runs one new paid generation for each currently eligible featured vendor. Existing pending and approved ads remain unchanged, and every successful new ad is added to Pending Campaigns.</AlertDialogDescription></AlertDialogHeader>
-        <AlertDialogFooter><AlertDialogCancel disabled={generating}>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => void generateVendorSpotlights()} disabled={generating}>{generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Generate New Ads</AlertDialogAction></AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      <DialogContent><DialogHeader><DialogTitle>Generate new Vendor Spotlights</DialogTitle><DialogDescription>Select one or more eligible vendors. Each selected vendor receives a new Scene 2/3 visual variation and fresh music. Existing pending and approved ads remain unchanged.</DialogDescription></DialogHeader>
+        <div className="max-h-72 space-y-2 overflow-y-auto rounded-md border p-3">
+          {eligibleVendors.length ? eligibleVendors.map((vendor) => {
+            const checked = selectedVendorIds.includes(vendor.vendorId);
+            return <label key={vendor.vendorId} className={`flex items-center gap-3 rounded-md border p-3 ${vendor.generationBlocked ? "opacity-60" : "cursor-pointer"}`}>
+              <Checkbox checked={checked} disabled={vendor.generationBlocked || generating} onCheckedChange={(value) => {
+                setSelectedVendorIds((current) => toggleVendorSelection(
+                  current, vendor.vendorId, value === true,
+                ));
+              }} />
+              <span className="flex-1 font-medium">{vendor.businessName}</span>
+              {vendor.generationBlocked ? <span className="text-xs text-muted-foreground">Already processing</span> : null}
+            </label>;
+          }) : <p className="text-sm text-muted-foreground">No eligible featured vendors are currently available.</p>}
+        </div>
+        <p className="text-sm text-muted-foreground">Selected: {selectedVendorIds.length}. This submits one paid music generation and one paid video render per selected vendor.</p>
+        <DialogFooter><Button variant="outline" onClick={() => setGenerateConfirmOpen(false)} disabled={generating}>Cancel</Button><Button onClick={() => void generateVendorSpotlights()} disabled={generating || selectedVendorIds.length === 0}>{generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Generate Selected Ads</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>;
 }

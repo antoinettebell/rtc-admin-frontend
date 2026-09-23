@@ -28,6 +28,18 @@ export interface MarketingCampaignDetail extends MarketingCampaign {
   selectedFoodImages: Array<{ name: string | null; category: string | null; url: string }>;
   scheduleText: string | null;
   supportedServices: string[];
+  visualVariation: {
+    sequence: number;
+    mode: string;
+    animationVariantId: string;
+    imageRotation: number;
+  } | null;
+}
+
+export interface EligibleMarketingVendor {
+  vendorId: string;
+  businessName: string;
+  generationBlocked: boolean;
 }
 
 class MarketingCampaignApiService extends BaseAPI {
@@ -43,10 +55,16 @@ class MarketingCampaignApiService extends BaseAPI {
     );
   }
 
-  generate(requestId: string) {
+  listEligibleVendors() {
+    return this.get<IResponse<{ vendors: EligibleMarketingVendor[] }>>(
+      campaignApprovalEndpoints.eligibleVendors,
+    );
+  }
+
+  generate(requestId: string, vendorIds: string[]) {
     return this.post<IResponse<{ results: Array<{ action: string; campaign: MarketingCampaign | null }> }>>(
       campaignApprovalEndpoints.generate,
-      { requestId },
+      { requestId, vendorIds },
     );
   }
 
