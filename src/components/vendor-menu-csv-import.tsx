@@ -13,6 +13,12 @@ type VendorMenuCsvImportProps = {
   vendorName: string;
   vendorUserId: string;
   menuItems?: MenuItem[];
+  truckUnits?: Array<{
+    _id: string;
+    name?: string;
+    is_primary?: boolean;
+    is_archived?: boolean;
+  }>;
   onImported?: () => void;
 };
 
@@ -20,6 +26,7 @@ export function VendorMenuCsvImport({
   vendorName,
   vendorUserId,
   menuItems = [],
+  truckUnits = [],
   onImported,
 }: VendorMenuCsvImportProps) {
   const inputRef = React.useRef<HTMLInputElement | null>(null);
@@ -37,6 +44,7 @@ export function VendorMenuCsvImport({
       [
         {
           menuItemId: "",
+          foodTruckAvailability: "ALL",
           name: "Sample Menu Item",
           description: "Short item description",
           imgUrls: "sample-menu-item.jpg",
@@ -148,9 +156,31 @@ export function VendorMenuCsvImport({
               )
               .filter(Boolean)
           : [];
+        const activeTruckUnits = truckUnits.filter((unit) => !unit.is_archived);
+        const truckUnitNamesById = new Map(
+          activeTruckUnits.map((unit) => [String(unit._id), unit.name || ""]),
+        );
+        const primaryTruckName =
+          activeTruckUnits.find((unit) => unit.is_primary)?.name ||
+          activeTruckUnits[0]?.name ||
+          "";
+        const foodTruckAvailability =
+          anyItem.truckServiceScope === "ALL_ACTIVE_TRUCKS"
+            ? "ALL"
+            : Array.isArray(anyItem.truckUnitIds) && anyItem.truckUnitIds.length
+              ? anyItem.truckUnitIds
+                  .map((id: string | { _id?: string }) =>
+                    truckUnitNamesById.get(
+                      String(typeof id === "string" ? id : id?._id || ""),
+                    ),
+                  )
+                  .filter(Boolean)
+                  .join("|")
+              : primaryTruckName;
 
         return {
           menuItemId: item._id || "",
+          foodTruckAvailability,
           name: item.name || "",
           description: item.description || "",
           imgUrls: (item.imgUrls || []).join("|"),
@@ -378,6 +408,11 @@ export function VendorMenuCsvImport({
           <p className="text-sm text-muted-foreground">
             Use the template download if you want the exact header layout and a
             starter sample row.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            `foodTruckAvailability` is required. Use an exact active truck name,
+            separate multiple truck names with `|`, or use `ALL` for every active
+            food truck.
           </p>
           <p className="text-sm text-muted-foreground">
             Combo and BOGO items can be referenced by their existing menu names

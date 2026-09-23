@@ -2228,6 +2228,7 @@ export default function VendorDetail() {
                     }
                     vendorUserId={result.user._id}
                     menuItems={result.menuList || []}
+                    truckUnits={result.user.foodTruck?.truck_units || []}
                     onImported={() => {
                       refetch();
                     }}

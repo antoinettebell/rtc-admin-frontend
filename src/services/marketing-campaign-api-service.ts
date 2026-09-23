@@ -39,7 +39,17 @@ export interface MarketingCampaignDetail extends MarketingCampaign {
 export interface EligibleMarketingVendor {
   vendorId: string;
   businessName: string;
+  truckUnits: Array<{
+    truckUnitId: string;
+    name: string;
+    isPrimary: boolean;
+  }>;
   generationBlocked: boolean;
+}
+
+export interface VendorSpotlightSelection {
+  vendorId: string;
+  truckUnitIds: string[];
 }
 
 class MarketingCampaignApiService extends BaseAPI {
@@ -61,10 +71,10 @@ class MarketingCampaignApiService extends BaseAPI {
     );
   }
 
-  generate(requestId: string, vendorIds: string[]) {
+  generate(requestId: string, vendorSelections: VendorSpotlightSelection[]) {
     return this.post<IResponse<{ results: Array<{ action: string; campaign: MarketingCampaign | null }> }>>(
       campaignApprovalEndpoints.generate,
-      { requestId, vendorIds },
+      { requestId, vendorSelections },
     );
   }
 

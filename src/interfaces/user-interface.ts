@@ -283,6 +283,8 @@ export interface MenuItem {
   minQty: number;
   maxQty: number;
   available: boolean;
+  truckServiceScope?: "ALL_ACTIVE_TRUCKS" | "SELECTED_TRUCKS" | null;
+  truckUnitIds?: string[];
   hasFlavors?: boolean;
   flavors?: string[];
   flavorsPerOrder?: number;
