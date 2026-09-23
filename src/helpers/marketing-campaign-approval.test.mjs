@@ -6,6 +6,7 @@ import {
   campaignTypeLabel,
   campaignActionsDisabled,
   campaignApprovalEndpoints,
+  campaignVideoDownloadName,
   initialCampaignApprovalUiState,
   emptyCampaignMessage,
   preserveUsableRendition,
@@ -38,6 +39,7 @@ test("maps reasons to human-readable labels and preserves future values", () => 
   assert.equal(reasonLabel("SCHEDULE_CHANGE"), "Schedule Updated");
   assert.equal(reasonLabel("CONTENT_CHANGE"), "Vendor Content Changed");
   assert.equal(reasonLabel("MONTHLY_REFRESH"), "Monthly Refresh");
+  assert.equal(reasonLabel("MANUAL_GENERATION"), "Manual Generation");
   assert.equal(reasonLabel("MANUAL_REGENERATION"), "Regenerated");
   assert.equal(campaignTypeLabel("APP_FEATURE"), "App Feature");
   assert.equal(campaignTypeLabel("EVENT_PROMOTION"), "Event Promotion");
@@ -51,9 +53,16 @@ test("uses the required queue empty states", () => {
 test("uses the authenticated RTC backend campaign endpoints", () => {
   assert.equal(campaignApprovalEndpoints.pending, "/api/v1/marketing/campaigns/pending");
   assert.equal(campaignApprovalEndpoints.approved, "/api/v1/marketing/campaigns/approved");
+  assert.equal(campaignApprovalEndpoints.generate, "/api/v1/marketing/campaigns/generate");
   assert.equal(campaignApprovalEndpoints.details("campaign one"), "/api/v1/marketing/campaigns/campaign%20one");
   assert.equal(campaignApprovalEndpoints.approve("one"), "/api/v1/marketing/campaigns/one/approve");
   assert.equal(campaignApprovalEndpoints.regenerate("one"), "/api/v1/marketing/campaigns/one/regenerate");
+});
+
+test("creates a safe MP4 filename for pending and archived campaign downloads", () => {
+  assert.equal(campaignVideoDownloadName({
+    businessName: "Jazzy Fried Rice!", campaignId: "abc-123:private",
+  }), "jazzy-fried-rice-abc-123priva.mp4");
 });
 
 test("approval moves one row without duplication and maintains counts", () => {
