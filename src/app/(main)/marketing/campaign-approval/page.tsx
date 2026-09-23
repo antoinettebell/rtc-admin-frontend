@@ -108,6 +108,7 @@ export default function MarketingCampaignApprovalPage() {
   const [approved, setApproved] = useState<MarketingCampaign[]>([]);
   const [eligibleVendors, setEligibleVendors] = useState<EligibleMarketingVendor[]>([]);
   const [selectedVendorIds, setSelectedVendorIds] = useState<string[]>([]);
+  const [selectedTruckUnitIds, setSelectedTruckUnitIds] = useState<Record<string, string[]>>({});
   const [pendingOpen, setPendingOpen] = useState(true);
   const [approvedOpen, setApprovedOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -199,7 +200,13 @@ export default function MarketingCampaignApprovalPage() {
         ? crypto.randomUUID()
         : `manual-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const requestId = generationRequestId.current;
-      const response = await marketingCampaignApiService.generate(requestId, selectedVendorIds);
+      const response = await marketingCampaignApiService.generate(
+        requestId,
+        selectedVendorIds.map((vendorId) => ({
+          vendorId,
+          truckUnitIds: selectedTruckUnitIds[vendorId] || [],
+        })),
+      );
       const campaigns = response.data.data.results
         .map((result) => result.campaign)
         .filter((campaign): campaign is MarketingCampaign => (
@@ -211,6 +218,7 @@ export default function MarketingCampaignApprovalPage() {
       setPendingOpen(true);
       setGenerateConfirmOpen(false);
       setSelectedVendorIds([]);
+      setSelectedTruckUnitIds({});
       generationRequestId.current = null;
       toast({
         title: "Vendor Spotlight generation started",
@@ -305,19 +313,49 @@ export default function MarketingCampaignApprovalPage() {
         <div className="max-h-72 space-y-2 overflow-y-auto rounded-md border p-3">
           {eligibleVendors.length ? eligibleVendors.map((vendor) => {
             const checked = selectedVendorIds.includes(vendor.vendorId);
-            return <label key={vendor.vendorId} className={`flex items-center gap-3 rounded-md border p-3 ${vendor.generationBlocked ? "opacity-60" : "cursor-pointer"}`}>
-              <Checkbox checked={checked} disabled={vendor.generationBlocked || generating} onCheckedChange={(value) => {
-                setSelectedVendorIds((current) => toggleVendorSelection(
-                  current, vendor.vendorId, value === true,
-                ));
-              }} />
-              <span className="flex-1 font-medium">{vendor.businessName}</span>
-              {vendor.generationBlocked ? <span className="text-xs text-muted-foreground">Already processing</span> : null}
-            </label>;
+            const truckUnits = vendor.truckUnits || [];
+            const unavailable = vendor.generationBlocked || truckUnits.length === 0;
+            const selectedUnits = selectedTruckUnitIds[vendor.vendorId] || [];
+            return <div key={vendor.vendorId} className={`rounded-md border ${unavailable ? "opacity-60" : ""}`}>
+              <label className={`flex items-center gap-3 p-3 ${unavailable ? "" : "cursor-pointer"}`}>
+                <Checkbox checked={checked} disabled={unavailable || generating} onCheckedChange={(value) => {
+                  const nextChecked = value === true;
+                  setSelectedVendorIds((current) => toggleVendorSelection(
+                    current, vendor.vendorId, nextChecked,
+                  ));
+                  setSelectedTruckUnitIds((current) => ({
+                    ...current,
+                    [vendor.vendorId]: nextChecked
+                      ? truckUnits.map((unit) => unit.truckUnitId)
+                      : [],
+                  }));
+                }} />
+                <span className="flex-1 font-medium">{vendor.businessName}</span>
+                {vendor.generationBlocked ? <span className="text-xs text-muted-foreground">Already processing</span> : null}
+                {!vendor.generationBlocked && truckUnits.length === 0 ? <span className="text-xs text-muted-foreground">No active food trucks</span> : null}
+              </label>
+              {checked ? <div className="space-y-2 border-t bg-slate-50 px-4 py-3 pl-11">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Food trucks included in menu images and schedule</p>
+                {truckUnits.map((unit) => {
+                  const unitChecked = selectedUnits.includes(unit.truckUnitId);
+                  return <label key={unit.truckUnitId} className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-white">
+                    <Checkbox checked={unitChecked} disabled={generating} onCheckedChange={(value) => {
+                      setSelectedTruckUnitIds((current) => ({
+                        ...current,
+                        [vendor.vendorId]: value === true
+                          ? [...new Set([...(current[vendor.vendorId] || []), unit.truckUnitId])]
+                          : (current[vendor.vendorId] || []).filter((id) => id !== unit.truckUnitId),
+                      }));
+                    }} />
+                    <span className="text-sm">{unit.name}{unit.isPrimary ? " (Primary)" : ""}</span>
+                  </label>;
+                })}
+              </div> : null}
+            </div>;
           }) : <p className="text-sm text-muted-foreground">No eligible featured vendors are currently available.</p>}
         </div>
-        <p className="text-sm text-muted-foreground">Selected: {selectedVendorIds.length}. This submits one paid music generation and one paid video render per selected vendor.</p>
-        <DialogFooter><Button variant="outline" onClick={() => setGenerateConfirmOpen(false)} disabled={generating}>Cancel</Button><Button onClick={() => void generateVendorSpotlights()} disabled={generating || selectedVendorIds.length === 0}>{generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Generate Selected Ads</Button></DialogFooter>
+        <p className="text-sm text-muted-foreground">Selected: {selectedVendorIds.length}. This submits one paid music generation and one paid video render per selected vendor—not per food truck.</p>
+        <DialogFooter><Button variant="outline" onClick={() => setGenerateConfirmOpen(false)} disabled={generating}>Cancel</Button><Button onClick={() => void generateVendorSpotlights()} disabled={generating || selectedVendorIds.length === 0 || selectedVendorIds.some((vendorId) => (selectedTruckUnitIds[vendorId] || []).length === 0)}>{generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Generate Selected Ads</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   </div>;
