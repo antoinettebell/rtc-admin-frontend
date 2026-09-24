@@ -169,6 +169,14 @@ export function VendorComplianceTab({ foodTruckId }: { foodTruckId: string }) {
       await vendorComplianceApiService.reviewDocument(document.document_id, {
         review_status: reviewStatus,
         ...datePayload(document),
+        ...(document.document_type === "HEALTH_PERMIT"
+          ? {
+              extracted_fields: {
+                ...(document.extracted_fields || {}),
+                sanitation_grade: sanitationGrade(document),
+              },
+            }
+          : {}),
       });
       toast.success(reviewStatus === "verified" ? "Document verified" : "Document rejected");
       await refresh();
