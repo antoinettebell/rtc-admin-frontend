@@ -573,6 +573,9 @@ export default function MarketplaceRepositoryPage() {
   const [eventDrafts, setEventDrafts] = useState<Record<string, EventDraft>>({});
   const [creatingEvent, setCreatingEvent] = useState(false);
   const [newEvent, setNewEvent] = useState<NewEventDraft>(emptyNewEventDraft);
+  const [ticketStaffEventId, setTicketStaffEventId] = useState("");
+  const [ticketStaffIdentifier, setTicketStaffIdentifier] = useState("");
+  const [ticketStaffUpdatingId, setTicketStaffUpdatingId] = useState<string | null>(null);
 
   const { data: eventResult, isFetching: isFetchingEvents, refetch: refetchEvents } =
     useQuery({
@@ -608,9 +611,17 @@ export default function MarketplaceRepositoryPage() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: ticketStaffResult, refetch: refetchTicketStaff } = useQuery({
+    queryKey: ["marketplace-ticket-staff-admin"],
+    queryFn: () => marketplaceApiService.listTicketStaffAssignments(),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
+
   const events = eventResult?.data?.data?.records || [];
   const eventTotal = eventResult?.data?.data?.total || 0;
   const coordinators = coordinatorResult?.data?.data?.records || [];
+  const ticketStaffAssignments = ticketStaffResult?.data?.data?.assignmentList || [];
 
   React.useEffect(() => {
     const adminDraft = newEventDraftResult?.data?.data?.adminDraft;
@@ -665,6 +676,51 @@ export default function MarketplaceRepositoryPage() {
     value: NewEventDraft[keyof NewEventDraft],
   ) => {
     setNewEvent((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const sendTicketStaffInvitation = async () => {
+    if (!ticketStaffEventId || !ticketStaffIdentifier.trim()) {
+      toast.error("Select an event and enter an existing customer email or mobile number.");
+      return;
+    }
+    setTicketStaffUpdatingId("new");
+    try {
+      await marketplaceApiService.assignTicketStaff(ticketStaffEventId, ticketStaffIdentifier.trim());
+      setTicketStaffIdentifier("");
+      toast.success("Ticket staff invitation sent");
+      await refetchTicketStaff();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Unable to send ticket staff invitation");
+    } finally {
+      setTicketStaffUpdatingId(null);
+    }
+  };
+
+  const updateTicketStaffAssignment = async (
+    assignmentId: string,
+    action: "RESEND" | "REVOKE",
+  ) => {
+    const confirmed = window.confirm(
+      action === "REVOKE"
+        ? "Are you sure? This immediately removes ticket-scanning access."
+        : "Send a new ticket staff invitation? The customer must accept it again before scanning tickets.",
+    );
+    if (!confirmed) return;
+    setTicketStaffUpdatingId(assignmentId);
+    try {
+      if (action === "REVOKE") {
+        await marketplaceApiService.revokeTicketStaffAccess(assignmentId);
+        toast.success("Ticket staff access revoked");
+      } else {
+        await marketplaceApiService.resendTicketStaffInvitation(assignmentId);
+        toast.success("Ticket staff invitation sent");
+      }
+      await refetchTicketStaff();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Unable to update ticket staff assignment");
+    } finally {
+      setTicketStaffUpdatingId(null);
+    }
   };
 
   const saveEvent = async (
@@ -847,6 +903,35 @@ export default function MarketplaceRepositoryPage() {
     }
   };
 
+  const acceptAwardAmendment = async (amendmentId: string) => {
+    if (!window.confirm("Accept this amendment and archive the prior awarded bid?")) return;
+    setUpdatingId(amendmentId);
+    try {
+      await marketplaceApiService.acceptAwardAmendment(amendmentId);
+      toast.success("Award amendment accepted");
+      await refetchEvents();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Unable to accept award amendment");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const rejectAwardAmendment = async (amendmentId: string) => {
+    const reason = window.prompt("Reason for rejecting this award amendment?");
+    if (!reason?.trim()) return;
+    setUpdatingId(amendmentId);
+    try {
+      await marketplaceApiService.rejectAwardAmendment(amendmentId, reason.trim());
+      toast.success("Award amendment rejected; the original award remains active");
+      await refetchEvents();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Unable to reject award amendment");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const toggleDraftArray = (
     draft: EventDraft,
     onChange: (field: keyof EventDraft, value: EventDraft[keyof EventDraft]) => void,
@@ -921,6 +1006,7 @@ export default function MarketplaceRepositoryPage() {
   const renderEventForm = (
     draft: EventDraft,
     onChange: (field: keyof EventDraft, value: EventDraft[keyof EventDraft]) => void,
+    event?: MarketplaceRepositoryEvent,
   ) => {
     const derivedPaymentResponsibility = getDerivedPaymentResponsibility(draft);
     const paymentVisibility = getMarketplacePaymentVisibility(draft);
@@ -1419,6 +1505,44 @@ export default function MarketplaceRepositoryPage() {
             <textarea className="mt-1 min-h-20 w-full rounded-md border bg-white px-3 py-2" value={draft.admin_reason} onChange={(e) => onChange("admin_reason", e.target.value)} placeholder="Required audit reason for creating or changing this canonical event" />
           </label>
         </div>
+        {event ? (
+          <div className="mt-5 border-t pt-4">
+            <h3 className="text-base font-semibold">Award Amendments</h3>
+            <p className="text-sm text-muted-foreground">
+              The prior awarded bid remains active until a submitted amendment is accepted.
+            </p>
+            <div className="mt-3 space-y-3">
+              {(event.award_amendments || []).length ? (
+                event.award_amendments?.map((amendment) => {
+                  const vendor = amendment.vendor || amendment.vendor_user_id;
+                  const foodTruck = amendment.food_truck || amendment.food_truck_id;
+                  return (
+                    <div key={amendment.amendment_id} className="rounded-md border bg-white p-3 text-sm">
+                      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                        <div><span className="font-medium">Vendor:</span> {foodTruck?.name || getPersonName(vendor)}</div>
+                        <div><span className="font-medium">Status:</span> {amendment.status}</div>
+                        <div><span className="font-medium">VIP guests:</span> {amendment.previous_vip_guest_count} to {amendment.requested_vip_guest_count}</div>
+                        <div><span className="font-medium">Original:</span> ${Number(amendment.original_amount || 0).toFixed(2)}</div>
+                        <div><span className="font-medium">Proposed:</span> {amendment.proposed_amount == null ? "Awaiting vendor" : `$${Number(amendment.proposed_amount).toFixed(2)}`}</div>
+                        <div><span className="font-medium">Response:</span> {amendment.response_type || "-"}</div>
+                        <div className="break-all"><span className="font-medium">Amendment ID:</span> {amendment.amendment_id}</div>
+                        {amendment.rejection_reason ? <div><span className="font-medium">Review note:</span> {amendment.rejection_reason}</div> : null}
+                      </div>
+                      {amendment.status === "PENDING_REVIEW" ? (
+                        <div className="mt-3 flex gap-2">
+                          <Button type="button" variant="outline" disabled={updatingId === amendment.amendment_id} onClick={() => rejectAwardAmendment(amendment.amendment_id)}>Reject</Button>
+                          <Button type="button" disabled={updatingId === amendment.amendment_id} onClick={() => acceptAwardAmendment(amendment.amendment_id)}>Accept Amendment</Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">No award amendments for this event.</div>
+              )}
+            </div>
+          </div>
+        ) : null}
       </details>
     </div>
     );
@@ -1695,8 +1819,10 @@ export default function MarketplaceRepositoryPage() {
                 </ul>
               </div>
             ) : null}
-            {renderEventForm(eventDrafts[editingEventId], (field, value) =>
-              updateEventDraft(editingEventId, field, value),
+            {renderEventForm(
+              eventDrafts[editingEventId],
+              (field, value) => updateEventDraft(editingEventId, field, value),
+              events.find((item) => item.event_id === editingEventId),
             )}
           </div>
         ) : null}
@@ -1799,6 +1925,94 @@ export default function MarketplaceRepositoryPage() {
             </div>
           )}
         />
+
+        <details open className={`${eventFormSectionClass} mt-6`}>
+          <EventFormSectionSummary>Assigned Ticket Staff</EventFormSectionSummary>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Customer accounts invited by event coordinators to scan tickets. Access is limited to the assigned event and expires when the event ends.
+          </p>
+          <div className="mt-4 grid gap-3 rounded-lg border bg-slate-50 p-3 md:grid-cols-[minmax(220px,1fr)_minmax(260px,1fr)_auto]">
+            <select
+              className="h-10 rounded-md border bg-white px-3 text-sm"
+              value={ticketStaffEventId}
+              onChange={(event) => setTicketStaffEventId(event.target.value)}
+            >
+              <option value="">Select ticketed event</option>
+              {events.filter((event) => event.ticket_sales_enabled).map((event) => (
+                <option key={event.event_id} value={event.event_id}>
+                  {event.event_name} ({event.event_id})
+                </option>
+              ))}
+            </select>
+            <input
+              className="h-10 rounded-md border bg-white px-3 text-sm"
+              placeholder="Existing customer email or mobile number"
+              value={ticketStaffIdentifier}
+              onChange={(event) => setTicketStaffIdentifier(event.target.value)}
+            />
+            <Button onClick={sendTicketStaffInvitation} disabled={ticketStaffUpdatingId === "new"}>
+              Send Invitation
+            </Button>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b bg-slate-50 text-slate-700">
+                  <th className="px-3 py-2 font-medium">Event</th>
+                  <th className="px-3 py-2 font-medium">First Name</th>
+                  <th className="px-3 py-2 font-medium">Last Name</th>
+                  <th className="px-3 py-2 font-medium">Email</th>
+                  <th className="px-3 py-2 font-medium">Phone Number</th>
+                  <th className="px-3 py-2 font-medium">Status</th>
+                  <th className="px-3 py-2 font-medium">Invited</th>
+                  <th className="px-3 py-2 font-medium">Expires</th>
+                  <th className="px-3 py-2 font-medium">Action Source</th>
+                  <th className="px-3 py-2 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ticketStaffAssignments.length ? ticketStaffAssignments.map((assignment) => (
+                  <tr key={assignment.assignment_id} className="border-b last:border-0">
+                    <td className="px-3 py-3">
+                      <div className="font-medium">{assignment.marketplaceEvent?.event_name || assignment.event_id}</div>
+                      {assignment.marketplaceEvent?.event_name ? (
+                        <div className="text-xs text-muted-foreground">{assignment.event_id}</div>
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-3">{assignment.staff_customer_user_id?.firstName || "-"}</td>
+                    <td className="px-3 py-3">{assignment.staff_customer_user_id?.lastName || "-"}</td>
+                    <td className="px-3 py-3">{assignment.staff_customer_user_id?.email || "-"}</td>
+                    <td className="px-3 py-3">{assignment.staff_customer_user_id?.mobileNumber || "-"}</td>
+                    <td className="px-3 py-3">
+                      <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                        {assignment.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">{assignment.invited_at ? new Date(assignment.invited_at).toLocaleString() : "-"}</td>
+                    <td className="px-3 py-3">{assignment.expires_at ? new Date(assignment.expires_at).toLocaleString() : "-"}</td>
+                    <td className="px-3 py-3">{assignment.action_source || "-"}</td>
+                    <td className="px-3 py-3">
+                      <div className="flex gap-2">
+                        {["PENDING", "DECLINED", "REVOKED"].includes(assignment.status) ? (
+                          <Button size="sm" variant="outline" disabled={ticketStaffUpdatingId === assignment.assignment_id} onClick={() => updateTicketStaffAssignment(assignment.assignment_id, "RESEND")}>Resend Invitation</Button>
+                        ) : null}
+                        {["PENDING", "ACCEPTED"].includes(assignment.status) ? (
+                          <Button size="sm" variant="destructive" disabled={ticketStaffUpdatingId === assignment.assignment_id} onClick={() => updateTicketStaffAssignment(assignment.assignment_id, "REVOKE")}>Revoke Access</Button>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={10} className="px-3 py-6 text-center text-muted-foreground">
+                      No ticket staff assignments yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </details>
       </div>
 
     </div>

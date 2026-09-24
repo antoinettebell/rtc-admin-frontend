@@ -35,6 +35,37 @@ export interface AdminEventVendorProfile {
   rejection_reason?: string | null;
   submitted_at?: string | null;
   submission_count?: number;
+  tap_to_pay_serial_number?: string | null;
+}
+
+export interface AdminTapToPayTerminal {
+  _id: string;
+  device_id_suffix?: string | null;
+  device_label?: string | null;
+  status: "ACTIVE" | "HISTORICAL";
+  reactivation_required?: boolean;
+  reactivation_reason?: string | null;
+  last_activation_status?: string | null;
+  last_seen_at?: string | null;
+}
+
+export interface AdminTicketStaffAssignment {
+  assignment_id: string;
+  event_id: string;
+  status: "PENDING" | "ACCEPTED" | "DECLINED" | "REVOKED" | "EXPIRED";
+  coordinator_user_id?: any;
+  staff_customer_user_id?: any;
+  invited_at?: string | null;
+  responded_at?: string | null;
+  expires_at?: string | null;
+  action_source?: "COORDINATOR" | "INVITEE" | "ADMIN" | "SYSTEM";
+  marketplaceEvent?: {
+    event_id: string;
+    event_name?: string | null;
+    event_date?: string | null;
+    event_time?: string | null;
+    event_timezone?: string | null;
+  } | null;
 }
 
 export interface AdminEventVendorPhoto {
@@ -120,6 +151,28 @@ export interface MarketplaceSubmissionSummary {
   event_vendor_profile_id?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+}
+
+export interface MarketplaceAwardAmendment {
+  amendment_id: string;
+  event_id: string;
+  original_bid_id: string;
+  replacement_bid_id?: string | null;
+  vendor_user_id?: any;
+  vendor?: any;
+  food_truck_id?: any;
+  food_truck?: any;
+  previous_vip_guest_count: number;
+  requested_vip_guest_count: number;
+  editable_amount_field: "full_bid_amount" | "vip_catering_amount";
+  original_amount: number;
+  proposed_amount?: number | null;
+  response_type?: "RECONFIRMED" | "REVISED" | null;
+  status: "AWAITING_VENDOR" | "PENDING_REVIEW" | "ACCEPTED" | "REJECTED";
+  requested_at?: string | null;
+  vendor_responded_at?: string | null;
+  reviewed_at?: string | null;
+  rejection_reason?: string | null;
 }
 
 export interface MarketplaceSubmissionAttachment {
@@ -345,6 +398,7 @@ export interface MarketplaceRepositoryEvent {
   bids?: MarketplaceSubmission[];
   applications?: MarketplaceSubmission[];
   submission_summaries?: MarketplaceSubmissionSummary[];
+  award_amendments?: MarketplaceAwardAmendment[];
   bid_count?: number;
   food_application_count?: number;
   marketplace_application_count?: number;
@@ -449,6 +503,20 @@ class MarketplaceApiService extends BaseAPI {
   getRepositoryNewEventDraft() {
     return this.get<IResponse<{ adminDraft: MarketplaceAdminDraft | null }>>(
       `${APIEndpoint.MARKETPLACE}/repository/events/new-draft`,
+    );
+  }
+
+  acceptAwardAmendment(amendmentId: string) {
+    return this.post<IResponse<{ amendment: MarketplaceAwardAmendment; replacement_bid_id: string }>>(
+      `${APIEndpoint.MARKETPLACE}/award-amendments/${amendmentId}/accept`,
+      {},
+    );
+  }
+
+  rejectAwardAmendment(amendmentId: string, reason: string) {
+    return this.post<IResponse<{ amendment: MarketplaceAwardAmendment }>>(
+      `${APIEndpoint.MARKETPLACE}/award-amendments/${amendmentId}/reject`,
+      { reason },
     );
   }
 
@@ -571,6 +639,7 @@ class MarketplaceApiService extends BaseAPI {
       IResponse<{
         eventVendorProfile: AdminEventVendorProfile;
         photoList: AdminEventVendorPhoto[];
+        tapToPayTerminals: AdminTapToPayTerminal[];
       }>
     >(`${APIEndpoint.MARKETPLACE}/admin/event-vendors/${profileId}`);
   }
@@ -583,6 +652,45 @@ class MarketplaceApiService extends BaseAPI {
     return this.put<IResponse<{ eventVendorProfile: AdminEventVendorProfile }>>(
       `${APIEndpoint.MARKETPLACE}/admin/event-vendors/${profileId}/review`,
       { review_status: reviewStatus, rejection_reason: rejectionReason },
+    );
+  }
+
+  updateEventVendorTapToPayTerminal(
+    profileId: string,
+    terminalId: string,
+    action: "REQUIRE_REACTIVATION" | "MARK_HISTORICAL" | "RESTORE_ACTIVE" | "CLEAR_REACTIVATION",
+    reason = "",
+  ) {
+    return this.patch<IResponse<{ terminal: AdminTapToPayTerminal }>>(
+      `${APIEndpoint.MARKETPLACE}/admin/event-vendors/${profileId}/tap-to-pay-terminals/${terminalId}`,
+      { action, reason },
+    );
+  }
+
+  listTicketStaffAssignments() {
+    return this.get<IResponse<{ assignmentList: AdminTicketStaffAssignment[] }>>(
+      `${APIEndpoint.MARKETPLACE}/admin/ticket-staff`,
+    );
+  }
+
+  assignTicketStaff(eventId: string, identifier: string) {
+    return this.post<IResponse<{ assignment: AdminTicketStaffAssignment }>>(
+      `${APIEndpoint.MARKETPLACE}/admin/events/${eventId}/ticket-staff`,
+      { identifier },
+    );
+  }
+
+  resendTicketStaffInvitation(assignmentId: string) {
+    return this.post<IResponse<{ assignment: AdminTicketStaffAssignment }>>(
+      `${APIEndpoint.MARKETPLACE}/admin/ticket-staff/${assignmentId}/resend`,
+      {},
+    );
+  }
+
+  revokeTicketStaffAccess(assignmentId: string) {
+    return this.post<IResponse<{ assignment: AdminTicketStaffAssignment }>>(
+      `${APIEndpoint.MARKETPLACE}/admin/ticket-staff/${assignmentId}/revoke`,
+      {},
     );
   }
 }

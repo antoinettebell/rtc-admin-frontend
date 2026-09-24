@@ -57,6 +57,22 @@ export default function MarketplaceVendorsPage() {
     }
   };
 
+  const requireTapToPayReactivation = async (terminalId: string) => {
+    if (!selected) return;
+    try {
+      await marketplaceApiService.updateEventVendorTapToPayTerminal(
+        selected.profile_id,
+        terminalId,
+        "REQUIRE_REACTIVATION",
+        "Requested by RTC support",
+      );
+      toast.success("Tap to Pay reactivation requested.");
+      await detailQuery.refetch();
+    } catch {
+      toast.error("Unable to request Tap to Pay reactivation.");
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -98,6 +114,21 @@ export default function MarketplaceVendorsPage() {
             <p className="mt-2"><strong>Types:</strong> {(detail.eventVendorProfile.vendor_types || []).join(", ") || "None"}</p>
             <p><strong>Categories:</strong> {(detail.eventVendorProfile.merchandise_categories || []).map((item) => CATEGORY_LABELS[item] || item).join(", ") || "None"}</p>
             <p><strong>Contact:</strong> {detail.eventVendorProfile.vendor_user_id?.email || "Vendor account unavailable"}</p>
+            <div className="mt-4 rounded border p-3">
+              <h3 className="font-semibold">Tap to Pay Activation</h3>
+              <p className="text-sm text-slate-600">Terminal serial suffix: {detail.eventVendorProfile.tap_to_pay_serial_number ? `••••${detail.eventVendorProfile.tap_to_pay_serial_number.slice(-4)}` : "Not activated"}</p>
+              {(detail.tapToPayTerminals || []).map((terminal) => (
+                <div key={terminal._id} className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded bg-slate-50 p-2 text-sm">
+                  <div>
+                    <div>{terminal.device_label || "iPhone"} · ••••{terminal.device_id_suffix || "----"}</div>
+                    <div>{terminal.status} · {terminal.reactivation_required ? "Reactivation required" : terminal.last_activation_status || "Activation unknown"}</div>
+                  </div>
+                  <Button variant="outline" disabled={terminal.reactivation_required} onClick={() => requireTapToPayReactivation(terminal._id)}>
+                    Resubmit Activation
+                  </Button>
+                </div>
+              ))}
+            </div>
             {detail.eventVendorProfile.logo_url ? <img className="mt-3 h-32 w-32 rounded object-contain" src={detail.eventVendorProfile.logo_url} alt="Business logo" /> : null}
             <div className="mt-3 space-y-1">{(detail.eventVendorProfile.social_links || []).map((link) => {
               const href = normalizeExternalWebLink(link);
