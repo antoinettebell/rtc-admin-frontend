@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Ban,
+  CheckCircle2,
   ChevronDown,
   ExternalLink,
   ImageOff,
@@ -863,6 +864,34 @@ export default function MarketplaceRepositoryPage() {
       await refetchEvents();
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Unable to close event");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const markCoordinatorPaymentPaid = async (
+    event: MarketplaceRepositoryEvent,
+  ) => {
+    const payment = event.coordinator_award_payment;
+    if (!payment?.payment_id) return;
+    const reference = window.prompt("External payment reference, if available") || "";
+    const note = window.prompt(
+      "Payment source note",
+      "Coordinator payment processed externally by admin",
+    );
+    if (!note?.trim()) return;
+    if (!window.confirm("Mark this coordinator booking payment paid? This will finalize the normal booking notifications.")) return;
+
+    setUpdatingId(`${event.event_id}-MARK-PAID`);
+    try {
+      await marketplaceApiService.markPaymentPaid(payment.payment_id, {
+        manual_payment_reference: reference.trim(),
+        manual_payment_note: note.trim(),
+      });
+      toast.success("Coordinator booking payment marked paid");
+      await refetchEvents();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Unable to mark booking payment paid");
     } finally {
       setUpdatingId(null);
     }
@@ -1920,6 +1949,18 @@ export default function MarketplaceRepositoryPage() {
                   onClick={() => startReopenEvent(event)}
                 >
                   Reopen Event
+                </Button>
+              ) : null}
+              {event.coordinator_award_payment &&
+              ["PENDING", "FAILED"].includes(
+                event.coordinator_award_payment.payment_status,
+              ) ? (
+                <Button
+                  size="sm"
+                  disabled={updatingId === `${event.event_id}-MARK-PAID`}
+                  onClick={() => markCoordinatorPaymentPaid(event)}
+                >
+                  <CheckCircle2 className="mr-1 h-4 w-4" /> Mark Booking Paid
                 </Button>
               ) : null}
             </div>
