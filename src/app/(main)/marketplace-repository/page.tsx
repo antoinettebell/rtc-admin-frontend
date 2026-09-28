@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ExternalLink,
+  Eye,
   ImageOff,
   Pencil,
   Plus,
@@ -570,6 +571,7 @@ export default function MarketplaceRepositoryPage() {
   const [eventStatus, setEventStatus] = useState("");
   const [eventSearch, setEventSearch] = useState("");
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [viewingEvent, setViewingEvent] = useState<MarketplaceRepositoryEvent | null>(null);
   const [reopenModes, setReopenModes] = useState<Record<string, "ARCHIVE" | "KEEP">>({});
   const [eventDrafts, setEventDrafts] = useState<Record<string, EventDraft>>({});
   const [creatingEvent, setCreatingEvent] = useState(false);
@@ -1583,7 +1585,13 @@ export default function MarketplaceRepositoryPage() {
       fieldName: "event_name",
       accessor: (event) => (
         <div className="min-w-[280px] space-y-2">
-          <div className="font-medium">{event.event_name || "-"}</div>
+          <button
+            type="button"
+            className="flex items-center gap-1 text-left font-medium text-emerald-800 underline-offset-2 hover:underline"
+            onClick={() => setViewingEvent(event)}
+          >
+            <Eye className="h-4 w-4" /> {event.event_name || "-"}
+          </button>
           <div className="text-xs text-muted-foreground">
             {event.event_description || "No description"}
           </div>
@@ -2055,6 +2063,114 @@ export default function MarketplaceRepositoryPage() {
           </div>
         </details>
       </div>
+
+      {viewingEvent ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="marketplace-event-details-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setViewingEvent(null);
+          }}
+        >
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-3 border-b pb-4">
+              <div>
+                <h2 id="marketplace-event-details-title" className="text-2xl font-semibold">
+                  {viewingEvent.event_name}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {viewingEvent.event_id} · {viewingEvent.status}
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => setViewingEvent(null)}>
+                <X className="mr-1 h-4 w-4" /> Close
+              </Button>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="rounded-lg border p-4">
+                <h3 className="font-semibold">Event</h3>
+                <dl className="mt-2 space-y-2 text-sm">
+                  <div><dt className="text-muted-foreground">Description</dt><dd>{viewingEvent.event_description || "-"}</dd></div>
+                  <div><dt className="text-muted-foreground">Type / Style</dt><dd>{[viewingEvent.event_type, viewingEvent.event_style].filter(Boolean).join(" / ") || "-"}</dd></div>
+                  <div><dt className="text-muted-foreground">Visibility</dt><dd>{viewingEvent.event_visibility || "-"}</dd></div>
+                  <div><dt className="text-muted-foreground">Service</dt><dd>{[viewingEvent.primary_service_style, ...(viewingEvent.service_types || [])].filter(Boolean).join(", ") || "-"}</dd></div>
+                </dl>
+              </div>
+              <div className="rounded-lg border p-4">
+                <h3 className="font-semibold">Schedule & Location</h3>
+                <dl className="mt-2 space-y-2 text-sm">
+                  <div><dt className="text-muted-foreground">Starts</dt><dd>{formatMarketplaceCalendarDate(viewingEvent.event_date)} {viewingEvent.event_time || ""} {viewingEvent.event_timezone || ""}</dd></div>
+                  <div><dt className="text-muted-foreground">Duration</dt><dd>{Number(viewingEvent.event_duration_hours || 0)} hr {Number(viewingEvent.event_duration_minutes || 0)} min</dd></div>
+                  <div><dt className="text-muted-foreground">Applications close</dt><dd>{formatMarketplaceCalendarDate(viewingEvent.event_close_date)} {viewingEvent.event_close_time || ""}</dd></div>
+                  <div><dt className="text-muted-foreground">Address</dt><dd>{[viewingEvent.event_address, viewingEvent.event_city, viewingEvent.event_state, viewingEvent.event_zip].filter(Boolean).join(", ") || "-"}</dd></div>
+                </dl>
+              </div>
+              <div className="rounded-lg border p-4">
+                <h3 className="font-semibold">Guests & Tickets</h3>
+                <dl className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                  <div><dt className="text-muted-foreground">GA guests</dt><dd>{viewingEvent.number_of_guests ?? 0}</dd></div>
+                  <div><dt className="text-muted-foreground">VIP guests</dt><dd>{viewingEvent.vip_guest_count ?? 0}</dd></div>
+                  <div><dt className="text-muted-foreground">GA capacity</dt><dd>{viewingEvent.ga_ticket_quantity ?? 0}</dd></div>
+                  <div><dt className="text-muted-foreground">VIP capacity</dt><dd>{viewingEvent.vip_ticket_quantity ?? 0}</dd></div>
+                  <div><dt className="text-muted-foreground">GA price</dt><dd>${Number(viewingEvent.ga_ticket_price || 0).toFixed(2)}</dd></div>
+                  <div><dt className="text-muted-foreground">VIP price</dt><dd>${Number(viewingEvent.vip_ticket_price || 0).toFixed(2)}</dd></div>
+                </dl>
+              </div>
+              <div className="rounded-lg border p-4">
+                <h3 className="font-semibold">Vendors & Payment</h3>
+                <dl className="mt-2 space-y-2 text-sm">
+                  <div><dt className="text-muted-foreground">Vendors needed</dt><dd>{viewingEvent.number_of_vendors_needed ?? 0}</dd></div>
+                  <div><dt className="text-muted-foreground">Payment responsibility</dt><dd>{viewingEvent.payment_responsibility || "NONE"}</dd></div>
+                  <div><dt className="text-muted-foreground">Coordinator budget</dt><dd>${Number(viewingEvent.budgeted_amount || 0).toFixed(2)}</dd></div>
+                  <div><dt className="text-muted-foreground">Vendor fee</dt><dd>${Number(viewingEvent.vendor_fee || 0).toFixed(2)}</dd></div>
+                  <div><dt className="text-muted-foreground">Cuisine</dt><dd>{(viewingEvent.cuisine_preferences || []).join(", ") || "-"}</dd></div>
+                  <div><dt className="text-muted-foreground">Dietary restrictions</dt><dd>{(viewingEvent.dietary_restrictions || []).join(", ") || "-"}</dd></div>
+                </dl>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap justify-end gap-2 border-t pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const event = viewingEvent;
+                  setViewingEvent(null);
+                  startEditEvent(event);
+                }}
+              >
+                <Pencil className="mr-1 h-4 w-4" /> Edit
+              </Button>
+              {viewingEvent.status !== "CANCELLED" && viewingEvent.status !== "AWARDED" ? (
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    const event = viewingEvent;
+                    setViewingEvent(null);
+                    void updateEventStatus(event, "CANCELLED");
+                  }}
+                >
+                  <Ban className="mr-1 h-4 w-4" /> Cancel Event
+                </Button>
+              ) : null}
+              {["OPEN", "REOPENED"].includes(viewingEvent.status) && !viewingEvent.vendor_applications_closed_at ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const event = viewingEvent;
+                    setViewingEvent(null);
+                    void closeEventEarly(event);
+                  }}
+                >
+                  Close Event
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
     </div>
   );

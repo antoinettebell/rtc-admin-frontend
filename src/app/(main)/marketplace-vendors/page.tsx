@@ -22,6 +22,7 @@ export default function MarketplaceVendorsPage() {
   const [status, setStatus] = useState<EventVendorReviewStatus | "">("PENDING_REVIEW");
   const [selected, setSelected] = useState<AdminEventVendorProfile | null>(null);
   const [reason, setReason] = useState("");
+  const [reactivatingTerminalId, setReactivatingTerminalId] = useState<string | null>(null);
   const listQuery = useQuery({
     queryKey: ["marketplace-vendors", status],
     queryFn: () => marketplaceApiService.listEventVendorProfiles(status),
@@ -59,6 +60,7 @@ export default function MarketplaceVendorsPage() {
 
   const requireTapToPayReactivation = async (terminalId: string) => {
     if (!selected) return;
+    setReactivatingTerminalId(terminalId);
     try {
       await marketplaceApiService.updateEventVendorTapToPayTerminal(
         selected.profile_id,
@@ -66,10 +68,12 @@ export default function MarketplaceVendorsPage() {
         "REQUIRE_REACTIVATION",
         "Requested by RTC support",
       );
-      toast.success("Tap to Pay reactivation requested.");
+      toast.success("Tap to Pay reactivation request sent.");
       await detailQuery.refetch();
     } catch {
       toast.error("Unable to request Tap to Pay reactivation.");
+    } finally {
+      setReactivatingTerminalId(null);
     }
   };
 
@@ -121,10 +125,32 @@ export default function MarketplaceVendorsPage() {
                 <div key={terminal._id} className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded bg-slate-50 p-2 text-sm">
                   <div>
                     <div>{terminal.device_label || "iPhone"} · ••••{terminal.device_id_suffix || "----"}</div>
-                    <div>{terminal.status} · {terminal.reactivation_required ? "Reactivation required" : terminal.last_activation_status || "Activation unknown"}</div>
+                    <div>
+                      {terminal.status === "PENDING_ACTIVATION"
+                        ? "Pending Activation"
+                        : terminal.status === "ACTIVE"
+                          ? "Active"
+                          : "Historical"}
+                      {" · "}
+                      {terminal.reactivation_required
+                        ? "Reactivation required"
+                        : terminal.last_activation_status === "SUCCEEDED"
+                          ? "SDK activation confirmed"
+                          : terminal.last_activation_status === "FAILED"
+                            ? "Activation not completed"
+                            : "Awaiting SDK confirmation"}
+                    </div>
                   </div>
-                  <Button variant="outline" disabled={terminal.reactivation_required} onClick={() => requireTapToPayReactivation(terminal._id)}>
-                    Resubmit Activation
+                  <Button
+                    variant="outline"
+                    disabled={reactivatingTerminalId === terminal._id}
+                    onClick={() => requireTapToPayReactivation(terminal._id)}
+                  >
+                    {reactivatingTerminalId === terminal._id
+                      ? "Sending…"
+                      : terminal.reactivation_required
+                        ? "Resend Reactivation"
+                        : "Request Reactivation"}
                   </Button>
                 </div>
               ))}

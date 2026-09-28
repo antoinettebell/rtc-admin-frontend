@@ -42,7 +42,7 @@ export interface AdminTapToPayTerminal {
   _id: string;
   device_id_suffix?: string | null;
   device_label?: string | null;
-  status: "ACTIVE" | "HISTORICAL";
+  status: "PENDING_ACTIVATION" | "ACTIVE" | "HISTORICAL";
   reactivation_required?: boolean;
   reactivation_reason?: string | null;
   last_activation_status?: string | null;
