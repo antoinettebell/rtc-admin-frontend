@@ -399,6 +399,7 @@ export interface MarketplaceRepositoryEvent {
   applications?: MarketplaceSubmission[];
   submission_summaries?: MarketplaceSubmissionSummary[];
   award_amendments?: MarketplaceAwardAmendment[];
+  coordinator_award_payment?: MarketplacePayment | null;
   bid_count?: number;
   food_application_count?: number;
   marketplace_application_count?: number;
