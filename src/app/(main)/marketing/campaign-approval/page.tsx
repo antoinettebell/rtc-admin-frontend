@@ -23,7 +23,8 @@ import { useUser } from "@/hooks/use-user";
 import {
   approveCampaignState, campaignActionsDisabled, campaignCanApprove, campaignTypeLabel, emptyCampaignMessage,
   campaignRegenerationIsActive, campaignStatusIsFailure, campaignStatusLabel,
-  campaignVideoDownloadName, discardCampaignState, preserveUsableRendition, reasonLabel,
+  campaignVideoDownloadName, discardCampaignState, discardConfirmationMessage,
+  discardFailureMessage, preserveUsableRendition, reasonLabel,
   replaceCampaign, toggleVendorSelection,
 } from "@/helpers/marketing-campaign-approval";
 import {
@@ -123,7 +124,6 @@ export default function MarketingCampaignApprovalPage() {
   const [detail, setDetail] = useState<MarketingCampaignDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [approveTarget, setApproveTarget] = useState<MarketingCampaign | null>(null);
-  const [discardTarget, setDiscardTarget] = useState<MarketingCampaign | null>(null);
   const [regenerateTarget, setRegenerateTarget] = useState<MarketingCampaign | null>(null);
   const [regenerationReason, setRegenerationReason] = useState("");
   const [generateConfirmOpen, setGenerateConfirmOpen] = useState(false);
@@ -218,23 +218,34 @@ export default function MarketingCampaignApprovalPage() {
     finally { setBusyCampaignId(null); }
   };
 
-  const discardSelected = async () => {
-    if (!discardTarget || campaignActionsDisabled(discardTarget, busyCampaignId)) return;
-    const campaignId = discardTarget.campaignId;
+  const discardSelected = async (campaign: MarketingCampaign) => {
+    if (campaignActionsDisabled(campaign, busyCampaignId)) return;
+    const campaignId = campaign.campaignId;
+    if (!campaignId) {
+      toast({
+        title: "Discard failed",
+        description: "This campaign is missing its identifier. Refresh the page and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!window.confirm(discardConfirmationMessage(campaign))) return;
     setBusyCampaignId(campaignId);
     try {
-      await marketingCampaignApiService.discard(campaignId);
+      const response = await marketingCampaignApiService.discard(campaignId);
+      if (response.data.data.campaign?.campaignId !== campaignId) {
+        throw new Error("Discard response did not match the selected campaign.");
+      }
       setPending((rows) => discardCampaignState(rows, campaignId));
-      setDiscardTarget(null);
       toast({
         title: "Campaign discarded",
         description: "The campaign was removed from pending review and was not published.",
       });
       void load();
-    } catch {
+    } catch (error) {
       toast({
         title: "Discard failed",
-        description: "The campaign remains in the review queue.",
+        description: discardFailureMessage(error),
         variant: "destructive",
       });
     } finally { setBusyCampaignId(null); }
@@ -362,7 +373,7 @@ export default function MarketingCampaignApprovalPage() {
           <Button size="sm" variant="outline" onClick={() => void openDetails(campaign.campaignId)}><FileText className="mr-1 h-4 w-4" /> View Details</Button>
           {!archived ? <>
             <Button size="sm" variant="outline" disabled={disabled} onClick={() => setRegenerateTarget(campaign)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate</Button>
-            <Button size="sm" variant="destructive" disabled={disabled} onClick={() => setDiscardTarget(campaign)}><Trash2 className="mr-1 h-4 w-4" /> Discard</Button>
+            <Button size="sm" variant="destructive" disabled={disabled} onClick={() => void discardSelected(campaign)}><Trash2 className="mr-1 h-4 w-4" /> Discard</Button>
             <Button size="sm" disabled={disabled || !campaignCanApprove(campaign)} onClick={() => setApproveTarget(campaign)}>Archive / Approve</Button>
           </> : null}
         </div></TableCell>
@@ -395,12 +406,6 @@ export default function MarketingCampaignApprovalPage() {
     <AlertDialog open={Boolean(approveTarget)} onOpenChange={(open) => !open && setApproveTarget(null)}>
       <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Archive and approve this campaign?</AlertDialogTitle><AlertDialogDescription>I reviewed and approve this campaign. Remove it from my active queue.</AlertDialogDescription></AlertDialogHeader>
         <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => void approveSelected()} disabled={Boolean(busyCampaignId)}>Archive / Approve</AlertDialogAction></AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-
-    <AlertDialog open={Boolean(discardTarget)} onOpenChange={(open) => !open && setDiscardTarget(null)}>
-      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Discard this generated campaign?</AlertDialogTitle><AlertDialogDescription>This removes it from Pending Campaigns without approving or publishing it. Provider-hosted media is not deleted.</AlertDialogDescription></AlertDialogHeader>
-        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => void discardSelected()} disabled={Boolean(busyCampaignId)}>Discard</AlertDialogAction></AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
 

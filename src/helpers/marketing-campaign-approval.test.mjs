@@ -11,6 +11,8 @@ import {
   campaignStatusIsFailure,
   campaignStatusLabel,
   campaignVideoDownloadName,
+  discardConfirmationMessage,
+  discardFailureMessage,
   discardCampaignState,
   initialCampaignApprovalUiState,
   emptyCampaignMessage,
@@ -92,6 +94,21 @@ test("discard removes only the selected pending campaign", () => {
     discardCampaignState([{ campaignId: "one" }, { campaignId: "two" }], "one"),
     [{ campaignId: "two" }],
   );
+});
+
+test("discard confirmation names the selected campaign and explains the effect", () => {
+  assert.equal(
+    discardConfirmationMessage({ businessName: "Featured Vendor Discovery" }),
+    "Discard \"Featured Vendor Discovery\"?\n\nThis removes it from Pending Campaigns without approving or publishing it.",
+  );
+});
+
+test("discard failures distinguish timeouts and service failures", () => {
+  assert.match(discardFailureMessage({ code: "ECONNABORTED" }), /timed out/i);
+  assert.match(discardFailureMessage({
+    response: { data: { data: { error: { code: "MARKETING_CONTROL_REQUEST_FAILED" } } } },
+  }), /marketing service/i);
+  assert.match(discardFailureMessage({}), /remains in the review queue/i);
 });
 
 test("regeneration replaces the same row and keeps the usable rendition on failure", () => {

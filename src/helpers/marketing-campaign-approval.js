@@ -63,6 +63,24 @@ export const approveCampaignState = (pending, approved, campaign) => ({
 export const discardCampaignState = (pending, campaignId) =>
   pending.filter((item) => item.campaignId !== campaignId);
 
+export const discardConfirmationMessage = (campaign) =>
+  `Discard "${String(campaign?.businessName || "this campaign")}"?\n\n` +
+  "This removes it from Pending Campaigns without approving or publishing it.";
+
+export const discardFailureMessage = (error) => {
+  if (error?.code === "ECONNABORTED" || error?.code === "ETIMEDOUT") {
+    return "The discard request timed out. The campaign remains pending; please try again.";
+  }
+  const code = error?.response?.data?.data?.error?.code;
+  if (code === "CAMPAIGN_NOT_FOUND") {
+    return "This campaign is no longer pending. Refresh the page to load its current status.";
+  }
+  if (code === "MARKETING_CONTROL_REQUEST_FAILED") {
+    return "The marketing service could not complete the discard. The campaign remains pending.";
+  }
+  return "The campaign remains in the review queue. Please try again.";
+};
+
 export const preserveUsableRendition = (current, replacement) => ({
   ...current,
   ...replacement,

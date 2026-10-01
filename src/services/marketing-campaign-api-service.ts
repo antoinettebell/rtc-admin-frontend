@@ -146,6 +146,8 @@ class MarketingCampaignApiService extends BaseAPI {
   discard(campaignId: string) {
     return this.post<IResponse<{ campaign: MarketingCampaign }>>(
       campaignApprovalEndpoints.discard(campaignId),
+      undefined,
+      { timeout: 20_000 },
     );
   }
 
