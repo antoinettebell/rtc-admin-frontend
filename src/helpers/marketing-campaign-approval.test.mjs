@@ -11,6 +11,7 @@ import {
   campaignStatusIsFailure,
   campaignStatusLabel,
   campaignVideoDownloadName,
+  discardCampaignState,
   initialCampaignApprovalUiState,
   emptyCampaignMessage,
   preserveUsableRendition,
@@ -66,6 +67,7 @@ test("uses the authenticated RTC backend campaign endpoints", () => {
   assert.equal(campaignApprovalEndpoints.generateEvents, "/api/v1/marketing/campaigns/generate-events");
   assert.equal(campaignApprovalEndpoints.details("campaign one"), "/api/v1/marketing/campaigns/campaign%20one");
   assert.equal(campaignApprovalEndpoints.approve("one"), "/api/v1/marketing/campaigns/one/approve");
+  assert.equal(campaignApprovalEndpoints.discard("one"), "/api/v1/marketing/campaigns/one/discard");
   assert.equal(campaignApprovalEndpoints.regenerate("one"), "/api/v1/marketing/campaigns/one/regenerate");
 });
 
@@ -83,6 +85,13 @@ test("approval moves one row without duplication and maintains counts", () => {
   );
   assert.deepEqual(result.pending.map((item) => item.campaignId), ["two"]);
   assert.deepEqual(result.approved.map((item) => item.campaignId), ["one", "three"]);
+});
+
+test("discard removes only the selected pending campaign", () => {
+  assert.deepEqual(
+    discardCampaignState([{ campaignId: "one" }, { campaignId: "two" }], "one"),
+    [{ campaignId: "two" }],
+  );
 });
 
 test("regeneration replaces the same row and keeps the usable rendition on failure", () => {

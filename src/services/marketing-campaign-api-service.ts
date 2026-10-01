@@ -143,6 +143,12 @@ class MarketingCampaignApiService extends BaseAPI {
     );
   }
 
+  discard(campaignId: string) {
+    return this.post<IResponse<{ campaign: MarketingCampaign }>>(
+      campaignApprovalEndpoints.discard(campaignId),
+    );
+  }
+
   regenerate(campaignId: string, reason: string) {
     return this.post<IResponse<{ result: {
       action: string;

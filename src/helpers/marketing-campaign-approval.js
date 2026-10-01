@@ -35,6 +35,7 @@ export const campaignApprovalEndpoints = Object.freeze({
   generateEvents: "/api/v1/marketing/campaigns/generate-events",
   details: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}`,
   approve: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}/approve`,
+  discard: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}/discard`,
   regenerate: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}/regenerate`,
 });
 
@@ -58,6 +59,9 @@ export const approveCampaignState = (pending, approved, campaign) => ({
   approved: replaceCampaign(approved, campaign).sort((left, right) =>
     String(right.approvedAt || right.updatedAt).localeCompare(String(left.approvedAt || left.updatedAt))),
 });
+
+export const discardCampaignState = (pending, campaignId) =>
+  pending.filter((item) => item.campaignId !== campaignId);
 
 export const preserveUsableRendition = (current, replacement) => ({
   ...current,
