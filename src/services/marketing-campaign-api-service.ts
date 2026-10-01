@@ -4,6 +4,14 @@ import { campaignApprovalEndpoints } from "@/helpers/marketing-campaign-approval
 
 export type ApprovalStatus = "PENDING_APPROVAL" | "APPROVED";
 export type GenerationStatus = "PROCESSING" | "COMPLETED" | "FAILED";
+export type RegenerationStatus =
+  | "QUEUED"
+  | "PROCESSING"
+  | "WAITING_FOR_RENDER"
+  | "READY_FOR_APPROVAL"
+  | "FAILED"
+  | "TIMED_OUT"
+  | "DEAD_LETTERED";
 
 export interface MarketingCampaign {
   campaignId: string;
@@ -18,6 +26,7 @@ export interface MarketingCampaign {
   videoUrl: string | null;
   approvalStatus: ApprovalStatus;
   generationStatus: GenerationStatus;
+  regenerationStatus: RegenerationStatus | null;
   regenerationCount: number;
 }
 
@@ -52,6 +61,24 @@ export interface VendorSpotlightSelection {
   truckUnitIds: string[];
 }
 
+export interface EligibleAppFeature {
+  featureKey: string;
+  featureName: string;
+  audience: string;
+  generationBlocked: boolean;
+}
+
+export interface EligibleMarketingEvent {
+  eventId: string;
+  eventName: string;
+  eventDate: string | null;
+  city: string | null;
+  state: string | null;
+  ticketMode: string;
+  imageMode: string;
+  generationBlocked: boolean;
+}
+
 class MarketingCampaignApiService extends BaseAPI {
   listPending() {
     return this.get<IResponse<{ campaigns: MarketingCampaign[] }>>(
@@ -71,10 +98,36 @@ class MarketingCampaignApiService extends BaseAPI {
     );
   }
 
+  listEligibleAppFeatures() {
+    return this.get<IResponse<{ features: EligibleAppFeature[] }>>(
+      campaignApprovalEndpoints.eligibleAppFeatures,
+    );
+  }
+
+  listEligibleEvents() {
+    return this.get<IResponse<{ events: EligibleMarketingEvent[] }>>(
+      campaignApprovalEndpoints.eligibleEvents,
+    );
+  }
+
   generate(requestId: string, vendorSelections: VendorSpotlightSelection[]) {
     return this.post<IResponse<{ results: Array<{ action: string; campaign: MarketingCampaign | null }> }>>(
       campaignApprovalEndpoints.generate,
       { requestId, vendorSelections },
+    );
+  }
+
+  generateAppFeatures(requestId: string, featureKeys: string[]) {
+    return this.post<IResponse<{ results: Array<{ action: string; campaign: MarketingCampaign | null }> }>>(
+      campaignApprovalEndpoints.generateAppFeatures,
+      { requestId, featureKeys },
+    );
+  }
+
+  generateEvents(requestId: string, eventIds: string[]) {
+    return this.post<IResponse<{ results: Array<{ action: string; campaign: MarketingCampaign | null }> }>>(
+      campaignApprovalEndpoints.generateEvents,
+      { requestId, eventIds },
     );
   }
 
@@ -91,7 +144,12 @@ class MarketingCampaignApiService extends BaseAPI {
   }
 
   regenerate(campaignId: string, reason: string) {
-    return this.post<IResponse<{ result: { action: string; campaign: MarketingCampaign } }>>(
+    return this.post<IResponse<{ result: {
+      action: string;
+      campaignId: string;
+      jobId: string;
+      status: RegenerationStatus;
+    } }>>(
       campaignApprovalEndpoints.regenerate(campaignId),
       { reason },
     );

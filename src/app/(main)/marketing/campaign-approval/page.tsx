@@ -21,12 +21,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { useUser } from "@/hooks/use-user";
 import {
-  approveCampaignState, campaignActionsDisabled, campaignTypeLabel, emptyCampaignMessage,
-  campaignVideoDownloadName, preserveUsableRendition, reasonLabel, replaceCampaign,
-  toggleVendorSelection,
+  approveCampaignState, campaignActionsDisabled, campaignCanApprove, campaignTypeLabel, emptyCampaignMessage,
+  campaignRegenerationIsActive, campaignStatusIsFailure, campaignStatusLabel,
+  campaignVideoDownloadName, preserveUsableRendition, reasonLabel,
+  replaceCampaign, toggleVendorSelection,
 } from "@/helpers/marketing-campaign-approval";
 import {
-  EligibleMarketingVendor, marketingCampaignApiService, MarketingCampaign, MarketingCampaignDetail,
+  EligibleAppFeature, EligibleMarketingEvent, EligibleMarketingVendor,
+  marketingCampaignApiService, MarketingCampaign, MarketingCampaignDetail,
 } from "@/services/marketing-campaign-api-service";
 
 const formatDate = (value?: string | null) => {
@@ -68,7 +70,7 @@ function CampaignDetails({ detail, loading, onClose }: {
                 ["Business Name", detail.businessName], ["Campaign Type", campaignTypeLabel(detail.campaignType)],
                 ["Reason", reasonLabel(detail.reason)], ["Generated", formatDate(detail.generatedAt)],
                 ["Last Updated", formatDate(detail.updatedAt)], ["Regeneration Count", detail.regenerationCount],
-                ["Generation Status", detail.generationStatus], ["Approval Status", detail.approvalStatus],
+                ["Generation Status", campaignStatusLabel(detail)], ["Approval Status", detail.approvalStatus],
                 ["Campaign Month", detail.campaignMonth || "—"], ["Campaign Version", detail.campaignVersion],
               ].map(([label, value]) => (
                 <div key={String(label)} className="rounded-md border bg-slate-50 p-3">
@@ -107,7 +109,11 @@ export default function MarketingCampaignApprovalPage() {
   const [pending, setPending] = useState<MarketingCampaign[]>([]);
   const [approved, setApproved] = useState<MarketingCampaign[]>([]);
   const [eligibleVendors, setEligibleVendors] = useState<EligibleMarketingVendor[]>([]);
+  const [eligibleAppFeatures, setEligibleAppFeatures] = useState<EligibleAppFeature[]>([]);
+  const [eligibleEvents, setEligibleEvents] = useState<EligibleMarketingEvent[]>([]);
   const [selectedVendorIds, setSelectedVendorIds] = useState<string[]>([]);
+  const [selectedFeatureKeys, setSelectedFeatureKeys] = useState<string[]>([]);
+  const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
   const [selectedTruckUnitIds, setSelectedTruckUnitIds] = useState<Record<string, string[]>>({});
   const [pendingOpen, setPendingOpen] = useState(true);
   const [approvedOpen, setApprovedOpen] = useState(false);
@@ -120,20 +126,27 @@ export default function MarketingCampaignApprovalPage() {
   const [regenerateTarget, setRegenerateTarget] = useState<MarketingCampaign | null>(null);
   const [regenerationReason, setRegenerationReason] = useState("");
   const [generateConfirmOpen, setGenerateConfirmOpen] = useState(false);
+  const [generateFeaturesOpen, setGenerateFeaturesOpen] = useState(false);
+  const [generateEventsOpen, setGenerateEventsOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [initialGenerating, setInitialGenerating] = useState<"APP_FEATURE" | "EVENT_PROMOTION" | null>(null);
   const generationRequestId = useRef<string | null>(null);
+  const initialRequestIds = useRef<Record<string, string>>({});
 
   const load = useCallback(async () => {
     if (user?.userType !== "SUPER_ADMIN") { setLoading(false); return; }
     setLoading(true);
     try {
-      const [pendingResponse, approvedResponse, eligibleVendorResponse] = await Promise.all([
+      const [pendingResponse, approvedResponse, eligibleVendorResponse, featureResponse, eventResponse] = await Promise.all([
         marketingCampaignApiService.listPending(), marketingCampaignApiService.listApproved(),
         marketingCampaignApiService.listEligibleVendors(),
+        marketingCampaignApiService.listEligibleAppFeatures(), marketingCampaignApiService.listEligibleEvents(),
       ]);
       setPending(pendingResponse.data.data.campaigns);
       setApproved(approvedResponse.data.data.campaigns);
       setEligibleVendors(eligibleVendorResponse.data.data.vendors);
+      setEligibleAppFeatures(featureResponse.data.data.features);
+      setEligibleEvents(eventResponse.data.data.events);
     } catch {
       toast({ title: "Campaign load failed", description: "The campaign queues could not be loaded.", variant: "destructive" });
     } finally { setLoading(false); }
@@ -142,9 +155,16 @@ export default function MarketingCampaignApprovalPage() {
   useEffect(() => { void load(); }, [load]);
 
   const processingIds = useMemo(() => pending
-    .filter((campaign) => campaign.generationStatus === "PROCESSING")
+    .filter((campaign) => campaignRegenerationIsActive(campaign))
     .map((campaign) => campaign.campaignId), [pending]);
   const processingIdsKey = processingIds.join("|");
+  const featuresByAudience = useMemo(() => eligibleAppFeatures.reduce<Record<string, EligibleAppFeature[]>>(
+    (groups, feature) => ({
+      ...groups,
+      [feature.audience]: [...(groups[feature.audience] || []), feature],
+    }),
+    {},
+  ), [eligibleAppFeatures]);
 
   useEffect(() => {
     const activeIds = processingIdsKey ? processingIdsKey.split("|") : [];
@@ -156,9 +176,11 @@ export default function MarketingCampaignApprovalPage() {
           const updated = response.data.data.campaign;
           setPending((rows) => rows.map((row) => row.campaignId === campaignId
             ? preserveUsableRendition(row, updated) : row));
-          if (updated.generationStatus === "COMPLETED") {
+          if (updated.regenerationStatus === "READY_FOR_APPROVAL" || (
+            updated.generationStatus === "COMPLETED" && !campaignRegenerationIsActive(updated)
+          )) {
             toast({ title: "Campaign generation completed", description: `${updated.businessName} is ready for review.` });
-          } else if (updated.generationStatus === "FAILED") {
+          } else if (campaignStatusIsFailure(updated)) {
             toast({ title: "Campaign generation failed", description: "Existing approved ads were preserved.", variant: "destructive" });
           }
         } catch { /* Keep the current usable rendition and retry status polling. */ }
@@ -184,7 +206,10 @@ export default function MarketingCampaignApprovalPage() {
     setBusyCampaignId(regenerateTarget.campaignId);
     try {
       const response = await marketingCampaignApiService.regenerate(regenerateTarget.campaignId, regenerationReason);
-      const replacement = preserveUsableRendition(regenerateTarget, response.data.data.result.campaign);
+      const queued = response.data.data.result;
+      const replacement = preserveUsableRendition(regenerateTarget, {
+        regenerationStatus: queued.status || queued.action,
+      });
       setPending((rows) => replaceCampaign(rows, replacement));
       setRegenerateTarget(null); setRegenerationReason("");
       toast({ title: "Regeneration started", description: "The existing video stays available until its replacement succeeds." });
@@ -233,6 +258,53 @@ export default function MarketingCampaignApprovalPage() {
     } finally { setGenerating(false); }
   };
 
+  const generateInitialCampaigns = async (campaignType: "APP_FEATURE" | "EVENT_PROMOTION") => {
+    if (initialGenerating) return;
+    const selected = campaignType === "APP_FEATURE" ? selectedFeatureKeys : selectedEventIds;
+    if (!selected.length) return;
+    setInitialGenerating(campaignType);
+    try {
+      initialRequestIds.current[campaignType] ??= typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `initial-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const requestId = initialRequestIds.current[campaignType];
+      const response = campaignType === "APP_FEATURE"
+        ? await marketingCampaignApiService.generateAppFeatures(requestId, selected)
+        : await marketingCampaignApiService.generateEvents(requestId, selected);
+      const campaigns = response.data.data.results
+        .map((result) => result.campaign)
+        .filter((campaign): campaign is MarketingCampaign => Boolean(campaign));
+      setPending((rows) => campaigns.reduce(
+        (next, campaign) => replaceCampaign(next, campaign), rows,
+      ));
+      setPendingOpen(true);
+      if (campaignType === "APP_FEATURE") {
+        const generated = new Set(selectedFeatureKeys);
+        setEligibleAppFeatures((rows) => rows.map((row) => generated.has(row.featureKey)
+          ? { ...row, generationBlocked: true } : row));
+        setSelectedFeatureKeys([]);
+        setGenerateFeaturesOpen(false);
+      } else {
+        const generated = new Set(selectedEventIds);
+        setEligibleEvents((rows) => rows.map((row) => generated.has(row.eventId)
+          ? { ...row, generationBlocked: true } : row));
+        setSelectedEventIds([]);
+        setGenerateEventsOpen(false);
+      }
+      delete initialRequestIds.current[campaignType];
+      toast({
+        title: "Campaign generation queued",
+        description: `${campaigns.length} ${campaignType === "APP_FEATURE" ? "App Feature" : "Event Promotion"} campaign${campaigns.length === 1 ? "" : "s"} added to Pending Campaigns.`,
+      });
+    } catch {
+      toast({
+        title: "Generation request failed",
+        description: "No automatic retry was submitted. Existing campaigns were preserved.",
+        variant: "destructive",
+      });
+    } finally { setInitialGenerating(null); }
+  };
+
   const openDetails = async (campaignId: string) => {
     setDetail(null); setDetailLoading(true);
     try { setDetail((await marketingCampaignApiService.getDetails(campaignId)).data.data.campaign); }
@@ -257,7 +329,7 @@ export default function MarketingCampaignApprovalPage() {
         <TableCell>{campaignTypeLabel(campaign.campaignType)}</TableCell>
         <TableCell>{reasonLabel(campaign.reason)}</TableCell>
         <TableCell>{formatDate(archived ? campaign.approvedAt : campaign.generatedAt)}</TableCell>
-        <TableCell><Badge variant={campaign.generationStatus === "FAILED" ? "destructive" : "secondary"}>{campaign.generationStatus === "PROCESSING" ? "Processing / Generating" : campaign.generationStatus}</Badge></TableCell>
+        <TableCell><Badge variant={campaignStatusIsFailure(campaign) ? "destructive" : "secondary"}>{archived ? "Approved" : campaignStatusLabel(campaign)}</Badge></TableCell>
         {!archived ? <TableCell>{campaign.regenerationCount}</TableCell> : null}
         <TableCell><div className="flex flex-wrap justify-end gap-2">
           <Button size="sm" variant="outline" onClick={() => setPreview(campaign)} disabled={!campaign.videoUrl}><Eye className="mr-1 h-4 w-4" /> Preview Video</Button>
@@ -267,7 +339,7 @@ export default function MarketingCampaignApprovalPage() {
           <Button size="sm" variant="outline" onClick={() => void openDetails(campaign.campaignId)}><FileText className="mr-1 h-4 w-4" /> View Details</Button>
           {!archived ? <>
             <Button size="sm" variant="outline" disabled={disabled} onClick={() => setRegenerateTarget(campaign)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate</Button>
-            <Button size="sm" disabled={disabled || campaign.generationStatus !== "COMPLETED"} onClick={() => setApproveTarget(campaign)}>Archive / Approve</Button>
+            <Button size="sm" disabled={disabled || !campaignCanApprove(campaign)} onClick={() => setApproveTarget(campaign)}>Archive / Approve</Button>
           </> : null}
         </div></TableCell>
       </TableRow>;
@@ -276,7 +348,11 @@ export default function MarketingCampaignApprovalPage() {
 
   return <div className="space-y-4">
     <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Marketing Campaign Approval</h1><p className="text-sm text-muted-foreground">Review current campaign renditions, request a replacement, or archive approved keepers.</p></div>
-      <Button onClick={() => setGenerateConfirmOpen(true)} disabled={generating}><Plus className="mr-2 h-4 w-4" /> Generate New Vendor Spotlights</Button>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button onClick={() => setGenerateConfirmOpen(true)} disabled={generating || Boolean(initialGenerating)}><Plus className="mr-2 h-4 w-4" /> Generate Vendor Spotlights</Button>
+        <Button onClick={() => setGenerateFeaturesOpen(true)} disabled={generating || Boolean(initialGenerating)}><Plus className="mr-2 h-4 w-4" /> Generate App Feature Ads</Button>
+        <Button onClick={() => setGenerateEventsOpen(true)} disabled={generating || Boolean(initialGenerating)}><Plus className="mr-2 h-4 w-4" /> Generate Public Event Ads</Button>
+      </div>
     </div>
     {loading ? <div className="flex justify-center rounded-md border bg-white p-12"><Loader2 className="h-7 w-7 animate-spin" /></div> : <>
       <Collapsible open={pendingOpen} onOpenChange={setPendingOpen} className="rounded-md border bg-white">
@@ -356,6 +432,55 @@ export default function MarketingCampaignApprovalPage() {
         </div>
         <p className="text-sm text-muted-foreground">Selected: {selectedVendorIds.length}. This submits one paid music generation and one paid video render per selected vendor—not per food truck.</p>
         <DialogFooter><Button variant="outline" onClick={() => setGenerateConfirmOpen(false)} disabled={generating}>Cancel</Button><Button onClick={() => void generateVendorSpotlights()} disabled={generating || selectedVendorIds.length === 0 || selectedVendorIds.some((vendorId) => (selectedTruckUnitIds[vendorId] || []).length === 0)}>{generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Generate Selected Ads</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={generateFeaturesOpen} onOpenChange={(open) => {
+      setGenerateFeaturesOpen(open);
+      if (!open && initialGenerating !== "APP_FEATURE") delete initialRequestIds.current.APP_FEATURE;
+    }}>
+      <DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Generate App Feature Ads</DialogTitle><DialogDescription>Select one or more registered app features. Each feature creates one categorized campaign and remains pending until you approve it.</DialogDescription></DialogHeader>
+        <div className="max-h-[55vh] space-y-4 overflow-y-auto rounded-md border p-3">
+          {Object.entries(featuresByAudience).map(([audience, features]) => (
+            <section key={audience} className="space-y-2"><h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{campaignTypeLabel(audience)}</h3>
+              {features?.map((feature) => {
+                const checked = selectedFeatureKeys.includes(feature.featureKey);
+                return <label key={feature.featureKey} className={`flex items-center gap-3 rounded-md border p-3 ${feature.generationBlocked ? "opacity-60" : "cursor-pointer"}`}>
+                  <Checkbox checked={checked} disabled={feature.generationBlocked || initialGenerating === "APP_FEATURE"} onCheckedChange={(value) => {
+                    setSelectedFeatureKeys((current) => toggleVendorSelection(current, feature.featureKey, value === true));
+                  }} />
+                  <span className="flex-1 font-medium">{feature.featureName}</span>
+                  {feature.generationBlocked ? <span className="text-xs text-muted-foreground">Campaign already exists</span> : null}
+                </label>;
+              })}
+            </section>
+          ))}
+        </div>
+        <p className="text-sm text-muted-foreground">Selected: {selectedFeatureKeys.length}. Each selection creates one paid music generation and one paid video render.</p>
+        <DialogFooter><Button variant="outline" onClick={() => setGenerateFeaturesOpen(false)} disabled={initialGenerating === "APP_FEATURE"}>Cancel</Button><Button onClick={() => void generateInitialCampaigns("APP_FEATURE")} disabled={Boolean(initialGenerating) || selectedFeatureKeys.length === 0}>{initialGenerating === "APP_FEATURE" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Generate Selected App Features</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={generateEventsOpen} onOpenChange={(open) => {
+      setGenerateEventsOpen(open);
+      if (!open && initialGenerating !== "EVENT_PROMOTION") delete initialRequestIds.current.EVENT_PROMOTION;
+    }}>
+      <DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Generate Public Event Ads</DialogTitle><DialogDescription>Select eligible upcoming public events. Private, cancelled, past, and zero-media events are excluded automatically.</DialogDescription></DialogHeader>
+        <div className="max-h-[55vh] space-y-2 overflow-y-auto rounded-md border p-3">
+          {eligibleEvents.length ? eligibleEvents.map((event) => {
+            const checked = selectedEventIds.includes(event.eventId);
+            const location = [event.city, event.state].filter(Boolean).join(", ");
+            return <label key={event.eventId} className={`flex items-start gap-3 rounded-md border p-3 ${event.generationBlocked ? "opacity-60" : "cursor-pointer"}`}>
+              <Checkbox className="mt-1" checked={checked} disabled={event.generationBlocked || initialGenerating === "EVENT_PROMOTION"} onCheckedChange={(value) => {
+                setSelectedEventIds((current) => toggleVendorSelection(current, event.eventId, value === true));
+              }} />
+              <span className="flex-1"><span className="block font-medium">{event.eventName}</span><span className="text-xs text-muted-foreground">{[formatDate(event.eventDate), location, campaignTypeLabel(event.ticketMode)].filter(Boolean).join(" · ")}</span></span>
+              {event.generationBlocked ? <span className="text-xs text-muted-foreground">Campaign already exists</span> : null}
+            </label>;
+          }) : <p className="text-sm text-muted-foreground">No eligible upcoming public events with usable event media are available.</p>}
+        </div>
+        <p className="text-sm text-muted-foreground">Selected: {selectedEventIds.length}. Only public event details and approved event images are used.</p>
+        <DialogFooter><Button variant="outline" onClick={() => setGenerateEventsOpen(false)} disabled={initialGenerating === "EVENT_PROMOTION"}>Cancel</Button><Button onClick={() => void generateInitialCampaigns("EVENT_PROMOTION")} disabled={Boolean(initialGenerating) || selectedEventIds.length === 0}>{initialGenerating === "EVENT_PROMOTION" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Generate Selected Events</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   </div>;

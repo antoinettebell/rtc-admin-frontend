@@ -5,7 +5,11 @@ import {
   approveCampaignState,
   campaignTypeLabel,
   campaignActionsDisabled,
+  campaignCanApprove,
   campaignApprovalEndpoints,
+  campaignRegenerationIsActive,
+  campaignStatusIsFailure,
+  campaignStatusLabel,
   campaignVideoDownloadName,
   initialCampaignApprovalUiState,
   emptyCampaignMessage,
@@ -55,7 +59,11 @@ test("uses the authenticated RTC backend campaign endpoints", () => {
   assert.equal(campaignApprovalEndpoints.pending, "/api/v1/marketing/campaigns/pending");
   assert.equal(campaignApprovalEndpoints.approved, "/api/v1/marketing/campaigns/approved");
   assert.equal(campaignApprovalEndpoints.eligibleVendors, "/api/v1/marketing/campaigns/eligible-vendors");
+  assert.equal(campaignApprovalEndpoints.eligibleAppFeatures, "/api/v1/marketing/campaigns/eligible-app-features");
+  assert.equal(campaignApprovalEndpoints.eligibleEvents, "/api/v1/marketing/campaigns/eligible-events");
   assert.equal(campaignApprovalEndpoints.generate, "/api/v1/marketing/campaigns/generate");
+  assert.equal(campaignApprovalEndpoints.generateAppFeatures, "/api/v1/marketing/campaigns/generate-app-features");
+  assert.equal(campaignApprovalEndpoints.generateEvents, "/api/v1/marketing/campaigns/generate-events");
   assert.equal(campaignApprovalEndpoints.details("campaign one"), "/api/v1/marketing/campaigns/campaign%20one");
   assert.equal(campaignApprovalEndpoints.approve("one"), "/api/v1/marketing/campaigns/one/approve");
   assert.equal(campaignApprovalEndpoints.regenerate("one"), "/api/v1/marketing/campaigns/one/regenerate");
@@ -87,10 +95,35 @@ test("regeneration replaces the same row and keeps the usable rendition on failu
   assert.equal(failed.videoUrl, current.videoUrl);
 });
 
-test("processing and in-flight actions disable regeneration and approval", () => {
+test("queued, generating, and rendering jobs disable regeneration and approval", () => {
+  assert.equal(campaignRegenerationIsActive({ regenerationStatus: "QUEUED" }), true);
+  assert.equal(campaignRegenerationIsActive({ regenerationStatus: "PROCESSING" }), true);
+  assert.equal(campaignRegenerationIsActive({ regenerationStatus: "WAITING_FOR_RENDER" }), true);
+  assert.equal(campaignRegenerationIsActive({ regenerationStatus: "READY_FOR_APPROVAL" }), false);
   assert.equal(campaignActionsDisabled({ campaignId: "one", generationStatus: "PROCESSING" }), true);
+  assert.equal(campaignActionsDisabled({ campaignId: "one", generationStatus: "COMPLETED", regenerationStatus: "QUEUED" }), true);
   assert.equal(campaignActionsDisabled({ campaignId: "one", generationStatus: "COMPLETED" }, "one"), true);
   assert.equal(campaignActionsDisabled({ campaignId: "one", generationStatus: "COMPLETED" }), false);
+});
+
+test("shows human-readable queued generation and terminal statuses", () => {
+  assert.equal(campaignStatusLabel({ regenerationStatus: "QUEUED" }), "Queued");
+  assert.equal(campaignStatusLabel({ regenerationStatus: "PROCESSING" }), "Generating");
+  assert.equal(campaignStatusLabel({ regenerationStatus: "WAITING_FOR_RENDER" }), "Rendering");
+  assert.equal(campaignStatusLabel({ regenerationStatus: "READY_FOR_APPROVAL" }), "Ready for Approval");
+  assert.equal(campaignStatusLabel({ generationStatus: "COMPLETED" }), "Ready for Approval");
+  assert.equal(campaignStatusLabel({ regenerationStatus: "TIMED_OUT" }), "Timed Out");
+  assert.equal(campaignStatusLabel({ regenerationStatus: "DEAD_LETTERED" }), "Needs Attention");
+  assert.equal(campaignStatusIsFailure({ regenerationStatus: "FAILED" }), true);
+  assert.equal(campaignStatusIsFailure({ regenerationStatus: "TIMED_OUT" }), true);
+  assert.equal(campaignStatusIsFailure({ generationStatus: "COMPLETED" }), false);
+});
+
+test("approval requires a completed usable video and no active or failed job", () => {
+  assert.equal(campaignCanApprove({ generationStatus: "COMPLETED", videoUrl: "https://video.example/ad.mp4" }), true);
+  assert.equal(campaignCanApprove({ generationStatus: "COMPLETED", videoUrl: null }), false);
+  assert.equal(campaignCanApprove({ generationStatus: "COMPLETED", videoUrl: "https://video.example/ad.mp4", regenerationStatus: "QUEUED" }), false);
+  assert.equal(campaignCanApprove({ generationStatus: "COMPLETED", videoUrl: "https://video.example/ad.mp4", regenerationStatus: "FAILED" }), false);
 });
 
 test("eligible vendor checkbox selection is deduplicated and removable", () => {
