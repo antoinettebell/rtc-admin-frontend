@@ -8,6 +8,7 @@ import {
   campaignCanApprove,
   campaignApprovalEndpoints,
   campaignRegenerationIsActive,
+  campaignFailureMessage,
   campaignStatusIsFailure,
   campaignStatusLabel,
   campaignVideoDownloadName,
@@ -124,6 +125,7 @@ test("regeneration replaces the same row and keeps the usable rendition on failu
 test("queued, generating, and rendering jobs disable regeneration and approval", () => {
   assert.equal(campaignRegenerationIsActive({ regenerationStatus: "QUEUED" }), true);
   assert.equal(campaignRegenerationIsActive({ regenerationStatus: "PROCESSING" }), true);
+  assert.equal(campaignRegenerationIsActive({ regenerationStatus: "RETRY_SCHEDULED" }), true);
   assert.equal(campaignRegenerationIsActive({ regenerationStatus: "WAITING_FOR_RENDER" }), true);
   assert.equal(campaignRegenerationIsActive({ regenerationStatus: "READY_FOR_APPROVAL" }), false);
   assert.equal(campaignActionsDisabled({ campaignId: "one", generationStatus: "PROCESSING" }), true);
@@ -135,6 +137,7 @@ test("queued, generating, and rendering jobs disable regeneration and approval",
 test("shows human-readable queued generation and terminal statuses", () => {
   assert.equal(campaignStatusLabel({ regenerationStatus: "QUEUED" }), "Queued");
   assert.equal(campaignStatusLabel({ regenerationStatus: "PROCESSING" }), "Generating");
+  assert.equal(campaignStatusLabel({ regenerationStatus: "RETRY_SCHEDULED" }), "Retry Scheduled");
   assert.equal(campaignStatusLabel({ regenerationStatus: "WAITING_FOR_RENDER" }), "Rendering");
   assert.equal(campaignStatusLabel({ regenerationStatus: "READY_FOR_APPROVAL" }), "Ready for Approval");
   assert.equal(campaignStatusLabel({ generationStatus: "COMPLETED" }), "Ready for Approval");
@@ -143,6 +146,17 @@ test("shows human-readable queued generation and terminal statuses", () => {
   assert.equal(campaignStatusIsFailure({ regenerationStatus: "FAILED" }), true);
   assert.equal(campaignStatusIsFailure({ regenerationStatus: "TIMED_OUT" }), true);
   assert.equal(campaignStatusIsFailure({ generationStatus: "COMPLETED" }), false);
+});
+
+test("shows safe actionable generation failure messages", () => {
+  assert.equal(campaignFailureMessage({
+    regenerationStatus: "RETRY_SCHEDULED",
+    regenerationFailure: { code: "OPENAI_RATE_LIMITED", stage: "generation" },
+  }), "OpenAI temporarily limited requests. The campaign will retry automatically.");
+  assert.equal(campaignFailureMessage({
+    regenerationStatus: "DEAD_LETTERED",
+    regenerationFailure: { code: "APP_FEATURE_COPY_VALIDATION_FAILED", stage: "generation" },
+  }), "The generated wording did not pass RTC copy checks.");
 });
 
 test("approval requires a completed usable video and no active or failed job", () => {

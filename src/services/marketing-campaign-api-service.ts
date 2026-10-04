@@ -7,6 +7,7 @@ export type GenerationStatus = "PROCESSING" | "COMPLETED" | "FAILED";
 export type RegenerationStatus =
   | "QUEUED"
   | "PROCESSING"
+  | "RETRY_SCHEDULED"
   | "WAITING_FOR_RENDER"
   | "READY_FOR_APPROVAL"
   | "FAILED"
@@ -27,6 +28,8 @@ export interface MarketingCampaign {
   approvalStatus: ApprovalStatus;
   generationStatus: GenerationStatus;
   regenerationStatus: RegenerationStatus | null;
+  regenerationFailure: { code: string; stage: string | null } | null;
+  nextRetryAt: string | null;
   regenerationCount: number;
 }
 

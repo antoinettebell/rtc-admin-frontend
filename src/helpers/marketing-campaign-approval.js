@@ -90,6 +90,7 @@ export const preserveUsableRendition = (current, replacement) => ({
 export const ACTIVE_REGENERATION_STATUSES = Object.freeze([
   "QUEUED",
   "PROCESSING",
+  "RETRY_SCHEDULED",
   "WAITING_FOR_RENDER",
 ]);
 
@@ -101,6 +102,7 @@ export const campaignStatusLabel = (campaign) => {
   switch (campaign?.regenerationStatus) {
     case "QUEUED": return "Queued";
     case "PROCESSING": return "Generating";
+    case "RETRY_SCHEDULED": return "Retry Scheduled";
     case "WAITING_FOR_RENDER": return "Rendering";
     case "READY_FOR_APPROVAL": return "Ready for Approval";
     case "FAILED": return "Failed";
@@ -112,6 +114,24 @@ export const campaignStatusLabel = (campaign) => {
       if (campaign?.generationStatus === "FAILED") return "Failed";
       return String(campaign?.generationStatus || "Unknown");
   }
+};
+
+const CAMPAIGN_FAILURE_MESSAGES = Object.freeze({
+  OPENAI_RATE_LIMITED: "OpenAI temporarily limited requests.",
+  OPENAI_PROVIDER_UNAVAILABLE: "OpenAI is temporarily unavailable.",
+  OPENAI_REQUEST_FAILED: "The OpenAI copy request could not be completed.",
+  OPENAI_CONFIGURATION_ERROR: "The OpenAI connection requires configuration attention.",
+  APP_FEATURE_COPY_VALIDATION_FAILED: "The generated wording did not pass RTC copy checks.",
+  CAMPAIGN_MUSIC_UNAVAILABLE: "Campaign music could not be generated.",
+  CAMPAIGN_GENERATION_FAILED: "Campaign generation failed before rendering.",
+});
+
+export const campaignFailureMessage = (campaign) => {
+  const base = CAMPAIGN_FAILURE_MESSAGES[campaign?.regenerationFailure?.code]
+    || "Campaign generation needs attention.";
+  return campaign?.regenerationStatus === "RETRY_SCHEDULED"
+    ? `${base} The campaign will retry automatically.`
+    : base;
 };
 
 export const campaignStatusIsFailure = (campaign) =>

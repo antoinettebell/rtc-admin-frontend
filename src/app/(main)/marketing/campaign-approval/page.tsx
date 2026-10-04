@@ -22,7 +22,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useUser } from "@/hooks/use-user";
 import {
   approveCampaignState, campaignActionsDisabled, campaignCanApprove, campaignTypeLabel, emptyCampaignMessage,
-  campaignRegenerationIsActive, campaignStatusIsFailure, campaignStatusLabel,
+  campaignFailureMessage, campaignRegenerationIsActive, campaignStatusIsFailure, campaignStatusLabel,
   campaignVideoDownloadName, discardCampaignState, discardConfirmationMessage,
   discardFailureMessage, preserveUsableRendition, reasonLabel,
   replaceCampaign, toggleVendorSelection,
@@ -182,7 +182,11 @@ export default function MarketingCampaignApprovalPage() {
           )) {
             toast({ title: "Campaign generation completed", description: `${updated.businessName} is ready for review.` });
           } else if (campaignStatusIsFailure(updated)) {
-            toast({ title: "Campaign generation failed", description: "Existing approved ads were preserved.", variant: "destructive" });
+            toast({
+              title: "Campaign generation failed",
+              description: `${campaignFailureMessage(updated)} Existing approved ads were preserved.`,
+              variant: "destructive",
+            });
           }
         } catch { /* Keep the current usable rendition and retry status polling. */ }
       }
@@ -363,7 +367,7 @@ export default function MarketingCampaignApprovalPage() {
         <TableCell>{campaignTypeLabel(campaign.campaignType)}</TableCell>
         <TableCell>{reasonLabel(campaign.reason)}</TableCell>
         <TableCell>{formatDate(archived ? campaign.approvedAt : campaign.generatedAt)}</TableCell>
-        <TableCell><Badge variant={campaignStatusIsFailure(campaign) ? "destructive" : "secondary"}>{archived ? "Approved" : campaignStatusLabel(campaign)}</Badge></TableCell>
+        <TableCell><div className="space-y-1"><Badge variant={campaignStatusIsFailure(campaign) ? "destructive" : "secondary"}>{archived ? "Approved" : campaignStatusLabel(campaign)}</Badge>{!archived && (campaignStatusIsFailure(campaign) || campaign.regenerationStatus === "RETRY_SCHEDULED") ? <p className="max-w-56 text-xs text-muted-foreground">{campaignFailureMessage(campaign)}</p> : null}</div></TableCell>
         {!archived ? <TableCell>{campaign.regenerationCount}</TableCell> : null}
         <TableCell><div className="flex flex-wrap justify-end gap-2">
           <Button size="sm" variant="outline" onClick={() => setPreview(campaign)} disabled={!campaign.videoUrl}><Eye className="mr-1 h-4 w-4" /> Preview Video</Button>
