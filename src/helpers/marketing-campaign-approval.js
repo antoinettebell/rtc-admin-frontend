@@ -144,6 +144,9 @@ export const campaignCanApprove = (campaign) =>
   !campaignStatusIsFailure(campaign) &&
   Boolean(campaign?.videoUrl);
 
+export const campaignCanRegenerate = (campaign) =>
+  campaign?.creativeMode !== "SCENARIO_TALKING";
+
 export const campaignActionsDisabled = (campaign, busyCampaignId = null) =>
   campaignRegenerationIsActive(campaign) || busyCampaignId === campaign?.campaignId;
 

@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { useUser } from "@/hooks/use-user";
 import {
-  approveCampaignState, campaignActionsDisabled, campaignCanApprove, campaignTypeLabel, emptyCampaignMessage,
+  approveCampaignState, campaignActionsDisabled, campaignCanApprove, campaignCanRegenerate, campaignTypeLabel, emptyCampaignMessage,
   campaignFailureMessage, campaignRegenerationIsActive, campaignStatusIsFailure, campaignStatusLabel,
   campaignVideoDownloadName, discardCampaignState, discardConfirmationMessage,
   discardFailureMessage, preserveUsableRendition, reasonLabel,
@@ -97,6 +97,7 @@ function CampaignDetails({ detail, loading, onClose }: {
             ) : null}
             {detail.scheduleText ? <div><h3 className="mb-2 font-semibold">Schedule</h3><pre className="whitespace-pre-wrap rounded-md border bg-slate-50 p-3 font-sans">{detail.scheduleText}</pre></div> : null}
             {detail.supportedServices?.length ? <div><h3 className="mb-2 font-semibold">Supported services</h3><p>{detail.supportedServices.join(" · ")}</p></div> : null}
+            {detail.creativeMode === "SCENARIO_TALKING" ? <section className="space-y-2 rounded-md border bg-slate-50 p-3"><h3 className="font-semibold">Scenario Talking POC</h3><dl className="grid gap-2 sm:grid-cols-2"><div><dt className="text-xs uppercase text-muted-foreground">Operator dialogue</dt><dd>{detail.scenarioTalking?.dialogue?.operator || "—"}</dd></div><div><dt className="text-xs uppercase text-muted-foreground">RDC guide dialogue</dt><dd>{detail.scenarioTalking?.dialogue?.guide || "—"}</dd></div><div><dt className="text-xs uppercase text-muted-foreground">Screenshot</dt><dd className="break-all">{detail.scenarioTalking?.screenshotKey || "—"}</dd></div><div><dt className="text-xs uppercase text-muted-foreground">Template</dt><dd>{detail.scenarioTalking?.templateId || "—"}</dd></div></dl></section> : null}
           </div>
         ) : null}
       </DialogContent>
@@ -364,7 +365,7 @@ export default function MarketingCampaignApprovalPage() {
       const disabled = campaignActionsDisabled(campaign, busyCampaignId);
       return <TableRow key={campaign.campaignId}>
         <TableCell className="font-medium">{campaign.businessName}</TableCell>
-        <TableCell>{campaignTypeLabel(campaign.campaignType)}</TableCell>
+        <TableCell>{campaign.creativeMode === "SCENARIO_TALKING" ? "App Feature · Scenario Talking" : campaignTypeLabel(campaign.campaignType)}</TableCell>
         <TableCell>{reasonLabel(campaign.reason)}</TableCell>
         <TableCell>{formatDate(archived ? campaign.approvedAt : campaign.generatedAt)}</TableCell>
         <TableCell><div className="space-y-1"><Badge variant={campaignStatusIsFailure(campaign) ? "destructive" : "secondary"}>{archived ? "Approved" : campaignStatusLabel(campaign)}</Badge>{!archived && (campaignStatusIsFailure(campaign) || campaign.regenerationStatus === "RETRY_SCHEDULED") ? <p className="max-w-56 text-xs text-muted-foreground">{campaignFailureMessage(campaign)}</p> : null}</div></TableCell>
@@ -376,7 +377,7 @@ export default function MarketingCampaignApprovalPage() {
           </Button> : <Button size="sm" variant="outline" disabled><Download className="mr-1 h-4 w-4" /> Download Video</Button>}
           <Button size="sm" variant="outline" onClick={() => void openDetails(campaign.campaignId)}><FileText className="mr-1 h-4 w-4" /> View Details</Button>
           {!archived ? <>
-            <Button size="sm" variant="outline" disabled={disabled} onClick={() => setRegenerateTarget(campaign)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate</Button>
+            <Button size="sm" variant="outline" disabled={disabled || !campaignCanRegenerate(campaign)} title={!campaignCanRegenerate(campaign) ? "Scenario Talking reuses its paid character footage." : undefined} onClick={() => setRegenerateTarget(campaign)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate</Button>
             <Button size="sm" variant="destructive" disabled={disabled} onClick={() => void discardSelected(campaign)}><Trash2 className="mr-1 h-4 w-4" /> Discard</Button>
             <Button size="sm" disabled={disabled || !campaignCanApprove(campaign)} onClick={() => setApproveTarget(campaign)}>Archive / Approve</Button>
           </> : null}

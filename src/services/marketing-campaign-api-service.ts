@@ -19,6 +19,7 @@ export interface MarketingCampaign {
   vendorId: string | null;
   businessName: string;
   campaignType: string;
+  creativeMode: "STANDARD_FEATURE" | "SCENARIO_TALKING" | null;
   reason: string;
   createdAt: string;
   generatedAt: string;
@@ -45,6 +46,12 @@ export interface MarketingCampaignDetail extends MarketingCampaign {
     mode: string;
     animationVariantId: string;
     imageRotation: number;
+  } | null;
+  scenarioTalking: {
+    dialogue: { operator: string; guide: string } | null;
+    templateId: string | null;
+    screenshotKey: string | null;
+    media: unknown | null;
   } | null;
 }
 

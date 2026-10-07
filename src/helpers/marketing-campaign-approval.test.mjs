@@ -6,6 +6,7 @@ import {
   campaignTypeLabel,
   campaignActionsDisabled,
   campaignCanApprove,
+  campaignCanRegenerate,
   campaignApprovalEndpoints,
   campaignRegenerationIsActive,
   campaignFailureMessage,
@@ -132,6 +133,11 @@ test("queued, generating, and rendering jobs disable regeneration and approval",
   assert.equal(campaignActionsDisabled({ campaignId: "one", generationStatus: "COMPLETED", regenerationStatus: "QUEUED" }), true);
   assert.equal(campaignActionsDisabled({ campaignId: "one", generationStatus: "COMPLETED" }, "one"), true);
   assert.equal(campaignActionsDisabled({ campaignId: "one", generationStatus: "COMPLETED" }), false);
+});
+
+test("Scenario Talking is visible in the existing queue but cannot regenerate paid footage", () => {
+  assert.equal(campaignCanRegenerate({ campaignType: "APP_FEATURE", creativeMode: "SCENARIO_TALKING" }), false);
+  assert.equal(campaignCanRegenerate({ campaignType: "APP_FEATURE", creativeMode: "STANDARD_FEATURE" }), true);
 });
 
 test("shows human-readable queued generation and terminal statuses", () => {
