@@ -10,7 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import { formatSocialContentCta } from "@/helpers/social-media-content";
+import { formatSocialContentCreative, formatSocialContentCta } from "@/helpers/social-media-content";
 import { useUser } from "@/hooks/use-user";
 import { SocialContentRecord, socialMediaContentApiService } from "@/services/social-media-content-api-service";
 
@@ -35,6 +35,7 @@ function ContentDetails({ record, onClose }: { record: SocialContentRecord | nul
   const pkg = record?.contentPackage;
   const decision = pkg?.decision || {};
   const content = pkg?.content || {};
+  const creative = formatSocialContentCreative(pkg?.creative);
   const publishing = pkg?.publishing || {};
   const verification = pkg?.verification || {};
   return <Dialog open={Boolean(record)} onOpenChange={(open) => !open && onClose()}>
@@ -54,9 +55,28 @@ function ContentDetails({ record, onClose }: { record: SocialContentRecord | nul
         <DetailBlock label="Caption" value={content.caption} />
         <DetailBlock label="Hashtags" value={Array.isArray(content.hashtags) ? content.hashtags.join(" ") : undefined} />
         <DetailBlock label="Platforms" value={Array.isArray(pkg?.platforms) ? pkg.platforms.map((platform) => `${String(platform.network || "")} (${platform.enabled === false ? "disabled" : "enabled"})`).join(", ") : undefined} />
+        <section aria-label="Creative" className="space-y-3 rounded-md border bg-slate-50 p-4">
+          <h3 className="font-semibold">Creative</h3>
+          {creative.missingRequiredDirection ? <p role="alert" className="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900">Creative is required, but its persisted direction is missing. Do not approve until this is resolved.</p> : null}
+          <dl className="grid gap-3 sm:grid-cols-2">
+            {[
+              ["Required", creative.required], ["Type", creative.type], ["Source", creative.source], ["Alt Text", creative.altText],
+            ].map(([label, value]) => <div key={label} className="rounded-md border bg-white p-3"><dt className="text-xs font-medium uppercase text-muted-foreground">{label}</dt><dd className="mt-1 break-words font-medium">{value}</dd></div>)}
+          </dl>
+          <CreativeDetail label="Direction" value={creative.direction} />
+          <CreativeAsset value={creative.assetUrl} />
+        </section>
       </div> : null}
     </DialogContent>
   </Dialog>;
+}
+
+function CreativeDetail({ label, value }: { label: string; value: string }) {
+  return <div><h4 className="mb-1 text-sm font-medium">{label}</h4><p className="whitespace-pre-wrap rounded-md border bg-white p-3">{value}</p></div>;
+}
+
+function CreativeAsset({ value }: { value: string }) {
+  return <div><h4 className="mb-1 text-sm font-medium">Asset</h4>{value === "—" ? <p className="rounded-md border bg-white p-3">—</p> : <a className="block break-all rounded-md border bg-white p-3 text-primary underline" href={value} target="_blank" rel="noreferrer">{value}</a>}</div>;
 }
 
 function DetailBlock({ label, value }: { label: string; value: unknown }) {
