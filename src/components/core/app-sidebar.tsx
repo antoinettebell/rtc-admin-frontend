@@ -129,6 +129,10 @@ const navMain = [
         title: "Campaign Approval",
         url: "/marketing/campaign-approval",
       },
+      {
+        title: "Social Media Content",
+        url: "/marketing/social-media-content",
+      },
     ],
   },
   {
