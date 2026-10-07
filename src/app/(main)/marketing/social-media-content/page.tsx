@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
+import { formatSocialContentCta } from "@/helpers/social-media-content";
 import { useUser } from "@/hooks/use-user";
 import { SocialContentRecord, socialMediaContentApiService } from "@/services/social-media-content-api-service";
 
@@ -45,7 +46,7 @@ function ContentDetails({ record, onClose }: { record: SocialContentRecord | nul
             ["Content ID", record.contentId], ["Brand", record.brandCode], ["Status", statusLabel(record.lifecycleStatus)],
             ["Audience", detailValue(decision.audience)], ["Growth objective", detailValue(decision.growthObjective)], ["Journey stage", detailValue(decision.journeyStage)],
             ["Content lane", detailValue(decision.contentLane)], ["Topic", detailValue(decision.topic)], ["Format", detailValue(content.format)],
-            ["CTA", detailValue(content.cta)], ["Approval", detailValue(publishing.approvalStatus)], ["Verification", record.verificationComplete ? "Complete" : detailValue(verification.required)],
+            ["CTA", formatSocialContentCta(content.cta)], ["Approval", detailValue(publishing.approvalStatus)], ["Verification", record.verificationComplete ? "Complete" : detailValue(verification.required)],
           ].map(([label, value]) => <div key={label} className="rounded-md border bg-slate-50 p-3"><dt className="text-xs font-medium uppercase text-muted-foreground">{label}</dt><dd className="mt-1 break-words font-medium">{value}</dd></div>)}
         </dl>
         <DetailBlock label="Core message" value={decision.coreMessage} />
