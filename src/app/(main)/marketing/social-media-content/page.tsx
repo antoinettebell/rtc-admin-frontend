@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronDown, FileText, Loader2, Plus, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronDown, FileText, Loader2, Plus, RefreshCw, XCircle } from "lucide-react";
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -73,6 +73,7 @@ export default function SocialMediaContentPage() {
   const [details, setDetails] = useState<SocialContentRecord | null>(null);
   const [generateConfirmOpen, setGenerateConfirmOpen] = useState(false);
   const [approveTarget, setApproveTarget] = useState<SocialContentRecord | null>(null);
+  const [regenerateTarget, setRegenerateTarget] = useState<SocialContentRecord | null>(null);
   const [pendingOpen, setPendingOpen] = useState(true);
   const [approvedOpen, setApprovedOpen] = useState(false);
 
@@ -104,6 +105,31 @@ export default function SocialMediaContentPage() {
     } finally { setGenerating(false); }
   };
 
+  const regenerate = async () => {
+    if (!regenerateTarget || regenerateTarget.brandCode !== "RTC") return;
+    setBusyId(regenerateTarget.contentId);
+    let replacementCreated = false;
+    try {
+      // Create the replacement first, so a failed decision never removes the current reviewable package.
+      const generated = await socialMediaContentApiService.requestDecision("RTC");
+      replace(generated.data.data.content);
+      replacementCreated = true;
+      const rejected = await socialMediaContentApiService.reject(regenerateTarget.contentId);
+      replace(rejected.data.data.content);
+      setRegenerateTarget(null);
+      setPendingOpen(true);
+      toast({ title: "Replacement social content generated", description: "The prior package was rejected after the replacement was created. Nothing was scheduled or published." });
+    } catch {
+      toast({
+        title: replacementCreated ? "Replacement created; original retained" : "Regeneration failed",
+        description: replacementCreated
+          ? "The new package is available for review, but the prior package could not be rejected. No schedule or publish action was submitted."
+          : "The current package was preserved. No schedule or publish action was submitted.",
+        variant: "destructive",
+      });
+    } finally { setBusyId(null); }
+  };
+
   const completeVerification = async (record: SocialContentRecord) => {
     setBusyId(record.contentId);
     try { const response = await socialMediaContentApiService.completeVerification(record.contentId); replace(response.data.data.content); toast({ title: "Verification completed", description: "The package is now pending approval." }); }
@@ -132,6 +158,7 @@ export default function SocialMediaContentPage() {
       const decision = record.contentPackage.decision || {}; const content = record.contentPackage.content || {};
       return <TableRow key={record.contentId}><TableCell className="font-medium">{record.brandCode}</TableCell><TableCell>{detailValue(decision.topic)}</TableCell><TableCell>{detailValue(content.format)}</TableCell><TableCell>{formatDate(record.createdAt)}</TableCell><TableCell><Badge variant={record.lifecycleStatus === "FAILED" ? "destructive" : "secondary"}>{statusLabel(record.lifecycleStatus)}</Badge></TableCell><TableCell><div className="flex flex-wrap justify-end gap-2">
         <Button size="sm" variant="outline" onClick={() => setDetails(record)}><FileText className="mr-1 h-4 w-4" /> View Details</Button>
+        {!readOnly && record.brandCode === "RTC" && ["VERIFICATION_REQUIRED", "READY_FOR_APPROVAL"].includes(record.lifecycleStatus) ? <Button size="sm" variant="outline" disabled={disabled} onClick={() => setRegenerateTarget(record)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate</Button> : null}
         {!readOnly && record.lifecycleStatus === "VERIFICATION_REQUIRED" ? <Button size="sm" variant="outline" disabled={disabled} onClick={() => void completeVerification(record)}><CheckCircle2 className="mr-1 h-4 w-4" /> Complete Verification</Button> : null}
         {!readOnly && record.lifecycleStatus === "READY_FOR_APPROVAL" ? <><Button size="sm" variant="destructive" disabled={disabled} onClick={() => void reject(record)}><XCircle className="mr-1 h-4 w-4" /> Reject</Button><Button size="sm" disabled={disabled} onClick={() => setApproveTarget(record)}>Approve</Button></> : null}
       </div></TableCell></TableRow>;
@@ -143,5 +170,6 @@ export default function SocialMediaContentPage() {
     <ContentDetails record={details} onClose={() => setDetails(null)} />
     <AlertDialog open={generateConfirmOpen} onOpenChange={setGenerateConfirmOpen}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Generate RTC social content?</AlertDialogTitle><AlertDialogDescription>This requests one new RTC decision package for the approval queue. It will not schedule or publish anything automatically.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={generating}>Cancel</AlertDialogCancel><AlertDialogAction disabled={generating} onClick={() => void generate()}>{generating ? "Generating…" : "Generate"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     <AlertDialog open={Boolean(approveTarget)} onOpenChange={(open) => !open && setApproveTarget(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Approve this social package?</AlertDialogTitle><AlertDialogDescription>This records approval only. It does not create a schedule, publish, or contact Metricool.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction disabled={Boolean(busyId)} onClick={() => void approve()}>Approve</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+    <AlertDialog open={Boolean(regenerateTarget)} onOpenChange={(open) => !open && setRegenerateTarget(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Generate a replacement RTC social package?</AlertDialogTitle><AlertDialogDescription>A new decision package will be created first. Only after it succeeds will this package move to Rejected. This does not schedule or publish anything.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={Boolean(busyId)}>Cancel</AlertDialogCancel><AlertDialogAction disabled={Boolean(busyId)} onClick={() => void regenerate()}>Regenerate</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
   </div>;
 }
