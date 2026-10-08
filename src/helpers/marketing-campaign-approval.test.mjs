@@ -16,6 +16,7 @@ import {
   discardConfirmationMessage,
   discardFailureMessage,
   discardCampaignState,
+  generationRequestFailureMessage,
   initialCampaignApprovalUiState,
   emptyCampaignMessage,
   preserveUsableRendition,
@@ -111,6 +112,15 @@ test("discard failures distinguish timeouts and service failures", () => {
     response: { data: { data: { error: { code: "MARKETING_CONTROL_REQUEST_FAILED" } } } },
   }), /marketing service/i);
   assert.match(discardFailureMessage({}), /remains in the review queue/i);
+});
+
+test("generation failures expose only the safe backend code", () => {
+  assert.match(generationRequestFailureMessage({
+    response: { data: { data: { error: { code: "INVALID_TRUCK_UNIT_SELECTION" } } } },
+  }), /INVALID_TRUCK_UNIT_SELECTION/);
+  assert.doesNotMatch(generationRequestFailureMessage({
+    response: { data: { data: { error: { code: "marketing error: private" } } } },
+  }), /private/);
 });
 
 test("regeneration replaces the same row and keeps the usable rendition on failure", () => {

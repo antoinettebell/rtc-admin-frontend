@@ -24,7 +24,7 @@ import {
   approveCampaignState, campaignActionsDisabled, campaignCanApprove, campaignCanRegenerate, campaignTypeLabel, emptyCampaignMessage,
   campaignFailureMessage, campaignRegenerationIsActive, campaignStatusIsFailure, campaignStatusLabel,
   campaignVideoDownloadName, discardCampaignState, discardConfirmationMessage,
-  discardFailureMessage, preserveUsableRendition, reasonLabel,
+  discardFailureMessage, generationRequestFailureMessage, preserveUsableRendition, reasonLabel,
   replaceCampaign, toggleVendorSelection,
 } from "@/helpers/marketing-campaign-approval";
 import {
@@ -288,10 +288,10 @@ export default function MarketingCampaignApprovalPage() {
         title: "Vendor Spotlight generation started",
         description: `${campaigns.length} campaign${campaigns.length === 1 ? "" : "s"} added to the review workflow.`,
       });
-    } catch {
+    } catch (error) {
       toast({
         title: "Generation request failed",
-        description: "No automatic retry was submitted. Existing campaigns were preserved.",
+        description: generationRequestFailureMessage(error),
         variant: "destructive",
       });
     } finally { setGenerating(false); }
@@ -335,10 +335,10 @@ export default function MarketingCampaignApprovalPage() {
         title: "Campaign generation queued",
         description: `${campaigns.length} ${campaignType === "APP_FEATURE" ? "App Feature" : "Event Promotion"} campaign${campaigns.length === 1 ? "" : "s"} added to Pending Campaigns.`,
       });
-    } catch {
+    } catch (error) {
       toast({
         title: "Generation request failed",
-        description: "No automatic retry was submitted. Existing campaigns were preserved.",
+        description: generationRequestFailureMessage(error),
         variant: "destructive",
       });
     } finally { setInitialGenerating(null); }

@@ -81,6 +81,14 @@ export const discardFailureMessage = (error) => {
   return "The campaign remains in the review queue. Please try again.";
 };
 
+export const generationRequestFailureMessage = (error) => {
+  const code = error?.response?.data?.data?.error?.code;
+  if (typeof code === "string" && /^[A-Z][A-Z0-9_]{0,99}$/.test(code) && code !== "MARKETING_CONTROL_REQUEST_FAILED") {
+    return `Generation stopped safely. Failure code: ${code}. No automatic retry was submitted.`;
+  }
+  return "No automatic retry was submitted. Existing campaigns were preserved.";
+};
+
 export const preserveUsableRendition = (current, replacement) => ({
   ...current,
   ...replacement,
