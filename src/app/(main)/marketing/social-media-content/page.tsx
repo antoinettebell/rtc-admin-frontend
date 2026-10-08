@@ -32,7 +32,7 @@ const statusLabel = (status: SocialContentRecord["lifecycleStatus"]) => ({
 const detailValue = (value: unknown) => typeof value === "string" || typeof value === "number"
   ? String(value) : "—";
 
-function ContentDetails({ record, previewUrl, onClose }: { record: SocialContentRecord | null; previewUrl: string | null; onClose: () => void }) {
+function ContentDetails({ record, previewUrls, onClose }: { record: SocialContentRecord | null; previewUrls: string[]; onClose: () => void }) {
   const pkg = record?.contentPackage;
   const decision = pkg?.decision || {};
   const content = pkg?.content || {};
@@ -71,7 +71,7 @@ function ContentDetails({ record, previewUrl, onClose }: { record: SocialContent
             ].map(([label, value]) => <div key={label} className="rounded-md border bg-white p-3"><dt className="text-xs font-medium uppercase text-muted-foreground">{label}</dt><dd className="mt-1 break-words font-medium">{value}</dd></div>)}
           </dl>
           <CreativeDetail label="Direction" value={creative.direction} />
-          <CreativeAsset value={previewUrl} format={detailValue(content.format)} altText={creative.altText} />
+          <CreativeAsset values={previewUrls} format={detailValue(content.format)} altText={creative.altText} />
         </section>
         <section aria-label="Content Strategy" className="space-y-3 rounded-md border bg-slate-50 p-4">
           <h3 className="font-semibold">Content Strategy</h3>
@@ -93,10 +93,12 @@ function CreativeDetail({ label, value }: { label: string; value: string }) {
   return <div><h4 className="mb-1 text-sm font-medium">{label}</h4><p className="whitespace-pre-wrap rounded-md border bg-white p-3">{value}</p></div>;
 }
 
-function CreativeAsset({ value, format, altText }: { value: string | null; format: string; altText: string }) {
-  if (!value) return <div><h4 className="mb-1 text-sm font-medium">Final Preview</h4><p className="rounded-md border bg-white p-3 text-muted-foreground">No finished creative is attached yet.</p></div>;
+function CreativeAsset({ values, format, altText }: { values: string[]; format: string; altText: string }) {
+  if (!values.length) return <div><h4 className="mb-1 text-sm font-medium">Final Preview</h4><p className="rounded-md border bg-white p-3 text-muted-foreground">No finished creative is attached yet.</p></div>;
   const video = format === "SHORT_VIDEO";
-  return <div><h4 className="mb-1 text-sm font-medium">Final Preview</h4><div className="overflow-hidden rounded-md border bg-black">{video ? <video className="max-h-[520px] w-full" controls preload="metadata" src={value} aria-label={altText} /> : <img className="max-h-[520px] w-full object-contain" src={value} alt={altText === "—" ? "Final social creative" : altText} />}</div></div>;
+  if (video) return <div><h4 className="mb-1 text-sm font-medium">Final Preview</h4><div className="overflow-hidden rounded-md border bg-black"><video className="max-h-[520px] w-full" controls preload="metadata" src={values[0]} aria-label={altText} /></div></div>;
+  const carousel = format === "CAROUSEL";
+  return <div><h4 className="mb-1 text-sm font-medium">{carousel ? "Final Carousel" : "Final Preview"}</h4><div className={carousel ? "grid gap-4 sm:grid-cols-2" : "overflow-hidden rounded-md border bg-black"}>{values.map((value, index) => <figure key={value} className="overflow-hidden rounded-md border bg-white"><img className="max-h-[520px] w-full object-contain" src={value} alt={`${altText === "—" ? "Final social creative" : altText}${carousel ? `, card ${index + 1}` : ""}`} />{carousel ? <figcaption className="border-t px-3 py-2 text-xs text-muted-foreground">Card {index + 1}</figcaption> : null}</figure>)}</div></div>;
 }
 
 function DetailBlock({ label, value }: { label: string; value: unknown }) {
@@ -112,7 +114,7 @@ export default function SocialMediaContentPage() {
   const [generating, setGenerating] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [details, setDetails] = useState<SocialContentRecord | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [generateConfirmOpen, setGenerateConfirmOpen] = useState(false);
   const [approveTarget, setApproveTarget] = useState<SocialContentRecord | null>(null);
   const [regenerateTarget, setRegenerateTarget] = useState<SocialContentRecord | null>(null);
@@ -183,9 +185,9 @@ export default function SocialMediaContentPage() {
   };
 
   const openDetails = async (record: SocialContentRecord) => {
-    setDetails(record); setPreviewUrl(null);
+    setDetails(record); setPreviewUrls([]);
     if (record.creativeProduction?.status !== "READY") return;
-    try { const response = await socialMediaContentApiService.creativePreview(record.contentId); setPreviewUrl(response.data.data.previewUrl || null); }
+    try { const response = await socialMediaContentApiService.creativePreview(record.contentId); setPreviewUrls((response.data.data.previewUrls || [response.data.data.previewUrl]).filter((value): value is string => typeof value === "string" && Boolean(value))); }
     catch { toast({ title: "Preview unavailable", description: "The record is preserved, but the finished creative could not be loaded.", variant: "destructive" }); }
   };
   const renderTable = (items: SocialContentRecord[], readOnly = false) => !items.length
@@ -204,7 +206,7 @@ export default function SocialMediaContentPage() {
   return <div className="space-y-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Social Media Content</h1><p className="text-sm text-muted-foreground">Generate and review social packages separately from Creative Engine advertisements. Approval never schedules or publishes.</p></div><Button onClick={() => setGenerateConfirmOpen(true)} disabled={generating}><Plus className="mr-2 h-4 w-4" /> Generate RTC Social Content</Button></div>
     {loading ? <div className="flex justify-center rounded-md border bg-white p-12"><Loader2 className="h-7 w-7 animate-spin" /></div> : <><Collapsible open={pendingOpen} onOpenChange={setPendingOpen} className="rounded-md border bg-white"><CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Pending Social Content ({pending.length})</h2><p className="text-sm text-muted-foreground">Verification and approval queue.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${pendingOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger><CollapsibleContent className="border-t">{renderTable(pending)}</CollapsibleContent></Collapsible>
       <Collapsible open={approvedOpen} onOpenChange={setApprovedOpen} className="rounded-md border bg-white"><CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Approved / History ({archived.length})</h2><p className="text-sm text-muted-foreground">For review only; scheduling and publishing are not available here.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${approvedOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger><CollapsibleContent className="border-t">{renderTable(archived, true)}</CollapsibleContent></Collapsible></>}
-    <ContentDetails record={details} previewUrl={previewUrl} onClose={() => { setDetails(null); setPreviewUrl(null); }} />
+    <ContentDetails record={details} previewUrls={previewUrls} onClose={() => { setDetails(null); setPreviewUrls([]); }} />
     <AlertDialog open={generateConfirmOpen} onOpenChange={setGenerateConfirmOpen}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Generate RTC social content?</AlertDialogTitle><AlertDialogDescription>This requests one new RTC decision package for the approval queue. It will not schedule or publish anything automatically.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={generating}>Cancel</AlertDialogCancel><AlertDialogAction disabled={generating} onClick={() => void generate()}>{generating ? "Generating…" : "Generate"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     <AlertDialog open={Boolean(approveTarget)} onOpenChange={(open) => !open && setApproveTarget(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Approve this social package?</AlertDialogTitle><AlertDialogDescription>This records approval only. It does not create a schedule, publish, or contact Metricool.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction disabled={Boolean(busyId)} onClick={() => void approve()}>Approve</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     <AlertDialog open={Boolean(regenerateTarget)} onOpenChange={(open) => !open && setRegenerateTarget(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Regenerate the final creative?</AlertDialogTitle><AlertDialogDescription>This re-renders the existing approved package. It does not ask OpenAI for new copy, schedule, publish, or contact Metricool.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={Boolean(busyId)}>Cancel</AlertDialogCancel><AlertDialogAction disabled={Boolean(busyId)} onClick={() => void regenerate()}>Regenerate Final Creative</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>

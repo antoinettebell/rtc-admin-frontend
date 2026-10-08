@@ -70,7 +70,7 @@ class SocialMediaContentApiService extends BaseAPI {
   }
 
   creativePreview(contentId: string) {
-    return this.get<IResponse<{ previewUrl: string }>>(
+    return this.get<IResponse<{ previewUrl: string | null; previewUrls: string[] }>>(
       `/api/v1/marketing/social-content/${encodeURIComponent(contentId)}/creative/preview`,
     );
   }
