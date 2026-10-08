@@ -3,6 +3,7 @@ import { BaseAPI } from "./base-api";
 
 export type SocialContentLifecycleStatus =
   | "DRAFT"
+  | "CREATIVE_PRODUCTION"
   | "VERIFICATION_REQUIRED"
   | "READY_FOR_APPROVAL"
   | "APPROVED"
@@ -20,6 +21,7 @@ export interface SocialContentRecord {
   updatedAt: string;
   approvedBy: string | null;
   rejectedBy: string | null;
+  creativeProduction?: { status?: string; failure?: { code?: string }; finalAssetKey?: string | null };
   contentPackage: {
     decision?: Record<string, unknown>;
     content?: Record<string, unknown>;
@@ -58,6 +60,18 @@ class SocialMediaContentApiService extends BaseAPI {
   reject(contentId: string) {
     return this.post<IResponse<{ content: SocialContentRecord }>>(
       `/api/v1/marketing/social-content/${encodeURIComponent(contentId)}/reject`,
+    );
+  }
+
+  regenerateCreative(contentId: string) {
+    return this.post<IResponse<{ content: SocialContentRecord }>>(
+      `/api/v1/marketing/social-content/${encodeURIComponent(contentId)}/creative/regenerate`,
+    );
+  }
+
+  creativePreview(contentId: string) {
+    return this.get<IResponse<{ previewUrl: string }>>(
+      `/api/v1/marketing/social-content/${encodeURIComponent(contentId)}/creative/preview`,
     );
   }
 }
