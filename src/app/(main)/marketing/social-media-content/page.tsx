@@ -42,29 +42,46 @@ function ContentDetails({ record, onClose }: { record: SocialContentRecord | nul
     <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
       <DialogHeader><DialogTitle>Social Content Details</DialogTitle><DialogDescription>Review this package before approval. Approval does not schedule or publish it.</DialogDescription></DialogHeader>
       {record ? <div className="space-y-4 text-sm">
-        <dl className="grid gap-3 sm:grid-cols-2">
+        <dl className="grid gap-3 sm:grid-cols-3">
           {[
-            ["Content ID", record.contentId], ["Brand", record.brandCode], ["Status", statusLabel(record.lifecycleStatus)],
-            ["Audience", detailValue(decision.audience)], ["Growth objective", detailValue(decision.growthObjective)], ["Journey stage", detailValue(decision.journeyStage)],
-            ["Content lane", detailValue(decision.contentLane)], ["Topic", detailValue(decision.topic)], ["Format", detailValue(content.format)],
-            ["CTA", formatSocialContentCta(content.cta)], ["Approval", detailValue(publishing.approvalStatus)], ["Verification", record.verificationComplete ? "Complete" : detailValue(verification.required)],
+            ["Content ID", record.contentId], ["Status", statusLabel(record.lifecycleStatus)], ["Approval", detailValue(publishing.approvalStatus)],
           ].map(([label, value]) => <div key={label} className="rounded-md border bg-slate-50 p-3"><dt className="text-xs font-medium uppercase text-muted-foreground">{label}</dt><dd className="mt-1 break-words font-medium">{value}</dd></div>)}
         </dl>
-        <DetailBlock label="Core message" value={decision.coreMessage} />
-        <DetailBlock label="Reason for selection" value={decision.reasonForSelection} />
-        <DetailBlock label="Caption" value={content.caption} />
-        <DetailBlock label="Hashtags" value={Array.isArray(content.hashtags) ? content.hashtags.join(" ") : undefined} />
-        <DetailBlock label="Platforms" value={Array.isArray(pkg?.platforms) ? pkg.platforms.map((platform) => `${String(platform.network || "")} (${platform.enabled === false ? "disabled" : "enabled"})`).join(", ") : undefined} />
+        <section aria-label="Post Preview" className="space-y-4 rounded-md border bg-slate-50 p-4">
+          <h3 className="font-semibold">Post Preview</h3>
+          <div className="space-y-3 rounded-md border bg-white p-4">
+            <DetailBlock label="Headline" value={content.headline} />
+            <DetailBlock label="Caption" value={content.caption} />
+            <DetailBlock label="Hashtags" value={Array.isArray(content.hashtags) ? content.hashtags.join(" ") : undefined} />
+          </div>
+          <dl className="grid gap-3 sm:grid-cols-2">
+            {[
+              ["CTA", formatSocialContentCta(content.cta)],
+              ["Platforms", Array.isArray(pkg?.platforms) ? pkg.platforms.filter((platform) => platform.enabled !== false).map((platform) => String(platform.network || "")).filter(Boolean).join(", ") : undefined],
+            ].map(([label, value]) => <div key={label} className="rounded-md border bg-white p-3"><dt className="text-xs font-medium uppercase text-muted-foreground">{label}</dt><dd className="mt-1 break-words font-medium">{detailValue(value)}</dd></div>)}
+          </dl>
+        </section>
         <section aria-label="Creative" className="space-y-3 rounded-md border bg-slate-50 p-4">
           <h3 className="font-semibold">Creative</h3>
           {creative.missingRequiredDirection ? <p role="alert" className="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900">Creative is required, but its persisted direction is missing. Do not approve until this is resolved.</p> : null}
           <dl className="grid gap-3 sm:grid-cols-2">
             {[
-              ["Required", creative.required], ["Type", creative.type], ["Source", creative.source], ["Alt Text", creative.altText],
+              ["Format", detailValue(content.format)], ["Creative Type", creative.type], ["Alt Text", creative.altText],
             ].map(([label, value]) => <div key={label} className="rounded-md border bg-white p-3"><dt className="text-xs font-medium uppercase text-muted-foreground">{label}</dt><dd className="mt-1 break-words font-medium">{value}</dd></div>)}
           </dl>
           <CreativeDetail label="Direction" value={creative.direction} />
           <CreativeAsset value={creative.assetUrl} />
+        </section>
+        <section aria-label="Content Strategy" className="space-y-3 rounded-md border bg-slate-50 p-4">
+          <h3 className="font-semibold">Content Strategy</h3>
+          <dl className="grid gap-3 sm:grid-cols-2">
+            {[
+              ["Audience", detailValue(decision.audience)], ["Growth objective", detailValue(decision.growthObjective)], ["Journey stage", detailValue(decision.journeyStage)],
+              ["Content lane", detailValue(decision.contentLane)], ["Topic", detailValue(decision.topic)], ["Verification", record.verificationComplete ? "Complete" : detailValue(verification.required)],
+            ].map(([label, value]) => <div key={label} className="rounded-md border bg-white p-3"><dt className="text-xs font-medium uppercase text-muted-foreground">{label}</dt><dd className="mt-1 break-words font-medium">{value}</dd></div>)}
+          </dl>
+          <CreativeDetail label="Core Message" value={detailValue(decision.coreMessage)} />
+          <CreativeDetail label="Reason for Selection" value={detailValue(decision.reasonForSelection)} />
         </section>
       </div> : null}
     </DialogContent>
