@@ -10,7 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import { formatSocialContentCreative, formatSocialContentCta, socialContentCanApprove, socialContentCreativeProductionIsActive, socialContentVisibleInReview } from "@/helpers/social-media-content";
+import { formatSocialContentCreative, formatSocialContentCta, socialContentCanApprove, socialContentCanReject, socialContentCreativeProductionIsActive, socialContentVisibleInReview } from "@/helpers/social-media-content";
 import { useUser } from "@/hooks/use-user";
 import { SocialContentRecord, socialMediaContentApiService } from "@/services/social-media-content-api-service";
 
@@ -210,7 +210,8 @@ export default function SocialMediaContentPage() {
         <Button size="sm" variant="outline" onClick={() => void openDetails(record)}><FileText className="mr-1 h-4 w-4" /> View Details</Button>
         {!readOnly && record.brandCode === "RTC" && ((record.lifecycleStatus === "CREATIVE_PRODUCTION" && record.creativeProduction?.status === "FAILED") || canApprove) ? <Button size="sm" variant="outline" disabled={disabled} onClick={() => setRegenerateTarget(record)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate</Button> : null}
         {!readOnly && record.lifecycleStatus === "VERIFICATION_REQUIRED" ? <Button size="sm" variant="outline" disabled={disabled} onClick={() => void completeVerification(record)}><CheckCircle2 className="mr-1 h-4 w-4" /> Complete Verification</Button> : null}
-        {!readOnly && record.lifecycleStatus === "READY_FOR_APPROVAL" ? <><Button size="sm" variant="destructive" disabled={disabled} onClick={() => void reject(record)}><XCircle className="mr-1 h-4 w-4" /> Reject</Button><Button size="sm" disabled={disabled || !canApprove} onClick={() => setApproveTarget(record)}>Approve</Button></> : null}
+        {!readOnly && socialContentCanReject(record) ? <Button size="sm" variant="destructive" disabled={disabled} onClick={() => void reject(record)}><XCircle className="mr-1 h-4 w-4" /> Reject</Button> : null}
+        {!readOnly && record.lifecycleStatus === "READY_FOR_APPROVAL" ? <Button size="sm" disabled={disabled || !canApprove} onClick={() => setApproveTarget(record)}>Approve</Button> : null}
       </div></TableCell></TableRow>;
     })}</TableBody></Table>;
 

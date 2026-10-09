@@ -31,3 +31,6 @@ export const socialContentVisibleInReview = (record) => record?.lifecycleStatus 
 export const socialContentCreativeProductionIsActive = (record) =>
   record?.lifecycleStatus === "CREATIVE_PRODUCTION" &&
   ["QUEUED", "RENDERING"].includes(record?.creativeProduction?.status);
+
+export const socialContentCanReject = (record) =>
+  ["CREATIVE_PRODUCTION", "VERIFICATION_REQUIRED", "READY_FOR_APPROVAL"].includes(record?.lifecycleStatus);

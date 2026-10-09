@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { formatSocialContentCreative, formatSocialContentCta, socialContentCanApprove, socialContentCreativeProductionIsActive, socialContentVisibleInReview } from "./social-media-content.js";
+import { formatSocialContentCreative, formatSocialContentCta, socialContentCanApprove, socialContentCanReject, socialContentCreativeProductionIsActive, socialContentVisibleInReview } from "./social-media-content.js";
 
 test("formats the persisted CTA type and text without deriving copy", () => {
   assert.equal(formatSocialContentCta({ type: "LINK", text: "Find vendors near you" }), "LINK — Find vendors near you");
@@ -57,4 +57,12 @@ test("polls only while final creative production is active", () => {
   assert.equal(socialContentCreativeProductionIsActive({ lifecycleStatus: "CREATIVE_PRODUCTION", creativeProduction: { status: "RENDERING" } }), true);
   assert.equal(socialContentCreativeProductionIsActive({ lifecycleStatus: "READY_FOR_APPROVAL", creativeProduction: { status: "READY" } }), false);
   assert.equal(socialContentCreativeProductionIsActive({ lifecycleStatus: "CREATIVE_PRODUCTION", creativeProduction: { status: "FAILED" } }), false);
+});
+
+test("allows pending creative production to be rejected from review", () => {
+  assert.equal(socialContentCanReject({ lifecycleStatus: "CREATIVE_PRODUCTION" }), true);
+  assert.equal(socialContentCanReject({ lifecycleStatus: "VERIFICATION_REQUIRED" }), true);
+  assert.equal(socialContentCanReject({ lifecycleStatus: "READY_FOR_APPROVAL" }), true);
+  assert.equal(socialContentCanReject({ lifecycleStatus: "APPROVED" }), false);
+  assert.equal(socialContentCanReject({ lifecycleStatus: "REJECTED" }), false);
 });
