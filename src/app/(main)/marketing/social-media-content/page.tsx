@@ -10,7 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import { formatSocialContentCreative, formatSocialContentCta, socialContentCanApprove, socialContentCanReject, socialContentCreativeProductionIsActive, socialContentVisibleInReview } from "@/helpers/social-media-content";
+import { formatSocialContentCreative, formatSocialContentCta, socialContentCanApprove, socialContentCanReject, socialContentCreativeProductionIsActive, socialContentSafeFailureCode, socialContentVisibleInReview } from "@/helpers/social-media-content";
 import { useUser } from "@/hooks/use-user";
 import { SocialContentRecord, SocialContentRequestedFormat, socialMediaContentApiService } from "@/services/social-media-content-api-service";
 
@@ -154,8 +154,9 @@ export default function SocialMediaContentPage() {
       const response = await socialMediaContentApiService.requestDecision("RTC", requestedFormat);
       replace(response.data.data.content); setGenerateConfirmOpen(false); setPendingOpen(true);
       toast({ title: "RTC social content generated", description: "The new package is in the review workflow and will not schedule or publish automatically." });
-    } catch {
-      toast({ title: "Social content generation failed", description: "No automatic retry, schedule, or publish action was submitted.", variant: "destructive" });
+    } catch (error) {
+      const code = socialContentSafeFailureCode(error);
+      toast({ title: "Social content generation failed", description: `${code ? `Failure: ${code}. ` : ""}No automatic retry, schedule, or publish action was submitted.`, variant: "destructive" });
     } finally { setGenerating(false); }
   };
 

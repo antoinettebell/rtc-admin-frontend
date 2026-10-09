@@ -34,3 +34,8 @@ export const socialContentCreativeProductionIsActive = (record) =>
 
 export const socialContentCanReject = (record) =>
   ["CREATIVE_PRODUCTION", "VERIFICATION_REQUIRED", "READY_FOR_APPROVAL"].includes(record?.lifecycleStatus);
+
+export const socialContentSafeFailureCode = (error) => {
+  const code = error?.response?.data?.data?.error?.code;
+  return typeof code === "string" && /^(?:SMA|OPENAI)_[A-Z0-9_]{1,94}$/.test(code) ? code : null;
+};

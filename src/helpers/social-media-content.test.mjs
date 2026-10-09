@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { formatSocialContentCreative, formatSocialContentCta, socialContentCanApprove, socialContentCanReject, socialContentCreativeProductionIsActive, socialContentVisibleInReview } from "./social-media-content.js";
+import { formatSocialContentCreative, formatSocialContentCta, socialContentCanApprove, socialContentCanReject, socialContentCreativeProductionIsActive, socialContentSafeFailureCode, socialContentVisibleInReview } from "./social-media-content.js";
 
 test("formats the persisted CTA type and text without deriving copy", () => {
   assert.equal(formatSocialContentCta({ type: "LINK", text: "Find vendors near you" }), "LINK — Find vendors near you");
@@ -65,4 +65,9 @@ test("allows pending creative production to be rejected from review", () => {
   assert.equal(socialContentCanReject({ lifecycleStatus: "READY_FOR_APPROVAL" }), true);
   assert.equal(socialContentCanReject({ lifecycleStatus: "APPROVED" }), false);
   assert.equal(socialContentCanReject({ lifecycleStatus: "REJECTED" }), false);
+});
+
+test("shows only allowlisted SMA and OpenAI failure codes", () => {
+  assert.equal(socialContentSafeFailureCode({ response: { data: { data: { error: { code: "OPENAI_LOCAL_VALIDATION_FAILED", raw: "private" } } } } }), "OPENAI_LOCAL_VALIDATION_FAILED");
+  assert.equal(socialContentSafeFailureCode({ response: { data: { data: { error: { code: "UNTRUSTED_PROVIDER_ERROR" } } } } }), null);
 });
