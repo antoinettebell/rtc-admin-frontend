@@ -27,3 +27,7 @@ export const socialContentCanApprove = (record) => record?.lifecycleStatus === "
     (record?.creativeProduction?.status === "READY" && Boolean(record?.creativeProduction?.finalAssetKey)));
 
 export const socialContentVisibleInReview = (record) => record?.lifecycleStatus !== "REJECTED";
+
+export const socialContentCreativeProductionIsActive = (record) =>
+  record?.lifecycleStatus === "CREATIVE_PRODUCTION" &&
+  ["QUEUED", "RENDERING"].includes(record?.creativeProduction?.status);

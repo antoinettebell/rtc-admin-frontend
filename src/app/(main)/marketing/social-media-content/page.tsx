@@ -10,7 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import { formatSocialContentCreative, formatSocialContentCta, socialContentCanApprove, socialContentVisibleInReview } from "@/helpers/social-media-content";
+import { formatSocialContentCreative, formatSocialContentCta, socialContentCanApprove, socialContentCreativeProductionIsActive, socialContentVisibleInReview } from "@/helpers/social-media-content";
 import { useUser } from "@/hooks/use-user";
 import { SocialContentRecord, socialMediaContentApiService } from "@/services/social-media-content-api-service";
 
@@ -136,6 +136,14 @@ export default function SocialMediaContentPage() {
   const visibleRecords = useMemo(() => records.filter(socialContentVisibleInReview), [records]);
   const pending = useMemo(() => visibleRecords.filter((record) => ["CREATIVE_PRODUCTION", "VERIFICATION_REQUIRED", "READY_FOR_APPROVAL", "DRAFT", "FAILED"].includes(record.lifecycleStatus)), [visibleRecords]);
   const archived = useMemo(() => visibleRecords.filter((record) => !pending.includes(record)), [pending, visibleRecords]);
+  const activeCreativeProduction = useMemo(() => records.some(socialContentCreativeProductionIsActive), [records]);
+
+  useEffect(() => {
+    if (!activeCreativeProduction) return;
+    const poll = window.setInterval(() => { void load(); }, 4000);
+    return () => window.clearInterval(poll);
+  }, [activeCreativeProduction, load]);
+
   const replace = (next: SocialContentRecord) => setRecords((current) => [next, ...current.filter((record) => record.contentId !== next.contentId)]);
 
   const generate = async () => {
