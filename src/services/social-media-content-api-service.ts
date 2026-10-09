@@ -12,6 +12,8 @@ export type SocialContentLifecycleStatus =
   | "PUBLISHED"
   | "FAILED";
 
+export type SocialContentRequestedFormat = "IMAGE_POST" | "CAROUSEL" | "SHORT_VIDEO";
+
 export interface SocialContentRecord {
   contentId: string;
   brandCode: "RTC" | "SBE";
@@ -38,10 +40,10 @@ class SocialMediaContentApiService extends BaseAPI {
     return this.get<IResponse<{ content: SocialContentRecord[] }>>("/api/v1/marketing/social-content");
   }
 
-  requestDecision(brandCode: "RTC") {
+  requestDecision(brandCode: "RTC", format: SocialContentRequestedFormat) {
     return this.post<IResponse<{ content: SocialContentRecord }>>(
       "/api/v1/marketing/social-content/request-decision",
-      { brandCode },
+      { brandCode, format },
     );
   }
 
