@@ -28,6 +28,8 @@ export const campaignApprovalEndpoints = Object.freeze({
   pending: "/api/v1/marketing/campaigns/pending",
   approved: "/api/v1/marketing/campaigns/approved",
   generationJobs: "/api/v1/marketing/campaigns/generation-jobs",
+  discardGenerationJob: (jobId) => `/api/v1/marketing/campaigns/generation-jobs/${encodeURIComponent(jobId)}/discard`,
+  retryGenerationJob: (jobId) => `/api/v1/marketing/campaigns/generation-jobs/${encodeURIComponent(jobId)}/regenerate`,
   eligibleVendors: "/api/v1/marketing/campaigns/eligible-vendors",
   eligibleAppFeatures: "/api/v1/marketing/campaigns/eligible-app-features",
   eligibleEvents: "/api/v1/marketing/campaigns/eligible-events",
@@ -182,7 +184,7 @@ export const campaignCanApprove = (campaign) =>
   Boolean(campaign?.videoUrl);
 
 export const campaignCanRegenerate = (campaign) =>
-  campaign?.creativeMode !== "SCENARIO_TALKING";
+  Boolean(campaign?.campaignId) && !campaignRegenerationIsActive(campaign);
 
 export const campaignActionsDisabled = (campaign, busyCampaignId = null) =>
   campaignRegenerationIsActive(campaign) || busyCampaignId === campaign?.campaignId;

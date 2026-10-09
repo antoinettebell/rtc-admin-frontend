@@ -128,6 +128,9 @@ export default function MarketingCampaignApprovalPage() {
   const [preview, setPreview] = useState<MarketingCampaign | null>(null);
   const [detail, setDetail] = useState<MarketingCampaignDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [jobDetail, setJobDetail] = useState<ScenarioTalkingGenerationJob | null>(null);
+  const [retryJobTarget, setRetryJobTarget] = useState<ScenarioTalkingGenerationJob | null>(null);
+  const [busyJobId, setBusyJobId] = useState<string | null>(null);
   const [approveTarget, setApproveTarget] = useState<MarketingCampaign | null>(null);
   const [regenerateTarget, setRegenerateTarget] = useState<MarketingCampaign | null>(null);
   const [regenerationReason, setRegenerationReason] = useState("");
@@ -167,6 +170,8 @@ export default function MarketingCampaignApprovalPage() {
     .map((campaign) => campaign.campaignId), [pending]);
   const processingIdsKey = processingIds.join("|");
   const activeTalkingJob = useMemo(() => generationJobs.some(scenarioTalkingJobIsActive), [generationJobs]);
+  const standaloneGenerationJobs = useMemo(() => generationJobs.filter((job) =>
+    !pending.some((campaign) => campaign.campaignId === job.campaignId)), [generationJobs, pending]);
   const featuresByAudience = useMemo(() => eligibleAppFeatures.reduce<Record<string, EligibleAppFeature[]>>(
     (groups, feature) => ({
       ...groups,
@@ -259,11 +264,14 @@ export default function MarketingCampaignApprovalPage() {
     if (!window.confirm(discardConfirmationMessage(campaign))) return;
     setBusyCampaignId(campaignId);
     try {
+      const failedJob = generationJobs.find((job) => job.campaignId === campaignId && job.status === "FAILED");
+      if (failedJob) await marketingCampaignApiService.discardGenerationJob(failedJob.jobId);
       const response = await marketingCampaignApiService.discard(campaignId);
       if (response.data.data.campaign?.campaignId !== campaignId) {
         throw new Error("Discard response did not match the selected campaign.");
       }
       setPending((rows) => discardCampaignState(rows, campaignId));
+      if (failedJob) setGenerationJobs((rows) => rows.filter((row) => row.jobId !== failedJob.jobId));
       toast({
         title: "Campaign discarded",
         description: "The campaign was removed from pending review and was not published.",
@@ -363,7 +371,7 @@ export default function MarketingCampaignApprovalPage() {
       toast({
         title: "Campaign generation queued",
         description: campaignType === "APP_FEATURE" && featureSelections.some(({ creativeMode }) => creativeMode === "SCENARIO_TALKING")
-          ? "Talking People generation is now visible under Generation Activity. It moves to Pending Campaigns only after the finished video is ready."
+          ? "Talking People generation is visible in Pending Campaigns and will update there until its finished video is ready."
           : `${campaigns.length} ${campaignType === "APP_FEATURE" ? "App Feature" : "Event Promotion"} campaign${campaigns.length === 1 ? "" : "s"} added to Pending Campaigns.`,
       });
       if (campaignType === "APP_FEATURE" && featureSelections.some(({ creativeMode }) => creativeMode === "SCENARIO_TALKING")) {
@@ -388,24 +396,75 @@ export default function MarketingCampaignApprovalPage() {
     finally { setDetailLoading(false); }
   };
 
+  const discardGenerationJob = async (job: ScenarioTalkingGenerationJob) => {
+    if (job.status !== "FAILED" || busyJobId) return;
+    if (!window.confirm("Discard this failed Talking People attempt?\n\nThis removes the failed attempt from Campaign Approval. It does not publish, regenerate, or remove any completed campaign.")) return;
+    setBusyJobId(job.jobId);
+    try {
+      await marketingCampaignApiService.discardGenerationJob(job.jobId);
+      setGenerationJobs((rows) => rows.filter((row) => row.jobId !== job.jobId));
+      toast({ title: "Failed attempt discarded", description: "The failed attempt was removed from Campaign Approval." });
+    } catch {
+      toast({ title: "Discard failed", description: "The failed attempt remains visible.", variant: "destructive" });
+    } finally { setBusyJobId(null); }
+  };
+
+  const retryGenerationJob = async () => {
+    if (!retryJobTarget || retryJobTarget.status !== "FAILED" || busyJobId) return;
+    const job = retryJobTarget;
+    setBusyJobId(job.jobId);
+    try {
+      await marketingCampaignApiService.retryGenerationJob(job.jobId);
+      setRetryJobTarget(null);
+      const response = await marketingCampaignApiService.listGenerationJobs();
+      setGenerationJobs(response.data.data.jobs);
+      toast({ title: "Regeneration started", description: "One new Talking People attempt was queued. No additional retry will occur automatically." });
+    } catch (error) {
+      toast({ title: "Regeneration failed", description: generationRequestFailureMessage(error), variant: "destructive" });
+    } finally { setBusyJobId(null); }
+  };
+
   if (user?.userType !== "SUPER_ADMIN") {
     return <div className="rounded-md border bg-white p-8"><h1 className="text-2xl font-semibold">Marketing Campaign Approval</h1><p className="mt-2 text-muted-foreground">Administrator access is required.</p></div>;
   }
 
   const renderTable = (campaigns: MarketingCampaign[], archived = false) => (
-    campaigns.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">{emptyCampaignMessage(archived ? "approved" : "pending")}</div> :
+    campaigns.length === 0 && (archived || standaloneGenerationJobs.length === 0) ? <div className="p-8 text-center text-sm text-muted-foreground">{emptyCampaignMessage(archived ? "approved" : "pending")}</div> :
     <Table><TableHeader><TableRow>
       <TableHead>Business</TableHead><TableHead>Campaign Type</TableHead><TableHead>Reason</TableHead>
       <TableHead>{archived ? "Approved" : "Generated"}</TableHead><TableHead>Status</TableHead>
       {!archived ? <TableHead>Regenerations</TableHead> : null}<TableHead className="text-right">Actions</TableHead>
-    </TableRow></TableHeader><TableBody>{campaigns.map((campaign) => {
-      const disabled = campaignActionsDisabled(campaign, busyCampaignId);
+    </TableRow></TableHeader><TableBody>{!archived ? standaloneGenerationJobs.map((job) => {
+      const feature = eligibleAppFeatures.find((item) => item.featureKey === job.featureKey);
+      const failed = job.status === "FAILED";
+      const busy = busyJobId === job.jobId;
+      return <TableRow key={job.jobId}>
+        <TableCell className="font-medium">{feature?.featureName || campaignTypeLabel(job.featureKey)}</TableCell>
+        <TableCell>App Feature · Scenario Talking</TableCell>
+        <TableCell>Initial Generation</TableCell>
+        <TableCell>{formatDate(job.createdAt)}</TableCell>
+        <TableCell><div className="space-y-1"><Badge variant={failed ? "destructive" : "secondary"}>{scenarioTalkingStageLabel(job.stage)}</Badge><p className="max-w-64 text-xs text-muted-foreground">{failed ? scenarioTalkingFailureMessage(job) : "Generation is active. This row updates automatically."}</p></div></TableCell>
+        <TableCell>0</TableCell>
+        <TableCell><div className="flex flex-wrap justify-end gap-2">
+          <Button size="sm" variant="outline" disabled><Eye className="mr-1 h-4 w-4" /> Preview Video</Button>
+          <Button size="sm" variant="outline" disabled><Download className="mr-1 h-4 w-4" /> Download Video</Button>
+          <Button size="sm" variant="outline" onClick={() => setJobDetail(job)}><FileText className="mr-1 h-4 w-4" /> View Details</Button>
+          <Button size="sm" variant="outline" disabled={!failed || busy} onClick={() => setRetryJobTarget(job)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate</Button>
+          <Button size="sm" variant="destructive" disabled={!failed || busy} onClick={() => void discardGenerationJob(job)}><Trash2 className="mr-1 h-4 w-4" /> Discard</Button>
+          <Button size="sm" disabled>Archive / Approve</Button>
+        </div></TableCell>
+      </TableRow>;
+    }) : null}{campaigns.map((campaign) => {
+      const talkingJob = generationJobs.find((job) => job.campaignId === campaign.campaignId);
+      const talkingActive = talkingJob ? scenarioTalkingJobIsActive(talkingJob) : false;
+      const talkingFailed = talkingJob?.status === "FAILED";
+      const disabled = campaignActionsDisabled(campaign, busyCampaignId) || talkingActive;
       return <TableRow key={campaign.campaignId}>
         <TableCell className="font-medium">{campaign.businessName}</TableCell>
         <TableCell>{campaign.creativeMode === "SCENARIO_TALKING" ? "App Feature · Scenario Talking" : campaignTypeLabel(campaign.campaignType)}</TableCell>
         <TableCell>{reasonLabel(campaign.reason)}</TableCell>
         <TableCell>{formatDate(archived ? campaign.approvedAt : campaign.generatedAt)}</TableCell>
-        <TableCell><div className="space-y-1"><Badge variant={campaignStatusIsFailure(campaign) ? "destructive" : "secondary"}>{archived ? "Approved" : campaignStatusLabel(campaign)}</Badge>{!archived && (campaignStatusIsFailure(campaign) || campaign.regenerationStatus === "RETRY_SCHEDULED") ? <p className="max-w-56 text-xs text-muted-foreground">{campaignFailureMessage(campaign)}</p> : null}</div></TableCell>
+        <TableCell><div className="space-y-1"><Badge variant={talkingFailed || campaignStatusIsFailure(campaign) ? "destructive" : "secondary"}>{archived ? "Approved" : talkingJob ? scenarioTalkingStageLabel(talkingJob.stage) : campaignStatusLabel(campaign)}</Badge>{!archived && talkingFailed ? <p className="max-w-56 text-xs text-muted-foreground">{scenarioTalkingFailureMessage(talkingJob)}</p> : !archived && (campaignStatusIsFailure(campaign) || campaign.regenerationStatus === "RETRY_SCHEDULED") ? <p className="max-w-56 text-xs text-muted-foreground">{campaignFailureMessage(campaign)}</p> : null}</div></TableCell>
         {!archived ? <TableCell>{campaign.regenerationCount}</TableCell> : null}
         <TableCell><div className="flex flex-wrap justify-end gap-2">
           <Button size="sm" variant="outline" onClick={() => setPreview(campaign)} disabled={!campaign.videoUrl}><Eye className="mr-1 h-4 w-4" /> Preview Video</Button>
@@ -414,9 +473,9 @@ export default function MarketingCampaignApprovalPage() {
           </Button> : <Button size="sm" variant="outline" disabled><Download className="mr-1 h-4 w-4" /> Download Video</Button>}
           <Button size="sm" variant="outline" onClick={() => void openDetails(campaign.campaignId)}><FileText className="mr-1 h-4 w-4" /> View Details</Button>
           {!archived ? <>
-            <Button size="sm" variant="outline" disabled={disabled || !campaignCanRegenerate(campaign)} title={!campaignCanRegenerate(campaign) ? "Scenario Talking reuses its paid character footage." : undefined} onClick={() => setRegenerateTarget(campaign)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate</Button>
+            <Button size="sm" variant="outline" disabled={disabled || (!talkingFailed && !campaignCanRegenerate(campaign))} onClick={() => talkingFailed && talkingJob ? setRetryJobTarget(talkingJob) : setRegenerateTarget(campaign)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate</Button>
             <Button size="sm" variant="destructive" disabled={disabled} onClick={() => void discardSelected(campaign)}><Trash2 className="mr-1 h-4 w-4" /> Discard</Button>
-            <Button size="sm" disabled={disabled || !campaignCanApprove(campaign)} onClick={() => setApproveTarget(campaign)}>Archive / Approve</Button>
+            <Button size="sm" disabled={disabled || talkingFailed || !campaignCanApprove(campaign)} onClick={() => setApproveTarget(campaign)}>Archive / Approve</Button>
           </> : null}
         </div></TableCell>
       </TableRow>;
@@ -432,17 +491,8 @@ export default function MarketingCampaignApprovalPage() {
       </div>
     </div>
     {loading ? <div className="flex justify-center rounded-md border bg-white p-12"><Loader2 className="h-7 w-7 animate-spin" /></div> : <>
-      {generationJobs.length ? <section className="rounded-md border bg-white">
-        <div className="p-4"><h2 className="text-lg font-semibold">Generation Activity ({generationJobs.length})</h2><p className="text-sm text-muted-foreground">Talking People videos stay here while footage and the final render are being prepared.</p></div>
-        <div className="border-t"><Table><TableHeader><TableRow><TableHead>Feature</TableHead><TableHead>Creative Type</TableHead><TableHead>Started</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>
-          {generationJobs.map((job) => {
-            const feature = eligibleAppFeatures.find((item) => item.featureKey === job.featureKey);
-            return <TableRow key={job.jobId}><TableCell className="font-medium">{feature?.featureName || campaignTypeLabel(job.featureKey)}</TableCell><TableCell>App Feature · Talking People</TableCell><TableCell>{formatDate(job.createdAt)}</TableCell><TableCell><div className="space-y-1"><Badge variant={job.status === "FAILED" ? "destructive" : "secondary"}>{scenarioTalkingStageLabel(job.stage)}</Badge>{job.status === "FAILED" ? <p className="max-w-80 text-xs text-muted-foreground">{scenarioTalkingFailureMessage(job)}</p> : <p className="text-xs text-muted-foreground">No action is needed. This page updates automatically.</p>}</div></TableCell></TableRow>;
-          })}
-        </TableBody></Table></div>
-      </section> : null}
       <Collapsible open={pendingOpen} onOpenChange={setPendingOpen} className="rounded-md border bg-white">
-        <CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Pending Campaigns ({pending.length})</h2><p className="text-sm text-muted-foreground">Completed campaigns awaiting admin review.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${pendingOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger>
+        <CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Pending Campaigns ({pending.length + standaloneGenerationJobs.length})</h2><p className="text-sm text-muted-foreground">Campaigns generating or awaiting admin review.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${pendingOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger>
         <CollapsibleContent className="border-t">{renderTable(pending)}</CollapsibleContent>
       </Collapsible>
       <Collapsible open={approvedOpen} onOpenChange={setApprovedOpen} className="rounded-md border bg-white">
@@ -453,6 +503,16 @@ export default function MarketingCampaignApprovalPage() {
 
     <CampaignPreview campaign={preview} onClose={() => setPreview(null)} />
     <CampaignDetails detail={detail} loading={detailLoading} onClose={() => { setDetail(null); setDetailLoading(false); }} />
+
+    <Dialog open={Boolean(jobDetail)} onOpenChange={(open) => !open && setJobDetail(null)}>
+      <DialogContent><DialogHeader><DialogTitle>Campaign Details</DialogTitle><DialogDescription>Talking People generation status for this App Feature campaign.</DialogDescription></DialogHeader>
+        {jobDetail ? <dl className="grid gap-3 sm:grid-cols-2"><div className="rounded-md border bg-slate-50 p-3"><dt className="text-xs font-medium uppercase text-muted-foreground">Campaign Type</dt><dd className="mt-1 font-medium">App Feature · Scenario Talking</dd></div><div className="rounded-md border bg-slate-50 p-3"><dt className="text-xs font-medium uppercase text-muted-foreground">Status</dt><dd className="mt-1 font-medium">{scenarioTalkingStageLabel(jobDetail.stage)}</dd></div><div className="rounded-md border bg-slate-50 p-3"><dt className="text-xs font-medium uppercase text-muted-foreground">Started</dt><dd className="mt-1 font-medium">{formatDate(jobDetail.createdAt)}</dd></div><div className="rounded-md border bg-slate-50 p-3"><dt className="text-xs font-medium uppercase text-muted-foreground">Last Updated</dt><dd className="mt-1 font-medium">{formatDate(jobDetail.updatedAt)}</dd></div>{jobDetail.status === "FAILED" ? <div className="rounded-md border bg-slate-50 p-3 sm:col-span-2"><dt className="text-xs font-medium uppercase text-muted-foreground">Failure</dt><dd className="mt-1 font-medium">{scenarioTalkingFailureMessage(jobDetail)}</dd></div> : null}</dl> : null}
+      </DialogContent>
+    </Dialog>
+
+    <AlertDialog open={Boolean(retryJobTarget)} onOpenChange={(open) => !open && setRetryJobTarget(null)}>
+      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Regenerate this failed Talking People ad?</AlertDialogTitle><AlertDialogDescription>This explicitly starts one new paid Talking People generation attempt using the same approved App Feature assets. It will not retry automatically.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => void retryGenerationJob()} disabled={Boolean(busyJobId)}>Regenerate</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+    </AlertDialog>
 
     <AlertDialog open={Boolean(approveTarget)} onOpenChange={(open) => !open && setApproveTarget(null)}>
       <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Archive and approve this campaign?</AlertDialogTitle><AlertDialogDescription>I reviewed and approve this campaign. Remove it from my active queue.</AlertDialogDescription></AlertDialogHeader>
@@ -553,7 +613,7 @@ export default function MarketingCampaignApprovalPage() {
             </section>
           ))}
         </div>
-        <p className="text-sm text-muted-foreground">Selected: {selectedFeatureKeys.length}. Standard ads use the existing feature workflow. Talking People uses the approved operator and guide voices, shows live progress under Generation Activity, then moves to Pending Campaigns when its finished video is ready.</p>
+        <p className="text-sm text-muted-foreground">Selected: {selectedFeatureKeys.length}. Standard ads and Talking People videos use the same Pending Campaigns review workflow. Talking People uses the approved operator and guide voices, and its row updates until the finished video is ready.</p>
         <DialogFooter><Button variant="outline" onClick={() => setGenerateFeaturesOpen(false)} disabled={initialGenerating === "APP_FEATURE"}>Cancel</Button><Button onClick={() => void generateInitialCampaigns("APP_FEATURE")} disabled={Boolean(initialGenerating) || selectedFeatureKeys.length === 0}>{initialGenerating === "APP_FEATURE" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Generate Selected App Features</Button></DialogFooter>
       </DialogContent>
     </Dialog>

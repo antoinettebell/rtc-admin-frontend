@@ -68,6 +68,8 @@ test("uses the authenticated RTC backend campaign endpoints", () => {
   assert.equal(campaignApprovalEndpoints.pending, "/api/v1/marketing/campaigns/pending");
   assert.equal(campaignApprovalEndpoints.approved, "/api/v1/marketing/campaigns/approved");
   assert.equal(campaignApprovalEndpoints.generationJobs, "/api/v1/marketing/campaigns/generation-jobs");
+  assert.equal(campaignApprovalEndpoints.discardGenerationJob("job one"), "/api/v1/marketing/campaigns/generation-jobs/job%20one/discard");
+  assert.equal(campaignApprovalEndpoints.retryGenerationJob("job one"), "/api/v1/marketing/campaigns/generation-jobs/job%20one/regenerate");
   assert.equal(campaignApprovalEndpoints.eligibleVendors, "/api/v1/marketing/campaigns/eligible-vendors");
   assert.equal(campaignApprovalEndpoints.eligibleAppFeatures, "/api/v1/marketing/campaigns/eligible-app-features");
   assert.equal(campaignApprovalEndpoints.eligibleEvents, "/api/v1/marketing/campaigns/eligible-events");
@@ -161,9 +163,9 @@ test("queued, generating, and rendering jobs disable regeneration and approval",
   assert.equal(campaignActionsDisabled({ campaignId: "one", generationStatus: "COMPLETED" }), false);
 });
 
-test("Scenario Talking is visible in the existing queue but cannot regenerate paid footage", () => {
-  assert.equal(campaignCanRegenerate({ campaignType: "APP_FEATURE", creativeMode: "SCENARIO_TALKING" }), false);
-  assert.equal(campaignCanRegenerate({ campaignType: "APP_FEATURE", creativeMode: "STANDARD_FEATURE" }), true);
+test("Scenario Talking uses the existing explicit regeneration control", () => {
+  assert.equal(campaignCanRegenerate({ campaignId: "talking-1", campaignType: "APP_FEATURE", creativeMode: "SCENARIO_TALKING" }), true);
+  assert.equal(campaignCanRegenerate({ campaignId: "standard-1", campaignType: "APP_FEATURE", creativeMode: "STANDARD_FEATURE" }), true);
 });
 
 test("shows human-readable queued generation and terminal statuses", () => {

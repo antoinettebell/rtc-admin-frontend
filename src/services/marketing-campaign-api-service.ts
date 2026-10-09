@@ -132,6 +132,18 @@ class MarketingCampaignApiService extends BaseAPI {
     );
   }
 
+  discardGenerationJob(jobId: string) {
+    return this.post<IResponse<{ job: ScenarioTalkingGenerationJob }>>(
+      campaignApprovalEndpoints.discardGenerationJob(jobId),
+    );
+  }
+
+  retryGenerationJob(jobId: string) {
+    return this.post<IResponse<{ result: { action: string; jobId: string | null } }>>(
+      campaignApprovalEndpoints.retryGenerationJob(jobId),
+    );
+  }
+
   listEligibleVendors() {
     return this.get<IResponse<{ vendors: EligibleMarketingVendor[] }>>(
       campaignApprovalEndpoints.eligibleVendors,
