@@ -25,11 +25,13 @@ import {
   campaignFailureMessage, campaignRegenerationIsActive, campaignStatusIsFailure, campaignStatusLabel,
   campaignVideoDownloadName, discardCampaignState, discardConfirmationMessage,
   discardFailureMessage, generationRequestFailureMessage, preserveUsableRendition, reasonLabel,
-  replaceCampaign, toggleVendorSelection,
+  replaceCampaign, scenarioTalkingFailureMessage, scenarioTalkingJobIsActive,
+  scenarioTalkingStageLabel, toggleVendorSelection,
 } from "@/helpers/marketing-campaign-approval";
 import {
   EligibleAppFeature, EligibleMarketingEvent, EligibleMarketingVendor,
   marketingCampaignApiService, MarketingCampaign, MarketingCampaignDetail, AppFeatureSelection,
+  ScenarioTalkingGenerationJob,
 } from "@/services/marketing-campaign-api-service";
 
 const formatDate = (value?: string | null) => {
@@ -97,7 +99,7 @@ function CampaignDetails({ detail, loading, onClose }: {
             ) : null}
             {detail.scheduleText ? <div><h3 className="mb-2 font-semibold">Schedule</h3><pre className="whitespace-pre-wrap rounded-md border bg-slate-50 p-3 font-sans">{detail.scheduleText}</pre></div> : null}
             {detail.supportedServices?.length ? <div><h3 className="mb-2 font-semibold">Supported services</h3><p>{detail.supportedServices.join(" · ")}</p></div> : null}
-            {detail.creativeMode === "SCENARIO_TALKING" ? <section className="space-y-2 rounded-md border bg-slate-50 p-3"><h3 className="font-semibold">Scenario Talking POC</h3><dl className="grid gap-2 sm:grid-cols-2"><div><dt className="text-xs uppercase text-muted-foreground">Operator dialogue</dt><dd>{detail.scenarioTalking?.dialogue?.operator || "—"}</dd></div><div><dt className="text-xs uppercase text-muted-foreground">RDC guide dialogue</dt><dd>{detail.scenarioTalking?.dialogue?.guide || "—"}</dd></div><div><dt className="text-xs uppercase text-muted-foreground">Screenshot</dt><dd className="break-all">{detail.scenarioTalking?.screenshotKey || "—"}</dd></div><div><dt className="text-xs uppercase text-muted-foreground">Template</dt><dd>{detail.scenarioTalking?.templateId || "—"}</dd></div></dl></section> : null}
+            {detail.creativeMode === "SCENARIO_TALKING" ? <section className="space-y-2 rounded-md border bg-slate-50 p-3"><h3 className="font-semibold">Scenario Talking POC</h3><dl className="grid gap-2 sm:grid-cols-2"><div><dt className="text-xs uppercase text-muted-foreground">Operator dialogue</dt><dd>{detail.scenarioTalking?.dialogue?.operator || "—"}</dd></div><div><dt className="text-xs uppercase text-muted-foreground">RDC guide dialogue</dt><dd>{detail.scenarioTalking?.dialogue?.guide || "—"}</dd></div><div><dt className="text-xs uppercase text-muted-foreground">Proof narration</dt><dd>{detail.scenarioTalking?.dialogue?.proofNarration || "—"}</dd></div><div><dt className="text-xs uppercase text-muted-foreground">CTA narration</dt><dd>{detail.scenarioTalking?.dialogue?.ctaNarration || "—"}</dd></div><div><dt className="text-xs uppercase text-muted-foreground">Screenshot</dt><dd className="break-all">{detail.scenarioTalking?.screenshotKey || "—"}</dd></div><div><dt className="text-xs uppercase text-muted-foreground">Template</dt><dd>{detail.scenarioTalking?.templateId || "—"}</dd></div></dl></section> : null}
           </div>
         ) : null}
       </DialogContent>
@@ -110,6 +112,7 @@ export default function MarketingCampaignApprovalPage() {
   const { toast } = useToast();
   const [pending, setPending] = useState<MarketingCampaign[]>([]);
   const [approved, setApproved] = useState<MarketingCampaign[]>([]);
+  const [generationJobs, setGenerationJobs] = useState<ScenarioTalkingGenerationJob[]>([]);
   const [eligibleVendors, setEligibleVendors] = useState<EligibleMarketingVendor[]>([]);
   const [eligibleAppFeatures, setEligibleAppFeatures] = useState<EligibleAppFeature[]>([]);
   const [eligibleEvents, setEligibleEvents] = useState<EligibleMarketingEvent[]>([]);
@@ -140,13 +143,15 @@ export default function MarketingCampaignApprovalPage() {
     if (user?.userType !== "SUPER_ADMIN") { setLoading(false); return; }
     setLoading(true);
     try {
-      const [pendingResponse, approvedResponse, eligibleVendorResponse, featureResponse, eventResponse] = await Promise.all([
+      const [pendingResponse, approvedResponse, jobResponse, eligibleVendorResponse, featureResponse, eventResponse] = await Promise.all([
         marketingCampaignApiService.listPending(), marketingCampaignApiService.listApproved(),
+        marketingCampaignApiService.listGenerationJobs(),
         marketingCampaignApiService.listEligibleVendors(),
         marketingCampaignApiService.listEligibleAppFeatures(), marketingCampaignApiService.listEligibleEvents(),
       ]);
       setPending(pendingResponse.data.data.campaigns);
       setApproved(approvedResponse.data.data.campaigns);
+      setGenerationJobs(jobResponse.data.data.jobs);
       setEligibleVendors(eligibleVendorResponse.data.data.vendors);
       setEligibleAppFeatures(featureResponse.data.data.features);
       setEligibleEvents(eventResponse.data.data.events);
@@ -161,6 +166,7 @@ export default function MarketingCampaignApprovalPage() {
     .filter((campaign) => campaignRegenerationIsActive(campaign))
     .map((campaign) => campaign.campaignId), [pending]);
   const processingIdsKey = processingIds.join("|");
+  const activeTalkingJob = useMemo(() => generationJobs.some(scenarioTalkingJobIsActive), [generationJobs]);
   const featuresByAudience = useMemo(() => eligibleAppFeatures.reduce<Record<string, EligibleAppFeature[]>>(
     (groups, feature) => ({
       ...groups,
@@ -195,6 +201,21 @@ export default function MarketingCampaignApprovalPage() {
     }, 4000);
     return () => window.clearInterval(poll);
   }, [processingIdsKey, toast]);
+
+  useEffect(() => {
+    if (!activeTalkingJob) return;
+    const poll = window.setInterval(async () => {
+      try {
+        const [jobResponse, pendingResponse] = await Promise.all([
+          marketingCampaignApiService.listGenerationJobs(),
+          marketingCampaignApiService.listPending(),
+        ]);
+        setGenerationJobs(jobResponse.data.data.jobs);
+        setPending(pendingResponse.data.data.campaigns);
+      } catch { /* Keep the last visible stage and poll again. */ }
+    }, 4000);
+    return () => window.clearInterval(poll);
+  }, [activeTalkingJob]);
 
   const approveSelected = async () => {
     if (!approveTarget || campaignActionsDisabled(approveTarget, busyCampaignId)) return;
@@ -342,9 +363,15 @@ export default function MarketingCampaignApprovalPage() {
       toast({
         title: "Campaign generation queued",
         description: campaignType === "APP_FEATURE" && featureSelections.some(({ creativeMode }) => creativeMode === "SCENARIO_TALKING")
-          ? "App Feature work was queued. Talking People appears in Pending Campaigns only after its finished video is ready."
+          ? "Talking People generation is now visible under Generation Activity. It moves to Pending Campaigns only after the finished video is ready."
           : `${campaigns.length} ${campaignType === "APP_FEATURE" ? "App Feature" : "Event Promotion"} campaign${campaigns.length === 1 ? "" : "s"} added to Pending Campaigns.`,
       });
+      if (campaignType === "APP_FEATURE" && featureSelections.some(({ creativeMode }) => creativeMode === "SCENARIO_TALKING")) {
+        try {
+          const jobs = await marketingCampaignApiService.listGenerationJobs();
+          setGenerationJobs(jobs.data.data.jobs);
+        } catch { /* The page poll/load will recover the status view. */ }
+      }
     } catch (error) {
       toast({
         title: "Generation request failed",
@@ -405,6 +432,15 @@ export default function MarketingCampaignApprovalPage() {
       </div>
     </div>
     {loading ? <div className="flex justify-center rounded-md border bg-white p-12"><Loader2 className="h-7 w-7 animate-spin" /></div> : <>
+      {generationJobs.length ? <section className="rounded-md border bg-white">
+        <div className="p-4"><h2 className="text-lg font-semibold">Generation Activity ({generationJobs.length})</h2><p className="text-sm text-muted-foreground">Talking People videos stay here while footage and the final render are being prepared.</p></div>
+        <div className="border-t"><Table><TableHeader><TableRow><TableHead>Feature</TableHead><TableHead>Creative Type</TableHead><TableHead>Started</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>
+          {generationJobs.map((job) => {
+            const feature = eligibleAppFeatures.find((item) => item.featureKey === job.featureKey);
+            return <TableRow key={job.jobId}><TableCell className="font-medium">{feature?.featureName || campaignTypeLabel(job.featureKey)}</TableCell><TableCell>App Feature · Talking People</TableCell><TableCell>{formatDate(job.createdAt)}</TableCell><TableCell><div className="space-y-1"><Badge variant={job.status === "FAILED" ? "destructive" : "secondary"}>{scenarioTalkingStageLabel(job.stage)}</Badge>{job.status === "FAILED" ? <p className="max-w-80 text-xs text-muted-foreground">{scenarioTalkingFailureMessage(job)}</p> : <p className="text-xs text-muted-foreground">No action is needed. This page updates automatically.</p>}</div></TableCell></TableRow>;
+          })}
+        </TableBody></Table></div>
+      </section> : null}
       <Collapsible open={pendingOpen} onOpenChange={setPendingOpen} className="rounded-md border bg-white">
         <CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Pending Campaigns ({pending.length})</h2><p className="text-sm text-muted-foreground">Completed campaigns awaiting admin review.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${pendingOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger>
         <CollapsibleContent className="border-t">{renderTable(pending)}</CollapsibleContent>
@@ -510,14 +546,14 @@ export default function MarketingCampaignApprovalPage() {
                       ...current,
                       [feature.featureKey]: event.target.value as AppFeatureSelection["creativeMode"],
                     }))}
-                  ><option value="STANDARD_FEATURE">Standard ad</option><option value="SCENARIO_TALKING">Talking People video</option></select> : null}
+                  ><option value="STANDARD_FEATURE">Standard ad</option><option value="SCENARIO_TALKING" disabled={activeTalkingJob}>Talking People video{activeTalkingJob ? " — already generating" : ""}</option></select> : null}
                   {feature.generationBlocked ? <span className="text-xs text-muted-foreground">Campaign already exists</span> : null}
                 </label>;
               })}
             </section>
           ))}
         </div>
-        <p className="text-sm text-muted-foreground">Selected: {selectedFeatureKeys.length}. Standard ads use the existing feature workflow. Talking People uses the approved operator and guide voices, then appears here only after its finished video is ready.</p>
+        <p className="text-sm text-muted-foreground">Selected: {selectedFeatureKeys.length}. Standard ads use the existing feature workflow. Talking People uses the approved operator and guide voices, shows live progress under Generation Activity, then moves to Pending Campaigns when its finished video is ready.</p>
         <DialogFooter><Button variant="outline" onClick={() => setGenerateFeaturesOpen(false)} disabled={initialGenerating === "APP_FEATURE"}>Cancel</Button><Button onClick={() => void generateInitialCampaigns("APP_FEATURE")} disabled={Boolean(initialGenerating) || selectedFeatureKeys.length === 0}>{initialGenerating === "APP_FEATURE" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Generate Selected App Features</Button></DialogFooter>
       </DialogContent>
     </Dialog>

@@ -8,6 +8,9 @@ import {
   campaignCanApprove,
   campaignCanRegenerate,
   campaignApprovalEndpoints,
+  scenarioTalkingFailureMessage,
+  scenarioTalkingJobIsActive,
+  scenarioTalkingStageLabel,
   campaignRegenerationIsActive,
   campaignFailureMessage,
   campaignStatusIsFailure,
@@ -64,6 +67,7 @@ test("uses the required queue empty states", () => {
 test("uses the authenticated RTC backend campaign endpoints", () => {
   assert.equal(campaignApprovalEndpoints.pending, "/api/v1/marketing/campaigns/pending");
   assert.equal(campaignApprovalEndpoints.approved, "/api/v1/marketing/campaigns/approved");
+  assert.equal(campaignApprovalEndpoints.generationJobs, "/api/v1/marketing/campaigns/generation-jobs");
   assert.equal(campaignApprovalEndpoints.eligibleVendors, "/api/v1/marketing/campaigns/eligible-vendors");
   assert.equal(campaignApprovalEndpoints.eligibleAppFeatures, "/api/v1/marketing/campaigns/eligible-app-features");
   assert.equal(campaignApprovalEndpoints.eligibleEvents, "/api/v1/marketing/campaigns/eligible-events");
@@ -74,6 +78,18 @@ test("uses the authenticated RTC backend campaign endpoints", () => {
   assert.equal(campaignApprovalEndpoints.approve("one"), "/api/v1/marketing/campaigns/one/approve");
   assert.equal(campaignApprovalEndpoints.discard("one"), "/api/v1/marketing/campaigns/one/discard");
   assert.equal(campaignApprovalEndpoints.regenerate("one"), "/api/v1/marketing/campaigns/one/regenerate");
+});
+
+test("labels Talking People generation stages and safe failures", () => {
+  assert.equal(scenarioTalkingJobIsActive({ status: "PROCESSING" }), true);
+  assert.equal(scenarioTalkingJobIsActive({ status: "FAILED" }), false);
+  assert.equal(scenarioTalkingStageLabel("GUIDE_ANIMATION"), "Animating guide");
+  assert.equal(scenarioTalkingStageLabel("RENDERING"), "Rendering final video");
+  assert.equal(scenarioTalkingFailureMessage({
+    failureCode: "SCENARIO_TALKING_DIALOGUE_EXCEEDS_SCENE_DURATION",
+  }), "A spoken segment exceeded its scene duration.");
+  assert.equal(scenarioTalkingFailureMessage({ failureCode: "UNKNOWN" }),
+    "Talking People generation stopped safely. No automatic retry was submitted.");
 });
 
 test("creates a safe MP4 filename for pending and archived campaign downloads", () => {

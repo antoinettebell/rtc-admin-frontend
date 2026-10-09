@@ -27,6 +27,7 @@ export const emptyCampaignMessage = (section) => section === "approved"
 export const campaignApprovalEndpoints = Object.freeze({
   pending: "/api/v1/marketing/campaigns/pending",
   approved: "/api/v1/marketing/campaigns/approved",
+  generationJobs: "/api/v1/marketing/campaigns/generation-jobs",
   eligibleVendors: "/api/v1/marketing/campaigns/eligible-vendors",
   eligibleAppFeatures: "/api/v1/marketing/campaigns/eligible-app-features",
   eligibleEvents: "/api/v1/marketing/campaigns/eligible-events",
@@ -38,6 +39,34 @@ export const campaignApprovalEndpoints = Object.freeze({
   discard: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}/discard`,
   regenerate: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}/regenerate`,
 });
+
+export const SCENARIO_TALKING_ACTIVE_STATUSES = Object.freeze([
+  "QUEUED", "PROCESSING", "WAITING_FOR_RENDER",
+]);
+
+export const scenarioTalkingJobIsActive = (job) =>
+  SCENARIO_TALKING_ACTIVE_STATUSES.includes(job?.status);
+
+export const scenarioTalkingStageLabel = (stage) => ({
+  QUEUED: "Queued",
+  PREPARING_CONTENT: "Preparing content",
+  OPERATOR_VOICE: "Generating operator voice",
+  OPERATOR_ANIMATION: "Animating operator",
+  GUIDE_VOICE: "Generating guide voice",
+  GUIDE_ANIMATION: "Animating guide",
+  PROOF_NARRATION: "Generating proof narration",
+  CTA_NARRATION: "Generating CTA narration",
+  RENDERING: "Rendering final video",
+  FAILED: "Failed",
+}[stage] || "Processing");
+
+export const scenarioTalkingFailureMessage = (job) => ({
+  SCENARIO_TALKING_DIALOGUE_EXCEEDS_SCENE_DURATION: "A spoken segment exceeded its scene duration.",
+  SCENARIO_TALKING_TTS_FAILED: "Voice generation could not be completed.",
+  SCENARIO_TALKING_ANIMATION_FAILED: "Character animation could not be completed.",
+  SCENARIO_TALKING_RENDER_FAILED: "The final video render could not be completed.",
+  SCENARIO_TALKING_ASSET_UNAVAILABLE: "An approved campaign asset was unavailable.",
+}[job?.failureCode] || "Talking People generation stopped safely. No automatic retry was submitted.");
 
 export const campaignVideoDownloadName = (campaign) => {
   const business = String(campaign?.businessName || "vendor-spotlight")

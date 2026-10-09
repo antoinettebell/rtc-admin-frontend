@@ -48,7 +48,7 @@ export interface MarketingCampaignDetail extends MarketingCampaign {
     imageRotation: number;
   } | null;
   scenarioTalking: {
-    dialogue: { operator: string; guide: string } | null;
+    dialogue: { operator: string; guide: string; proofNarration?: string; ctaNarration?: string } | null;
     templateId: string | null;
     screenshotKey: string | null;
     media: unknown | null;
@@ -84,6 +84,24 @@ export interface AppFeatureSelection {
   creativeMode: "STANDARD_FEATURE" | "SCENARIO_TALKING";
 }
 
+export type ScenarioTalkingJobStatus = "QUEUED" | "PROCESSING" | "WAITING_FOR_RENDER" | "FAILED";
+export type ScenarioTalkingJobStage =
+  | "QUEUED" | "PREPARING_CONTENT" | "OPERATOR_VOICE" | "OPERATOR_ANIMATION"
+  | "GUIDE_VOICE" | "GUIDE_ANIMATION" | "PROOF_NARRATION" | "CTA_NARRATION"
+  | "RENDERING" | "FAILED";
+
+export interface ScenarioTalkingGenerationJob {
+  jobId: string;
+  campaignId: string;
+  featureKey: string;
+  creativeMode: "SCENARIO_TALKING";
+  status: ScenarioTalkingJobStatus;
+  stage: ScenarioTalkingJobStage;
+  failureCode: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface EligibleMarketingEvent {
   eventId: string;
   eventName: string;
@@ -105,6 +123,12 @@ class MarketingCampaignApiService extends BaseAPI {
   listApproved() {
     return this.get<IResponse<{ campaigns: MarketingCampaign[] }>>(
       campaignApprovalEndpoints.approved,
+    );
+  }
+
+  listGenerationJobs() {
+    return this.get<IResponse<{ jobs: ScenarioTalkingGenerationJob[] }>>(
+      campaignApprovalEndpoints.generationJobs,
     );
   }
 
