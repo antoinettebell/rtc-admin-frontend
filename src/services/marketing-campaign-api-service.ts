@@ -75,7 +75,13 @@ export interface EligibleAppFeature {
   featureKey: string;
   featureName: string;
   audience: string;
+  creativeModes: Array<"STANDARD_FEATURE" | "SCENARIO_TALKING">;
   generationBlocked: boolean;
+}
+
+export interface AppFeatureSelection {
+  featureKey: string;
+  creativeMode: "STANDARD_FEATURE" | "SCENARIO_TALKING";
 }
 
 export interface EligibleMarketingEvent {
@@ -127,10 +133,10 @@ class MarketingCampaignApiService extends BaseAPI {
     );
   }
 
-  generateAppFeatures(requestId: string, featureKeys: string[]) {
-    return this.post<IResponse<{ results: Array<{ action: string; campaign: MarketingCampaign | null }> }>>(
+  generateAppFeatures(requestId: string, featureSelections: AppFeatureSelection[]) {
+    return this.post<IResponse<{ results: Array<{ action: string; campaign: MarketingCampaign | null; jobId?: string; creativeMode?: string }> }>>(
       campaignApprovalEndpoints.generateAppFeatures,
-      { requestId, featureKeys },
+      { requestId, featureSelections },
     );
   }
 

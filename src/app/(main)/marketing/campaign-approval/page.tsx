@@ -29,7 +29,7 @@ import {
 } from "@/helpers/marketing-campaign-approval";
 import {
   EligibleAppFeature, EligibleMarketingEvent, EligibleMarketingVendor,
-  marketingCampaignApiService, MarketingCampaign, MarketingCampaignDetail,
+  marketingCampaignApiService, MarketingCampaign, MarketingCampaignDetail, AppFeatureSelection,
 } from "@/services/marketing-campaign-api-service";
 
 const formatDate = (value?: string | null) => {
@@ -115,6 +115,7 @@ export default function MarketingCampaignApprovalPage() {
   const [eligibleEvents, setEligibleEvents] = useState<EligibleMarketingEvent[]>([]);
   const [selectedVendorIds, setSelectedVendorIds] = useState<string[]>([]);
   const [selectedFeatureKeys, setSelectedFeatureKeys] = useState<string[]>([]);
+  const [selectedFeatureModes, setSelectedFeatureModes] = useState<Record<string, AppFeatureSelection["creativeMode"]>>({});
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
   const [selectedTruckUnitIds, setSelectedTruckUnitIds] = useState<Record<string, string[]>>({});
   const [pendingOpen, setPendingOpen] = useState(true);
@@ -307,8 +308,12 @@ export default function MarketingCampaignApprovalPage() {
         ? crypto.randomUUID()
         : `initial-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const requestId = initialRequestIds.current[campaignType];
+      const featureSelections: AppFeatureSelection[] = selectedFeatureKeys.map((featureKey) => ({
+        featureKey,
+        creativeMode: selectedFeatureModes[featureKey] ?? "STANDARD_FEATURE",
+      }));
       const response = campaignType === "APP_FEATURE"
-        ? await marketingCampaignApiService.generateAppFeatures(requestId, selected)
+        ? await marketingCampaignApiService.generateAppFeatures(requestId, featureSelections)
         : await marketingCampaignApiService.generateEvents(requestId, selected);
       const campaigns = response.data.data.results
         .map((result) => result.campaign)
@@ -318,10 +323,13 @@ export default function MarketingCampaignApprovalPage() {
       ));
       setPendingOpen(true);
       if (campaignType === "APP_FEATURE") {
-        const generated = new Set(selectedFeatureKeys);
+        const generated = new Set(featureSelections
+          .filter(({ creativeMode }) => creativeMode === "STANDARD_FEATURE")
+          .map(({ featureKey }) => featureKey));
         setEligibleAppFeatures((rows) => rows.map((row) => generated.has(row.featureKey)
           ? { ...row, generationBlocked: true } : row));
         setSelectedFeatureKeys([]);
+        setSelectedFeatureModes({});
         setGenerateFeaturesOpen(false);
       } else {
         const generated = new Set(selectedEventIds);
@@ -333,7 +341,9 @@ export default function MarketingCampaignApprovalPage() {
       delete initialRequestIds.current[campaignType];
       toast({
         title: "Campaign generation queued",
-        description: `${campaigns.length} ${campaignType === "APP_FEATURE" ? "App Feature" : "Event Promotion"} campaign${campaigns.length === 1 ? "" : "s"} added to Pending Campaigns.`,
+        description: campaignType === "APP_FEATURE" && featureSelections.some(({ creativeMode }) => creativeMode === "SCENARIO_TALKING")
+          ? "App Feature work was queued. Talking People appears in Pending Campaigns only after its finished video is ready."
+          : `${campaigns.length} ${campaignType === "APP_FEATURE" ? "App Feature" : "Event Promotion"} campaign${campaigns.length === 1 ? "" : "s"} added to Pending Campaigns.`,
       });
     } catch (error) {
       toast({
@@ -479,7 +489,7 @@ export default function MarketingCampaignApprovalPage() {
       setGenerateFeaturesOpen(open);
       if (!open && initialGenerating !== "APP_FEATURE") delete initialRequestIds.current.APP_FEATURE;
     }}>
-      <DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Generate App Feature Ads</DialogTitle><DialogDescription>Select one or more registered app features. Each feature creates one categorized campaign and remains pending until you approve it.</DialogDescription></DialogHeader>
+      <DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Generate App Feature Ads</DialogTitle><DialogDescription>Select one or more registered app features. Operations Dashboard and Controls can use either the standard ad or Talking People video format.</DialogDescription></DialogHeader>
         <div className="max-h-[55vh] space-y-4 overflow-y-auto rounded-md border p-3">
           {Object.entries(featuresByAudience).map(([audience, features]) => (
             <section key={audience} className="space-y-2"><h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{campaignTypeLabel(audience)}</h3>
@@ -490,13 +500,24 @@ export default function MarketingCampaignApprovalPage() {
                     setSelectedFeatureKeys((current) => toggleVendorSelection(current, feature.featureKey, value === true));
                   }} />
                   <span className="flex-1 font-medium">{feature.featureName}</span>
+                  {feature.creativeModes.includes("SCENARIO_TALKING") ? <select
+                    aria-label={`${feature.featureName} creative format`}
+                    className="h-8 rounded-md border bg-background px-2 text-xs"
+                    value={selectedFeatureModes[feature.featureKey] ?? "STANDARD_FEATURE"}
+                    disabled={feature.generationBlocked || initialGenerating === "APP_FEATURE"}
+                    onClick={(event) => event.stopPropagation()}
+                    onChange={(event) => setSelectedFeatureModes((current) => ({
+                      ...current,
+                      [feature.featureKey]: event.target.value as AppFeatureSelection["creativeMode"],
+                    }))}
+                  ><option value="STANDARD_FEATURE">Standard ad</option><option value="SCENARIO_TALKING">Talking People video</option></select> : null}
                   {feature.generationBlocked ? <span className="text-xs text-muted-foreground">Campaign already exists</span> : null}
                 </label>;
               })}
             </section>
           ))}
         </div>
-        <p className="text-sm text-muted-foreground">Selected: {selectedFeatureKeys.length}. Each selection creates one paid music generation and one paid video render.</p>
+        <p className="text-sm text-muted-foreground">Selected: {selectedFeatureKeys.length}. Standard ads use the existing feature workflow. Talking People uses the approved operator and guide voices, then appears here only after its finished video is ready.</p>
         <DialogFooter><Button variant="outline" onClick={() => setGenerateFeaturesOpen(false)} disabled={initialGenerating === "APP_FEATURE"}>Cancel</Button><Button onClick={() => void generateInitialCampaigns("APP_FEATURE")} disabled={Boolean(initialGenerating) || selectedFeatureKeys.length === 0}>{initialGenerating === "APP_FEATURE" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Generate Selected App Features</Button></DialogFooter>
       </DialogContent>
     </Dialog>
