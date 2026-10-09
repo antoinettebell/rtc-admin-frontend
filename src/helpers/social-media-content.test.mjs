@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { formatSocialContentCreative, formatSocialContentCta } from "./social-media-content.js";
+import { formatSocialContentCreative, formatSocialContentCta, socialContentCanApprove, socialContentVisibleInReview } from "./social-media-content.js";
 
 test("formats the persisted CTA type and text without deriving copy", () => {
   assert.equal(formatSocialContentCta({ type: "LINK", text: "Find vendors near you" }), "LINK — Find vendors near you");
@@ -38,4 +38,16 @@ test("keeps empty creative values visible and flags a required missing direction
     altText: "—",
     missingRequiredDirection: true,
   });
+});
+
+test("permits approval only when the final creative is attached", () => {
+  const base = { lifecycleStatus: "READY_FOR_APPROVAL", verificationComplete: true, contentPackage: { creative: { required: true } } };
+  assert.equal(socialContentCanApprove(base), false);
+  assert.equal(socialContentCanApprove({ ...base, creativeProduction: { status: "READY", finalAssetKey: null } }), false);
+  assert.equal(socialContentCanApprove({ ...base, creativeProduction: { status: "READY", finalAssetKey: "marketing-assets/generated/sma/final.mp4" } }), true);
+});
+
+test("removes rejected content from the active Admin review experience", () => {
+  assert.equal(socialContentVisibleInReview({ lifecycleStatus: "REJECTED" }), false);
+  assert.equal(socialContentVisibleInReview({ lifecycleStatus: "READY_FOR_APPROVAL" }), true);
 });

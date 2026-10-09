@@ -10,7 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import { formatSocialContentCreative, formatSocialContentCta } from "@/helpers/social-media-content";
+import { formatSocialContentCreative, formatSocialContentCta, socialContentCanApprove, socialContentVisibleInReview } from "@/helpers/social-media-content";
 import { useUser } from "@/hooks/use-user";
 import { SocialContentRecord, socialMediaContentApiService } from "@/services/social-media-content-api-service";
 
@@ -48,8 +48,9 @@ function ContentDetails({ record, previewUrls, onClose }: { record: SocialConten
             ["Content ID", record.contentId], ["Status", statusLabel(record.lifecycleStatus)], ["Approval", detailValue(publishing.approvalStatus)],
           ].map(([label, value]) => <div key={label} className="rounded-md border bg-slate-50 p-3"><dt className="text-xs font-medium uppercase text-muted-foreground">{label}</dt><dd className="mt-1 break-words font-medium">{value}</dd></div>)}
         </dl>
-        <section aria-label="Post Preview" className="space-y-4 rounded-md border bg-slate-50 p-4">
-          <h3 className="font-semibold">Post Preview</h3>
+        <section aria-label="Final Post" className="space-y-4 rounded-md border bg-slate-50 p-4">
+          <h3 className="font-semibold">Final Post</h3>
+          <CreativeAsset values={previewUrls} format={detailValue(content.format)} altText={creative.altText} />
           <div className="space-y-3 rounded-md border bg-white p-4">
             <DetailBlock label="Headline" value={content.headline} />
             <DetailBlock label="Caption" value={content.caption} />
@@ -71,7 +72,6 @@ function ContentDetails({ record, previewUrls, onClose }: { record: SocialConten
             ].map(([label, value]) => <div key={label} className="rounded-md border bg-white p-3"><dt className="text-xs font-medium uppercase text-muted-foreground">{label}</dt><dd className="mt-1 break-words font-medium">{value}</dd></div>)}
           </dl>
           <CreativeDetail label="Direction" value={creative.direction} />
-          <CreativeAsset values={previewUrls} format={detailValue(content.format)} altText={creative.altText} />
         </section>
         <section aria-label="Content Strategy" className="space-y-3 rounded-md border bg-slate-50 p-4">
           <h3 className="font-semibold">Content Strategy</h3>
@@ -133,8 +133,9 @@ export default function SocialMediaContentPage() {
   }, [toast, user?.userType]);
 
   useEffect(() => { void load(); }, [load]);
-  const pending = useMemo(() => records.filter((record) => ["CREATIVE_PRODUCTION", "VERIFICATION_REQUIRED", "READY_FOR_APPROVAL", "DRAFT", "FAILED"].includes(record.lifecycleStatus)), [records]);
-  const archived = useMemo(() => records.filter((record) => !pending.includes(record)), [pending, records]);
+  const visibleRecords = useMemo(() => records.filter(socialContentVisibleInReview), [records]);
+  const pending = useMemo(() => visibleRecords.filter((record) => ["CREATIVE_PRODUCTION", "VERIFICATION_REQUIRED", "READY_FOR_APPROVAL", "DRAFT", "FAILED"].includes(record.lifecycleStatus)), [visibleRecords]);
+  const archived = useMemo(() => visibleRecords.filter((record) => !pending.includes(record)), [pending, visibleRecords]);
   const replace = (next: SocialContentRecord) => setRecords((current) => [next, ...current.filter((record) => record.contentId !== next.contentId)]);
 
   const generate = async () => {
@@ -194,12 +195,13 @@ export default function SocialMediaContentPage() {
     ? <div className="p-8 text-center text-sm text-muted-foreground">No social content in this section yet.</div>
     : <Table><TableHeader><TableRow><TableHead>Brand</TableHead><TableHead>Topic</TableHead><TableHead>Format</TableHead><TableHead>Created</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>{items.map((record) => {
       const disabled = busyId === record.contentId;
+      const canApprove = socialContentCanApprove(record);
       const decision = record.contentPackage.decision || {}; const content = record.contentPackage.content || {};
       return <TableRow key={record.contentId}><TableCell className="font-medium">{record.brandCode}</TableCell><TableCell>{detailValue(decision.topic)}</TableCell><TableCell>{detailValue(content.format)}</TableCell><TableCell>{formatDate(record.createdAt)}</TableCell><TableCell><Badge variant={record.lifecycleStatus === "FAILED" ? "destructive" : "secondary"}>{statusLabel(record.lifecycleStatus)}</Badge></TableCell><TableCell><div className="flex flex-wrap justify-end gap-2">
         <Button size="sm" variant="outline" onClick={() => void openDetails(record)}><FileText className="mr-1 h-4 w-4" /> View Details</Button>
         {!readOnly && record.brandCode === "RTC" && record.lifecycleStatus === "CREATIVE_PRODUCTION" && record.creativeProduction?.status === "FAILED" ? <Button size="sm" variant="outline" disabled={disabled} onClick={() => setRegenerateTarget(record)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate Final Creative</Button> : null}
         {!readOnly && record.lifecycleStatus === "VERIFICATION_REQUIRED" ? <Button size="sm" variant="outline" disabled={disabled} onClick={() => void completeVerification(record)}><CheckCircle2 className="mr-1 h-4 w-4" /> Complete Verification</Button> : null}
-        {!readOnly && record.lifecycleStatus === "READY_FOR_APPROVAL" ? <><Button size="sm" variant="destructive" disabled={disabled} onClick={() => void reject(record)}><XCircle className="mr-1 h-4 w-4" /> Reject</Button><Button size="sm" disabled={disabled} onClick={() => setApproveTarget(record)}>Approve</Button></> : null}
+        {!readOnly && record.lifecycleStatus === "READY_FOR_APPROVAL" ? <><Button size="sm" variant="destructive" disabled={disabled} onClick={() => void reject(record)}><XCircle className="mr-1 h-4 w-4" /> Reject</Button><Button size="sm" disabled={disabled || !canApprove} onClick={() => setApproveTarget(record)}>Approve</Button></> : null}
       </div></TableCell></TableRow>;
     })}</TableBody></Table>;
 

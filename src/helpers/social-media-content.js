@@ -20,3 +20,10 @@ export const formatSocialContentCreative = (creative) => {
     missingRequiredDirection: required && direction === "—",
   };
 };
+
+export const socialContentCanApprove = (record) => record?.lifecycleStatus === "READY_FOR_APPROVAL" &&
+  record?.verificationComplete === true &&
+  (record?.contentPackage?.creative?.required !== true ||
+    (record?.creativeProduction?.status === "READY" && Boolean(record?.creativeProduction?.finalAssetKey)));
+
+export const socialContentVisibleInReview = (record) => record?.lifecycleStatus !== "REJECTED";

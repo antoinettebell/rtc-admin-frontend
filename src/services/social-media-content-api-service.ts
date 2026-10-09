@@ -21,7 +21,7 @@ export interface SocialContentRecord {
   updatedAt: string;
   approvedBy: string | null;
   rejectedBy: string | null;
-  creativeProduction?: { status?: string; failure?: { code?: string }; finalAssetKey?: string | null };
+  creativeProduction?: { status?: string; failure?: { code?: string }; finalAssetKey?: string | null; finalAssets?: Array<{ key?: string; slideNumber?: number | null }> };
   contentPackage: {
     decision?: Record<string, unknown>;
     content?: Record<string, unknown>;
