@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { formatSocialContentCreative, formatSocialContentCta, socialContentCanApprove, socialContentCanReject, socialContentCreativeProductionIsActive, socialContentSafeFailureCode, socialContentVisibleInReview } from "./social-media-content.js";
+import { formatSocialContentCreative, formatSocialContentCta, socialContentActionsDisabled, socialContentCanApprove, socialContentCanRegenerate, socialContentCanReject, socialContentCreativeProductionIsActive, socialContentSafeFailureCode, socialContentStatusLabel, socialContentVisibleInReview } from "./social-media-content.js";
 
 test("formats the persisted CTA type and text without deriving copy", () => {
   assert.equal(formatSocialContentCta({ type: "LINK", text: "Find vendors near you" }), "LINK — Find vendors near you");
@@ -59,8 +59,23 @@ test("polls only while final creative production is active", () => {
   assert.equal(socialContentCreativeProductionIsActive({ lifecycleStatus: "CREATIVE_PRODUCTION", creativeProduction: { status: "FAILED" } }), false);
 });
 
-test("allows pending creative production to be rejected from review", () => {
-  assert.equal(socialContentCanReject({ lifecycleStatus: "CREATIVE_PRODUCTION" }), true);
+test("disables review actions while final creative production is active", () => {
+  const queued = { contentId: "one", brandCode: "RTC", lifecycleStatus: "CREATIVE_PRODUCTION", creativeProduction: { status: "QUEUED" } };
+  const rendering = { ...queued, creativeProduction: { status: "RENDERING" } };
+  assert.equal(socialContentActionsDisabled(queued), true);
+  assert.equal(socialContentActionsDisabled(rendering), true);
+  assert.equal(socialContentCanRegenerate(queued), false);
+  assert.equal(socialContentCanReject(queued), false);
+  assert.equal(socialContentStatusLabel(queued), "Preparing Final Preview");
+  assert.equal(socialContentStatusLabel(rendering), "Creating Final Preview");
+});
+
+test("enables only appropriate review actions after production resolves", () => {
+  const failed = { contentId: "one", brandCode: "RTC", lifecycleStatus: "CREATIVE_PRODUCTION", creativeProduction: { status: "FAILED" } };
+  assert.equal(socialContentActionsDisabled(failed), false);
+  assert.equal(socialContentCanRegenerate(failed), true);
+  assert.equal(socialContentCanReject(failed), true);
+  assert.equal(socialContentStatusLabel(failed), "Needs Attention");
   assert.equal(socialContentCanReject({ lifecycleStatus: "VERIFICATION_REQUIRED" }), true);
   assert.equal(socialContentCanReject({ lifecycleStatus: "READY_FOR_APPROVAL" }), true);
   assert.equal(socialContentCanReject({ lifecycleStatus: "APPROVED" }), false);

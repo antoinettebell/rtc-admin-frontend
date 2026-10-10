@@ -33,7 +33,34 @@ export const socialContentCreativeProductionIsActive = (record) =>
   ["QUEUED", "RENDERING"].includes(record?.creativeProduction?.status);
 
 export const socialContentCanReject = (record) =>
-  ["CREATIVE_PRODUCTION", "VERIFICATION_REQUIRED", "READY_FOR_APPROVAL"].includes(record?.lifecycleStatus);
+  record?.lifecycleStatus === "READY_FOR_APPROVAL" ||
+  record?.lifecycleStatus === "VERIFICATION_REQUIRED" ||
+  (record?.lifecycleStatus === "CREATIVE_PRODUCTION" && record?.creativeProduction?.status === "FAILED");
+
+export const socialContentCanRegenerate = (record) => record?.brandCode === "RTC" &&
+  (record?.creativeProduction?.status === "FAILED" || socialContentCanApprove(record));
+
+export const socialContentActionsDisabled = (record, busyId = null) =>
+  socialContentCreativeProductionIsActive(record) || busyId === record?.contentId;
+
+export const socialContentStatusLabel = (record) => {
+  if (record?.lifecycleStatus === "CREATIVE_PRODUCTION") {
+    if (record?.creativeProduction?.status === "FAILED") return "Needs Attention";
+    if (record?.creativeProduction?.status === "QUEUED") return "Preparing Final Preview";
+    if (record?.creativeProduction?.status === "RENDERING") return "Creating Final Preview";
+  }
+  return ({
+    DRAFT: "Draft",
+    CREATIVE_PRODUCTION: "Creating Final Preview",
+    VERIFICATION_REQUIRED: "Verification Required",
+    READY_FOR_APPROVAL: "Pending Approval",
+    APPROVED: "Approved",
+    REJECTED: "Rejected",
+    SCHEDULED: "Scheduled",
+    PUBLISHED: "Published",
+    FAILED: "Needs Attention",
+  })[record?.lifecycleStatus] || String(record?.lifecycleStatus || "Unknown");
+};
 
 export const socialContentSafeFailureCode = (error) => {
   const code = error?.response?.data?.data?.error?.code;
