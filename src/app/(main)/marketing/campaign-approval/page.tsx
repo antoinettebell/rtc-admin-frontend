@@ -23,7 +23,7 @@ import { useUser } from "@/hooks/use-user";
 import {
   approveCampaignState, campaignActionsDisabled, campaignCanApprove, campaignTypeLabel, emptyCampaignMessage,
   campaignFailureMessage, campaignRegenerationIsActive, campaignStatusIsFailure, campaignStatusLabel,
-  campaignVideoDownloadName, discardCampaignState, discardConfirmationMessage,
+  campaignVideoDownloadName, deleteApprovedCampaignState, discardCampaignState, discardConfirmationMessage,
   discardFailureMessage, generationRequestFailureMessage, preserveUsableRendition, reasonLabel,
   replaceCampaign, toggleVendorSelection,
 } from "@/helpers/marketing-campaign-approval";
@@ -255,6 +255,19 @@ export default function MarketingCampaignApprovalPage() {
     } finally { setBusyCampaignId(null); }
   };
 
+  const deleteApproved = async (campaign: MarketingCampaign) => {
+    if (busyCampaignId || !window.confirm(`Delete "${campaign.businessName}" from approved campaigns?\n\nThis cannot delete a vendor, event, source asset, or published social post.`)) return;
+    setBusyCampaignId(campaign.campaignId);
+    try {
+      await marketingCampaignApiService.deleteApproved(campaign.campaignId);
+      setApproved((rows) => deleteApprovedCampaignState(rows, campaign.campaignId));
+      toast({ title: "Approved campaign deleted", description: "It will not be picked up for future distribution." });
+    } catch (error: any) {
+      const distributed = error?.response?.data?.data?.error?.code === "CAMPAIGN_DISTRIBUTION_ALREADY_STARTED";
+      toast({ title: "Delete failed", description: distributed ? "This campaign has already entered Metricool distribution and was preserved for audit." : "The approved campaign was preserved. Please try again.", variant: "destructive" });
+    } finally { setBusyCampaignId(null); }
+  };
+
   const generateVendorSpotlights = async () => {
     if (generating) return;
     setGenerating(true);
@@ -379,7 +392,7 @@ export default function MarketingCampaignApprovalPage() {
             <Button size="sm" variant="outline" disabled={disabled} onClick={() => setRegenerateTarget(campaign)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate</Button>
             <Button size="sm" variant="destructive" disabled={disabled} onClick={() => void discardSelected(campaign)}><Trash2 className="mr-1 h-4 w-4" /> Discard</Button>
             <Button size="sm" disabled={disabled || !campaignCanApprove(campaign)} onClick={() => setApproveTarget(campaign)}>Archive / Approve</Button>
-          </> : null}
+          </> : <Button size="sm" variant="destructive" disabled={Boolean(busyCampaignId)} onClick={() => void deleteApproved(campaign)}><Trash2 className="mr-1 h-4 w-4" /> Delete</Button>}
         </div></TableCell>
       </TableRow>;
     })}</TableBody></Table>

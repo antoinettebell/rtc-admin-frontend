@@ -65,6 +65,13 @@ class SocialMediaContentApiService extends BaseAPI {
     );
   }
 
+  deleteApproved(contentId: string) {
+    return this.delete<IResponse<{ content: SocialContentRecord }>>(
+      `/api/v1/marketing/social-content/${encodeURIComponent(contentId)}/approved`,
+      { timeout: 20_000 },
+    );
+  }
+
   regenerateCreative(contentId: string) {
     return this.post<IResponse<{ content: SocialContentRecord }>>(
       `/api/v1/marketing/social-content/${encodeURIComponent(contentId)}/creative/regenerate`,

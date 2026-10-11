@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronDown, FileText, Loader2, Plus, RefreshCw, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronDown, FileText, Loader2, Plus, RefreshCw, Trash2, XCircle } from "lucide-react";
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -183,6 +183,18 @@ export default function SocialMediaContentPage() {
     catch { toast({ title: "Rejection failed", description: "The package remains in its current state.", variant: "destructive" }); }
     finally { setBusyId(null); }
   };
+  const deleteApproved = async (record: SocialContentRecord) => {
+    if (busyId || !window.confirm("Delete this approved social package?\n\nThis cannot delete source assets or an already-published social post.")) return;
+    setBusyId(record.contentId);
+    try {
+      await socialMediaContentApiService.deleteApproved(record.contentId);
+      setRecords((current) => current.filter((item) => item.contentId !== record.contentId));
+      toast({ title: "Approved social content deleted", description: "It will not be picked up for future distribution." });
+    } catch (error: any) {
+      const distributed = error?.response?.data?.data?.error?.code === "SMA_DISTRIBUTION_ALREADY_STARTED";
+      toast({ title: "Delete failed", description: distributed ? "This content has already entered Metricool distribution and was preserved for audit." : "The approved package was preserved. Please try again.", variant: "destructive" });
+    } finally { setBusyId(null); }
+  };
 
   const openDetails = async (record: SocialContentRecord) => {
     setDetails(record); setPreviewUrls([]);
@@ -204,7 +216,7 @@ export default function SocialMediaContentPage() {
         {!readOnly ? <Button size="sm" variant="outline" disabled={disabled || !canRegenerate} onClick={() => setRegenerateTarget(record)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate</Button> : null}
         {!readOnly && record.lifecycleStatus === "VERIFICATION_REQUIRED" ? <Button size="sm" variant="outline" disabled={disabled} onClick={() => void completeVerification(record)}><CheckCircle2 className="mr-1 h-4 w-4" /> Complete Verification</Button> : null}
         {!readOnly ? <Button size="sm" variant="destructive" disabled={disabled || !canReject} onClick={() => void reject(record)}><XCircle className="mr-1 h-4 w-4" /> Reject</Button> : null}
-        {!readOnly ? <Button size="sm" disabled={disabled || !canApprove} onClick={() => setApproveTarget(record)}>Approve</Button> : null}
+        {!readOnly ? <Button size="sm" disabled={disabled || !canApprove} onClick={() => setApproveTarget(record)}>Approve</Button> : <Button size="sm" variant="destructive" disabled={Boolean(busyId)} onClick={() => void deleteApproved(record)}><Trash2 className="mr-1 h-4 w-4" /> Delete</Button>}
       </div></TableCell></TableRow>;
     })}</TableBody></Table>;
 

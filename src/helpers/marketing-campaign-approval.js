@@ -36,6 +36,7 @@ export const campaignApprovalEndpoints = Object.freeze({
   details: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}`,
   approve: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}/approve`,
   discard: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}/discard`,
+  deleteApproved: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}/approved`,
   regenerate: (campaignId) => `/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}/regenerate`,
 });
 
@@ -62,6 +63,9 @@ export const approveCampaignState = (pending, approved, campaign) => ({
 
 export const discardCampaignState = (pending, campaignId) =>
   pending.filter((item) => item.campaignId !== campaignId);
+
+export const deleteApprovedCampaignState = (approved, campaignId) =>
+  approved.filter((item) => item.campaignId !== campaignId);
 
 export const discardConfirmationMessage = (campaign) =>
   `Discard "${String(campaign?.businessName || "this campaign")}"?\n\n` +

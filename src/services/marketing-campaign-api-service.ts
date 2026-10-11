@@ -154,6 +154,13 @@ class MarketingCampaignApiService extends BaseAPI {
     );
   }
 
+  deleteApproved(campaignId: string) {
+    return this.delete<IResponse<{ campaign: MarketingCampaign }>>(
+      campaignApprovalEndpoints.deleteApproved(campaignId),
+      { timeout: 20_000 },
+    );
+  }
+
   regenerate(campaignId: string, reason: string) {
     return this.post<IResponse<{ result: {
       action: string;
