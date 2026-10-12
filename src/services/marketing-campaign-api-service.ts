@@ -31,6 +31,8 @@ export interface MarketingCampaign {
   regenerationFailure: { code: string; stage: string | null } | null;
   nextRetryAt: string | null;
   regenerationCount: number;
+  distribution?: import("@/components/marketing/publishing-dashboard").PublishingDistribution | null;
+  publishingDashboard?: { attempts?: import("@/components/marketing/publishing-dashboard").PublishingAttempt[] };
 }
 
 export interface MarketingCampaignDetail extends MarketingCampaign {
@@ -160,6 +162,7 @@ class MarketingCampaignApiService extends BaseAPI {
       { timeout: 20_000 },
     );
   }
+  requeue(campaignId: string) { return this.post<IResponse<{ campaign: MarketingCampaign }>>(`/api/v1/marketing/campaigns/${encodeURIComponent(campaignId)}/requeue`); }
 
   regenerate(campaignId: string, reason: string) {
     return this.post<IResponse<{ result: {

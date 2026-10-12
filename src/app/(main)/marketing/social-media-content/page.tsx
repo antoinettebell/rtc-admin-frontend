@@ -13,12 +13,16 @@ import { useToast } from "@/components/ui/use-toast";
 import { formatSocialContentCreative, formatSocialContentCta, socialContentActionsDisabled, socialContentCanApprove, socialContentCanRegenerate, socialContentCanReject, socialContentCreativeProductionIsActive, socialContentSafeFailureCode, socialContentStatusLabel, socialContentVisibleInReview } from "@/helpers/social-media-content";
 import { useUser } from "@/hooks/use-user";
 import { SocialContentRecord, SocialContentRequestedFormat, socialMediaContentApiService } from "@/services/social-media-content-api-service";
+import { PublishingDashboard } from "@/components/marketing/publishing-dashboard";
 
 const formatDate = (value?: string | null) => value && !Number.isNaN(new Date(value).getTime())
   ? new Date(value).toLocaleString() : "—";
 
 const detailValue = (value: unknown) => typeof value === "string" || typeof value === "number"
   ? String(value) : "—";
+const ACTIVE_DISTRIBUTION = new Set(["CLAIMED", "RESERVED", "QUEUED", "PUBLISHING", "RECONCILING", "RECONCILIATION_PENDING"]);
+const COMPLETED_DISTRIBUTION = new Set(["PUBLISHED", "PARTIALLY_PUBLISHED", "ABORTED"]);
+const distributionStatus = (record: SocialContentRecord) => record.distribution?.status || "NOT_SENT";
 
 function ContentDetails({ record, previewUrls, onClose }: { record: SocialContentRecord | null; previewUrls: string[]; onClose: () => void }) {
   const pkg = record?.contentPackage;
@@ -72,6 +76,7 @@ function ContentDetails({ record, previewUrls, onClose }: { record: SocialConten
           <CreativeDetail label="Core Message" value={detailValue(decision.coreMessage)} />
           <CreativeDetail label="Reason for Selection" value={detailValue(decision.reasonForSelection)} />
         </section>
+        <PublishingDashboard distribution={record.distribution} attempts={record.publishingDashboard?.attempts} />
       </div> : null}
     </DialogContent>
   </Dialog>;
@@ -109,27 +114,31 @@ export default function SocialMediaContentPage() {
   const [regenerateTarget, setRegenerateTarget] = useState<SocialContentRecord | null>(null);
   const [pendingOpen, setPendingOpen] = useState(true);
   const [approvedOpen, setApprovedOpen] = useState(false);
+  const [distributionOpen, setDistributionOpen] = useState(true);
+  const [completedOpen, setCompletedOpen] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (showLoading = true) => {
     if (user?.userType !== "SUPER_ADMIN") { setLoading(false); return; }
-    setLoading(true);
+    if (showLoading) setLoading(true);
     try {
       const response = await socialMediaContentApiService.list();
       setRecords(response.data.data.content || []);
     } catch {
       toast({ title: "Social content load failed", description: "The social content review queue could not be loaded.", variant: "destructive" });
-    } finally { setLoading(false); }
+    } finally { if (showLoading) setLoading(false); }
   }, [toast, user?.userType]);
 
   useEffect(() => { void load(); }, [load]);
   const visibleRecords = useMemo(() => records.filter(socialContentVisibleInReview), [records]);
   const pending = useMemo(() => visibleRecords.filter((record) => ["CREATIVE_PRODUCTION", "VERIFICATION_REQUIRED", "READY_FOR_APPROVAL", "DRAFT", "FAILED"].includes(record.lifecycleStatus)), [visibleRecords]);
-  const archived = useMemo(() => visibleRecords.filter((record) => !pending.includes(record)), [pending, visibleRecords]);
+  const approved = useMemo(() => visibleRecords.filter((record) => record.lifecycleStatus === "APPROVED" && !ACTIVE_DISTRIBUTION.has(distributionStatus(record)) && !COMPLETED_DISTRIBUTION.has(distributionStatus(record))), [visibleRecords]);
+  const distributing = useMemo(() => visibleRecords.filter((record) => ACTIVE_DISTRIBUTION.has(distributionStatus(record))), [visibleRecords]);
+  const completed = useMemo(() => visibleRecords.filter((record) => COMPLETED_DISTRIBUTION.has(distributionStatus(record))), [visibleRecords]);
   const activeCreativeProduction = useMemo(() => records.some(socialContentCreativeProductionIsActive), [records]);
 
   useEffect(() => {
     if (!activeCreativeProduction) return;
-    const poll = window.setInterval(() => { void load(); }, 4000);
+    const poll = window.setInterval(() => { void load(false); }, 4000);
     return () => window.clearInterval(poll);
   }, [activeCreativeProduction, load]);
 
@@ -195,6 +204,13 @@ export default function SocialMediaContentPage() {
       toast({ title: "Delete failed", description: distributed ? "This content has already entered Metricool distribution and was preserved for audit." : "The approved package was preserved. Please try again.", variant: "destructive" });
     } finally { setBusyId(null); }
   };
+  const requeue = async (record: SocialContentRecord) => {
+    if (busyId || !window.confirm("Requeue this completed content using its existing media and copy?")) return;
+    setBusyId(record.contentId);
+    try { replace((await socialMediaContentApiService.requeue(record.contentId)).data.data.content); toast({ title: "Content requeued", description: "Existing media will be reused; no creative-generation provider was called." }); }
+    catch { toast({ title: "Requeue failed", description: "The completed attempt was preserved.", variant: "destructive" }); }
+    finally { setBusyId(null); }
+  };
 
   const openDetails = async (record: SocialContentRecord) => {
     setDetails(record); setPreviewUrls([]);
@@ -211,18 +227,21 @@ export default function SocialMediaContentPage() {
       const canReject = socialContentCanReject(record);
       const failureCode = record.creativeProduction?.status === "FAILED" ? record.creativeProduction?.failure?.code : null;
       const decision = record.contentPackage.decision || {}; const content = record.contentPackage.content || {};
-      return <TableRow key={record.contentId}><TableCell className="font-medium">{record.brandCode}</TableCell><TableCell>{detailValue(decision.topic)}</TableCell><TableCell>{detailValue(content.format)}</TableCell><TableCell>{formatDate(record.createdAt)}</TableCell><TableCell><div className="space-y-1"><Badge variant={failureCode || record.lifecycleStatus === "FAILED" ? "destructive" : "secondary"}>{socialContentStatusLabel(record)}</Badge>{failureCode ? <p className="max-w-56 text-xs text-muted-foreground">Failure: {failureCode}</p> : null}</div></TableCell><TableCell><div className="flex flex-wrap justify-end gap-2">
+      const distStatus = distributionStatus(record);
+      return <TableRow key={record.contentId}><TableCell className="font-medium">{record.brandCode}</TableCell><TableCell>{detailValue(decision.topic)}</TableCell><TableCell>{detailValue(content.format)}</TableCell><TableCell>{formatDate(record.createdAt)}</TableCell><TableCell><div className="space-y-1"><Badge variant={failureCode || record.lifecycleStatus === "FAILED" || record.distribution?.error ? "destructive" : "secondary"}>{distStatus !== "NOT_SENT" ? distStatus : socialContentStatusLabel(record)}</Badge>{record.distribution?.attemptNumber ? <p className="text-xs text-muted-foreground">Attempt {record.distribution.attemptNumber}</p> : null}{record.distribution?.error?.code ? <p className="max-w-56 text-xs text-muted-foreground">Error: {record.distribution.error.code}</p> : failureCode ? <p className="max-w-56 text-xs text-muted-foreground">Failure: {failureCode}</p> : null}</div></TableCell><TableCell><div className="flex flex-wrap justify-end gap-2">
         <Button size="sm" variant="outline" onClick={() => void openDetails(record)}><FileText className="mr-1 h-4 w-4" /> View Details</Button>
         {!readOnly ? <Button size="sm" variant="outline" disabled={disabled || !canRegenerate} onClick={() => setRegenerateTarget(record)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate</Button> : null}
         {!readOnly && record.lifecycleStatus === "VERIFICATION_REQUIRED" ? <Button size="sm" variant="outline" disabled={disabled} onClick={() => void completeVerification(record)}><CheckCircle2 className="mr-1 h-4 w-4" /> Complete Verification</Button> : null}
         {!readOnly ? <Button size="sm" variant="destructive" disabled={disabled || !canReject} onClick={() => void reject(record)}><XCircle className="mr-1 h-4 w-4" /> Reject</Button> : null}
-        {!readOnly ? <Button size="sm" disabled={disabled || !canApprove} onClick={() => setApproveTarget(record)}>Approve</Button> : <Button size="sm" variant="destructive" disabled={Boolean(busyId)} onClick={() => void deleteApproved(record)}><Trash2 className="mr-1 h-4 w-4" /> Delete</Button>}
+        {!readOnly ? <Button size="sm" disabled={disabled || !canApprove} onClick={() => setApproveTarget(record)}>Approve</Button> : COMPLETED_DISTRIBUTION.has(distributionStatus(record)) ? <Button size="sm" variant="outline" disabled={Boolean(busyId)} onClick={() => void requeue(record)}><RefreshCw className="mr-1 h-4 w-4" /> Requeue</Button> : !ACTIVE_DISTRIBUTION.has(distributionStatus(record)) ? <Button size="sm" variant="destructive" disabled={Boolean(busyId)} onClick={() => void deleteApproved(record)}><Trash2 className="mr-1 h-4 w-4" /> Delete</Button> : null}
       </div></TableCell></TableRow>;
     })}</TableBody></Table>;
 
   return <div className="space-y-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Social Media Content</h1><p className="text-sm text-muted-foreground">Generate and review social packages separately from Creative Engine advertisements. Approval never schedules or publishes.</p></div><Button onClick={() => setGenerateConfirmOpen(true)} disabled={generating}><Plus className="mr-2 h-4 w-4" /> Generate RTC Social Content</Button></div>
     {loading ? <div className="flex justify-center rounded-md border bg-white p-12"><Loader2 className="h-7 w-7 animate-spin" /></div> : <><Collapsible open={pendingOpen} onOpenChange={setPendingOpen} className="rounded-md border bg-white"><CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Pending Social Content ({pending.length})</h2><p className="text-sm text-muted-foreground">Verification and approval queue.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${pendingOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger><CollapsibleContent className="border-t">{renderTable(pending)}</CollapsibleContent></Collapsible>
-      <Collapsible open={approvedOpen} onOpenChange={setApprovedOpen} className="rounded-md border bg-white"><CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Approved / History ({archived.length})</h2><p className="text-sm text-muted-foreground">For review only; scheduling and publishing are not available here.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${approvedOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger><CollapsibleContent className="border-t">{renderTable(archived, true)}</CollapsibleContent></Collapsible></>}
+      <Collapsible open={approvedOpen} onOpenChange={setApprovedOpen} className="rounded-md border bg-white"><CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Approved ({approved.length})</h2><p className="text-sm text-muted-foreground">Approved content waiting for Azure pickup, plus distribution errors requiring attention.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${approvedOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger><CollapsibleContent className="border-t">{renderTable(approved, true)}</CollapsibleContent></Collapsible>
+      <Collapsible open={distributionOpen} onOpenChange={setDistributionOpen} className="rounded-md border bg-white"><CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Distribution in Progress ({distributing.length})</h2><p className="text-sm text-muted-foreground">Content already sent to Azure and Metricool.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${distributionOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger><CollapsibleContent className="border-t">{renderTable(distributing, true)}</CollapsibleContent></Collapsible>
+      <Collapsible open={completedOpen} onOpenChange={setCompletedOpen} className="rounded-md border bg-white"><CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Published / Completed ({completed.length})</h2><p className="text-sm text-muted-foreground">Published, partially published, and aborted attempts.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${completedOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger><CollapsibleContent className="border-t">{renderTable(completed, true)}</CollapsibleContent></Collapsible></>}
     <ContentDetails record={details} previewUrls={previewUrls} onClose={() => { setDetails(null); setPreviewUrls([]); }} />
     <AlertDialog open={generateConfirmOpen} onOpenChange={setGenerateConfirmOpen}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Generate RTC social content?</AlertDialogTitle><AlertDialogDescription>Choose the final post type. OpenAI will create governed copy and direction for this format, then the finished creative will enter the approval queue. Nothing is scheduled or published automatically.</AlertDialogDescription></AlertDialogHeader><div className="space-y-2"><label htmlFor="social-content-format" className="text-sm font-medium">Post type</label><select id="social-content-format" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={requestedFormat} disabled={generating} onChange={(event) => setRequestedFormat(event.target.value as SocialContentRequestedFormat)}><option value="IMAGE_POST">Photo</option><option value="CAROUSEL">Carousel</option><option value="SHORT_VIDEO">Video</option></select></div><AlertDialogFooter><AlertDialogCancel disabled={generating}>Cancel</AlertDialogCancel><AlertDialogAction disabled={generating} onClick={() => void generate()}>{generating ? "Generating…" : `Generate ${requestedFormat === "IMAGE_POST" ? "Photo" : requestedFormat === "CAROUSEL" ? "Carousel" : "Video"}`}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     <AlertDialog open={Boolean(approveTarget)} onOpenChange={(open) => !open && setApproveTarget(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Approve this social package?</AlertDialogTitle><AlertDialogDescription>This records approval only. It does not create a schedule, publish, or contact Metricool.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction disabled={Boolean(busyId)} onClick={() => void approve()}>Approve</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>

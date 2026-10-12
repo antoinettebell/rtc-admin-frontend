@@ -31,12 +31,16 @@ import {
   EligibleAppFeature, EligibleMarketingEvent, EligibleMarketingVendor,
   marketingCampaignApiService, MarketingCampaign, MarketingCampaignDetail,
 } from "@/services/marketing-campaign-api-service";
+import { PublishingDashboard } from "@/components/marketing/publishing-dashboard";
 
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
 };
+const ACTIVE_DISTRIBUTION = new Set(["CLAIMED", "RESERVED", "QUEUED", "PUBLISHING", "RECONCILING", "RECONCILIATION_PENDING"]);
+const COMPLETED_DISTRIBUTION = new Set(["PUBLISHED", "PARTIALLY_PUBLISHED", "ABORTED"]);
+const distributionStatus = (campaign: MarketingCampaign) => campaign.distribution?.status || "NOT_SENT";
 
 function CampaignPreview({ campaign, onClose }: { campaign: MarketingCampaign | null; onClose: () => void }) {
   return (
@@ -97,6 +101,7 @@ function CampaignDetails({ detail, loading, onClose }: {
             ) : null}
             {detail.scheduleText ? <div><h3 className="mb-2 font-semibold">Schedule</h3><pre className="whitespace-pre-wrap rounded-md border bg-slate-50 p-3 font-sans">{detail.scheduleText}</pre></div> : null}
             {detail.supportedServices?.length ? <div><h3 className="mb-2 font-semibold">Supported services</h3><p>{detail.supportedServices.join(" · ")}</p></div> : null}
+            <PublishingDashboard distribution={detail.distribution} attempts={detail.publishingDashboard?.attempts} />
           </div>
         ) : null}
       </DialogContent>
@@ -118,6 +123,8 @@ export default function MarketingCampaignApprovalPage() {
   const [selectedTruckUnitIds, setSelectedTruckUnitIds] = useState<Record<string, string[]>>({});
   const [pendingOpen, setPendingOpen] = useState(true);
   const [approvedOpen, setApprovedOpen] = useState(false);
+  const [distributionOpen, setDistributionOpen] = useState(true);
+  const [completedOpen, setCompletedOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busyCampaignId, setBusyCampaignId] = useState<string | null>(null);
   const [preview, setPreview] = useState<MarketingCampaign | null>(null);
@@ -362,6 +369,13 @@ export default function MarketingCampaignApprovalPage() {
     catch { toast({ title: "Details unavailable", description: "Campaign details could not be loaded.", variant: "destructive" }); }
     finally { setDetailLoading(false); }
   };
+  const requeue = async (campaign: MarketingCampaign) => {
+    if (busyCampaignId || !window.confirm("Requeue this completed campaign using its existing video and copy?")) return;
+    setBusyCampaignId(campaign.campaignId);
+    try { const next = (await marketingCampaignApiService.requeue(campaign.campaignId)).data.data.campaign; setApproved((rows) => rows.map((row) => row.campaignId === next.campaignId ? next : row)); toast({ title: "Campaign requeued", description: "Existing media will be reused; no creative-generation provider was called." }); }
+    catch { toast({ title: "Requeue failed", description: "The completed attempt was preserved.", variant: "destructive" }); }
+    finally { setBusyCampaignId(null); }
+  };
 
   if (user?.userType !== "SUPER_ADMIN") {
     return <div className="rounded-md border bg-white p-8"><h1 className="text-2xl font-semibold">Marketing Campaign Approval</h1><p className="mt-2 text-muted-foreground">Administrator access is required.</p></div>;
@@ -380,7 +394,7 @@ export default function MarketingCampaignApprovalPage() {
         <TableCell>{campaignTypeLabel(campaign.campaignType)}</TableCell>
         <TableCell>{reasonLabel(campaign.reason)}</TableCell>
         <TableCell>{formatDate(archived ? campaign.approvedAt : campaign.generatedAt)}</TableCell>
-        <TableCell><div className="space-y-1"><Badge variant={campaignStatusIsFailure(campaign) ? "destructive" : "secondary"}>{archived ? "Approved" : campaignStatusLabel(campaign)}</Badge>{!archived && (campaignStatusIsFailure(campaign) || campaign.regenerationStatus === "RETRY_SCHEDULED") ? <p className="max-w-56 text-xs text-muted-foreground">{campaignFailureMessage(campaign)}</p> : null}</div></TableCell>
+        <TableCell><div className="space-y-1"><Badge variant={campaignStatusIsFailure(campaign) || campaign.distribution?.error ? "destructive" : "secondary"}>{archived && distributionStatus(campaign) !== "NOT_SENT" ? distributionStatus(campaign) : archived ? "Approved" : campaignStatusLabel(campaign)}</Badge>{campaign.distribution?.error?.code ? <p className="max-w-56 text-xs text-muted-foreground">{campaign.distribution.error.code}</p> : null}{!archived && (campaignStatusIsFailure(campaign) || campaign.regenerationStatus === "RETRY_SCHEDULED") ? <p className="max-w-56 text-xs text-muted-foreground">{campaignFailureMessage(campaign)}</p> : null}</div></TableCell>
         {!archived ? <TableCell>{campaign.regenerationCount}</TableCell> : null}
         <TableCell><div className="flex flex-wrap justify-end gap-2">
           <Button size="sm" variant="outline" onClick={() => setPreview(campaign)} disabled={!campaign.videoUrl}><Eye className="mr-1 h-4 w-4" /> Preview Video</Button>
@@ -392,7 +406,7 @@ export default function MarketingCampaignApprovalPage() {
             <Button size="sm" variant="outline" disabled={disabled} onClick={() => setRegenerateTarget(campaign)}><RefreshCw className="mr-1 h-4 w-4" /> Regenerate</Button>
             <Button size="sm" variant="destructive" disabled={disabled} onClick={() => void discardSelected(campaign)}><Trash2 className="mr-1 h-4 w-4" /> Discard</Button>
             <Button size="sm" disabled={disabled || !campaignCanApprove(campaign)} onClick={() => setApproveTarget(campaign)}>Archive / Approve</Button>
-          </> : <Button size="sm" variant="destructive" disabled={Boolean(busyCampaignId)} onClick={() => void deleteApproved(campaign)}><Trash2 className="mr-1 h-4 w-4" /> Delete</Button>}
+          </> : COMPLETED_DISTRIBUTION.has(distributionStatus(campaign)) ? <Button size="sm" variant="outline" disabled={Boolean(busyCampaignId)} onClick={() => void requeue(campaign)}><RefreshCw className="mr-1 h-4 w-4" /> Requeue</Button> : !ACTIVE_DISTRIBUTION.has(distributionStatus(campaign)) ? <Button size="sm" variant="destructive" disabled={Boolean(busyCampaignId)} onClick={() => void deleteApproved(campaign)}><Trash2 className="mr-1 h-4 w-4" /> Delete</Button> : null}
         </div></TableCell>
       </TableRow>;
     })}</TableBody></Table>
@@ -411,10 +425,10 @@ export default function MarketingCampaignApprovalPage() {
         <CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Pending Campaigns ({pending.length})</h2><p className="text-sm text-muted-foreground">Completed campaigns awaiting admin review.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${pendingOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger>
         <CollapsibleContent className="border-t">{renderTable(pending)}</CollapsibleContent>
       </Collapsible>
-      <Collapsible open={approvedOpen} onOpenChange={setApprovedOpen} className="rounded-md border bg-white">
-        <CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Archived / Approved ({approved.length})</h2><p className="text-sm text-muted-foreground">Approved keeper campaigns for reference.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${approvedOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger>
-        <CollapsibleContent className="border-t">{renderTable(approved, true)}</CollapsibleContent>
-      </Collapsible>
+      {(() => { const waiting = approved.filter((item) => !ACTIVE_DISTRIBUTION.has(distributionStatus(item)) && !COMPLETED_DISTRIBUTION.has(distributionStatus(item))); const active = approved.filter((item) => ACTIVE_DISTRIBUTION.has(distributionStatus(item))); const completed = approved.filter((item) => COMPLETED_DISTRIBUTION.has(distributionStatus(item))); return <>
+      <Collapsible open={approvedOpen} onOpenChange={setApprovedOpen} className="rounded-md border bg-white"><CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Approved ({waiting.length})</h2><p className="text-sm text-muted-foreground">Waiting for Azure pickup, plus errors requiring attention.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${approvedOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger><CollapsibleContent className="border-t">{renderTable(waiting, true)}</CollapsibleContent></Collapsible>
+      <Collapsible open={distributionOpen} onOpenChange={setDistributionOpen} className="rounded-md border bg-white"><CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Distribution in Progress ({active.length})</h2><p className="text-sm text-muted-foreground">Campaigns already sent to Azure and Metricool.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${distributionOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger><CollapsibleContent className="border-t">{renderTable(active, true)}</CollapsibleContent></Collapsible>
+      <Collapsible open={completedOpen} onOpenChange={setCompletedOpen} className="rounded-md border bg-white"><CollapsibleTrigger asChild><button className="flex w-full items-center justify-between p-4 text-left"><div><h2 className="text-lg font-semibold">Published / Completed ({completed.length})</h2><p className="text-sm text-muted-foreground">Published, partially published, and aborted attempts.</p></div><ChevronDown className={`h-5 w-5 transition-transform ${completedOpen ? "rotate-180" : ""}`} /></button></CollapsibleTrigger><CollapsibleContent className="border-t">{renderTable(completed, true)}</CollapsibleContent></Collapsible></>; })()}
     </>}
 
     <CampaignPreview campaign={preview} onClose={() => setPreview(null)} />

@@ -24,6 +24,8 @@ export interface SocialContentRecord {
   approvedBy: string | null;
   rejectedBy: string | null;
   creativeProduction?: { status?: string; failure?: { code?: string }; finalAssetKey?: string | null; finalAssets?: Array<{ key?: string; slideNumber?: number | null }> };
+  distribution?: import("@/components/marketing/publishing-dashboard").PublishingDistribution | null;
+  publishingDashboard?: { attempts?: import("@/components/marketing/publishing-dashboard").PublishingAttempt[] };
   contentPackage: {
     decision?: Record<string, unknown>;
     content?: Record<string, unknown>;
@@ -71,6 +73,7 @@ class SocialMediaContentApiService extends BaseAPI {
       { timeout: 20_000 },
     );
   }
+  requeue(contentId: string) { return this.post<IResponse<{ content: SocialContentRecord }>>(`/api/v1/marketing/social-content/${encodeURIComponent(contentId)}/requeue`); }
 
   regenerateCreative(contentId: string) {
     return this.post<IResponse<{ content: SocialContentRecord }>>(
