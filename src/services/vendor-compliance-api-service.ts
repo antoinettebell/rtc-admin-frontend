@@ -7,6 +7,8 @@ export type ComplianceDocument = {
   vendor_user_id?: any;
   document_type: string;
   version: number;
+  revalidation_cycle?: number;
+  revalidation_attempt?: number;
   title?: string | null;
   file_url: string;
   access_url?: string | null;
@@ -62,10 +64,37 @@ export type VendorComplianceScore = {
   rejected_requirements?: string[];
 };
 
+export type ProviderVerification = {
+  verification_id: string;
+  provider: "COMPLYCUBE" | "COBALT" | string;
+  check_type: "SSN" | "TIN" | "SOS" | string;
+  status: string;
+  safe_result_code?: string | null;
+  safe_reason?: string | null;
+  submitted_at?: string | null;
+  completed_at?: string | null;
+};
+
+export type VendorComplianceSummary = {
+  score: number;
+  core_components?: Array<{ type: string; label: string; verified: boolean; weight: number }>;
+  external_verification?: {
+    provider: string;
+    status: string;
+    checks: ProviderVerification[];
+  };
+};
+
 class VendorComplianceApiService extends BaseAPI {
   getDashboard() {
     return this.get<{ data: { dashboard: ComplianceDashboard } }>(
       `${APIEndpoint.VENDOR_COMPLIANCE}/admin/dashboard`,
+    );
+  }
+
+  getFoodTruckSummary(foodTruckId: string) {
+    return this.get<{ data: { compliance: VendorComplianceSummary } }>(
+      `${APIEndpoint.VENDOR_COMPLIANCE}/food-truck/${foodTruckId}`,
     );
   }
 

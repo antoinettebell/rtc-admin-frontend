@@ -641,6 +641,7 @@ class MarketplaceApiService extends BaseAPI {
         eventVendorProfile: AdminEventVendorProfile;
         photoList: AdminEventVendorPhoto[];
         tapToPayTerminals: AdminTapToPayTerminal[];
+        marketplaceCompliance?: any;
       }>
     >(`${APIEndpoint.MARKETPLACE}/admin/event-vendors/${profileId}`);
   }

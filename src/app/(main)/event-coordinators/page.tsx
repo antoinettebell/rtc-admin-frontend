@@ -23,6 +23,7 @@ import { userApiService } from "@/services/user-api-service";
 import { User } from "@/interfaces/user-interface";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback/use-debounced-callback";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ReadOnlyComplianceSnapshot } from "@/components/read-only-compliance-snapshot";
 
 const PAYMENT_LABELS: Record<string, string> = {
   CASHAPP: "Cash App",
@@ -53,6 +54,7 @@ export default function EventCoordinators() {
   const [searchTerm, setSearchTerm] = useState("");
   const [status, setStatus] = useState("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [selectedCoordinator, setSelectedCoordinator] = useState<User | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -94,6 +96,12 @@ export default function EventCoordinators() {
     setSearchTerm(value);
     setPagination((prev) => ({ ...prev, page: 1 }));
   }, 500);
+  const complianceQuery = useQuery({
+    queryKey: ["event-coordinator-compliance", selectedCoordinator?._id],
+    queryFn: () => userApiService.getEventCoordinatorCompliance(selectedCoordinator!._id),
+    enabled: !!selectedCoordinator,
+    refetchOnWindowFocus: false,
+  });
 
   const changeCoordinatorStatus = (user: User, enabled: boolean) => {
     setUpdatingId(user._id);
@@ -156,6 +164,11 @@ export default function EventCoordinators() {
         const preference = user.eventCoordinatorPaymentPreference || "";
         return preference ? PAYMENT_LABELS[preference] || preference : "-";
       },
+    },
+    {
+      header: "Compliance",
+      fieldName: "_id",
+      accessor: (user) => <Button variant="outline" size="sm" onClick={() => setSelectedCoordinator(user)}>View compliance</Button>,
     },
     {
       header: "QR Code",
@@ -250,6 +263,14 @@ export default function EventCoordinators() {
           </Select>
         }
       />
+      {selectedCoordinator ? (
+        <div className="mt-5 rounded-lg border bg-white p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold">{`${selectedCoordinator.firstName || ""} ${selectedCoordinator.lastName || ""}`.trim() || "Event Coordinator"}</h2><p className="text-sm text-muted-foreground">Read-only compliance status</p></div><Button variant="outline" onClick={() => setSelectedCoordinator(null)}>Close</Button></div>
+          {complianceQuery.isLoading ? <p className="mt-4 text-sm text-muted-foreground">Loading compliance…</p> : null}
+          {complianceQuery.isError ? <p className="mt-4 text-sm text-red-700">Compliance could not be loaded.</p> : null}
+          {complianceQuery.data ? <ReadOnlyComplianceSnapshot snapshot={complianceQuery.data?.data?.data} /> : null}
+        </div>
+      ) : null}
     </>
   );
 }

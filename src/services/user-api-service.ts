@@ -94,6 +94,10 @@ class UserApiService extends BaseAPI {
     );
   }
 
+  getEventCoordinatorCompliance(id: string) {
+    return this.get<IResponse<any>>(`${APIEndpoint.COORDINATOR_COMPLIANCE}/admin/${id}`);
+  }
+
   changeRequest(
     id: string,
     requestStatus: "APPROVED" | "REJECTED",

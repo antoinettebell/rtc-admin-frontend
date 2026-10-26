@@ -118,7 +118,6 @@ const getOcrIssueDate = (document: ComplianceDocument) => {
 export default function CompliancePage() {
   const [reviewStatus, setReviewStatus] = React.useState("");
   const [documentType, setDocumentType] = React.useState("");
-  const [updatingId, setUpdatingId] = React.useState<string | null>(null);
   const [updatingExemptionId, setUpdatingExemptionId] = React.useState<string | null>(null);
 
   const dashboardQuery = useQuery({
@@ -143,33 +142,6 @@ export default function CompliancePage() {
     queryKey: ["marketplace-tax-exemptions", "PENDING"],
     queryFn: () => marketplaceApiService.listTaxExemptions("PENDING"),
     refetchOnWindowFocus: false,
-  });
-
-  const reviewMutation = useMutation({
-    mutationFn: ({
-      document,
-      nextStatus,
-    }: {
-      document: ComplianceDocument;
-      nextStatus: "verified" | "rejected" | "expired";
-    }) =>
-      vendorComplianceApiService.reviewDocument(document.document_id, {
-        review_status: nextStatus,
-        ...(document.document_type === "HEALTH_PERMIT"
-          ? { issue_date: document.issue_date || undefined }
-          : { expiration_date: document.expiration_date || undefined }),
-      }),
-    onSuccess: () => {
-      toast.success("Compliance document updated");
-      dashboardQuery.refetch();
-      documentsQuery.refetch();
-    },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || "Unable to update document");
-    },
-    onSettled: () => {
-      setUpdatingId(null);
-    },
   });
 
   const exemptionReviewMutation = useMutation({
@@ -211,14 +183,6 @@ export default function CompliancePage() {
     (documentsQuery.error as any)?.message;
   const exemptions =
     exemptionsQuery.data?.data?.data?.taxExemptionList || [];
-
-  const updateDocument = (
-    document: ComplianceDocument,
-    nextStatus: "verified" | "rejected" | "expired",
-  ) => {
-    setUpdatingId(document.document_id);
-    reviewMutation.mutate({ document, nextStatus });
-  };
 
   const reviewExemption = (
     request: MarketplaceTaxExemption,
@@ -283,7 +247,7 @@ export default function CompliancePage() {
                 <th className="p-3 font-medium">Event</th>
                 <th className="p-3 font-medium">Exemption</th>
                 <th className="p-3 font-medium">Certificate</th>
-                <th className="p-3 font-medium text-right">Actions</th>
+                <th className="p-3 font-medium text-right">Document</th>
               </tr>
             </thead>
             <tbody>
@@ -627,23 +591,6 @@ export default function CompliancePage() {
                         }
                       >
                         <ExternalLink className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        disabled={updatingId === document.document_id}
-                        onClick={() => updateDocument(document, "verified")}
-                      >
-                        <CheckCircle2 className="mr-1 h-4 w-4" />
-                        Verify
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        disabled={updatingId === document.document_id}
-                        onClick={() => updateDocument(document, "rejected")}
-                      >
-                        <XCircle className="mr-1 h-4 w-4" />
-                        Reject
                       </Button>
                     </div>
                   </td>
