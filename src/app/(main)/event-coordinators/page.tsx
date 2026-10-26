@@ -61,8 +61,11 @@ export default function EventCoordinators() {
     if (status !== "all") params.set("status", status);
     params.set("p", String(pagination.page));
     params.set("l", String(pagination.limit));
-    router.replace(`/event-coordinators?${params.toString()}`);
-  }, [pagination.page, pagination.limit, status, router]);
+    const nextQuery = params.toString();
+    if (searchParams.toString() !== nextQuery) {
+      router.replace(`/event-coordinators?${nextQuery}`);
+    }
+  }, [pagination.page, pagination.limit, status, router, searchParams]);
 
   useEffect(() => {
     const st = searchParams.get("status");
