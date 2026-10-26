@@ -320,7 +320,7 @@ export default function VendorDetail() {
   >(null);
   const [reason, setReason] = useState<string>("");
   const [changing, setChanging] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("profile");
+  const [activeTab, setActiveTab] = useState<string>("compliance");
   const [selectedTapToPayEmployeeId, setSelectedTapToPayEmployeeId] = useState<string | null>(null);
   const [planColor, setPlanColor] = useState<string>("");
   const [locations, setLocations] = useState<Record<string, string>>({});
@@ -1507,46 +1507,22 @@ export default function VendorDetail() {
 	          >
             <TabsList className="sticky top-[64px] z-20 bg-white dark:bg-background border-b mb-4 flex flex-wrap gap-2">
               <TabsTrigger
-                value="profile"
-                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
-              >
-                Profile
-              </TabsTrigger>
-              <TabsTrigger
-                value="details"
-                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
-              >
-                Cusines
-              </TabsTrigger>
-              <TabsTrigger
-                value="gallery"
-                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
-              >
-                Photo Gallery
-              </TabsTrigger>
-              <TabsTrigger
-                value="documents"
-                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
-              >
-                Documents
-              </TabsTrigger>
-              <TabsTrigger
                 value="compliance"
                 className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
               >
                 Compliance
               </TabsTrigger>
               <TabsTrigger
-                value="menu-categories"
+                value="profile"
                 className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
               >
-                Menu Categories
+                Vendor Overview
               </TabsTrigger>
               <TabsTrigger
                 value="menu-items"
                 className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
               >
-                Menu Items
+                Menu & CSV Imports
               </TabsTrigger>
               {/* <TabsTrigger value="bank" className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5">Bank Details</TabsTrigger> */}
               <TabsTrigger
@@ -1559,25 +1535,13 @@ export default function VendorDetail() {
                 value="employees"
                 className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
               >
-                Employees
+                Employees & Schedules
               </TabsTrigger>
               <TabsTrigger
                 value="tap-to-pay"
                 className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
               >
                 Tap to Pay Devices
-              </TabsTrigger>
-              <TabsTrigger
-                value="availability"
-                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
-              >
-                Availability
-              </TabsTrigger>
-              <TabsTrigger
-                value="business-hours"
-                className="rounded-md border px-3 py-1 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
-              >
-                Business Hours
               </TabsTrigger>
               <TabsTrigger
                 value="reviews"
@@ -1588,6 +1552,9 @@ export default function VendorDetail() {
             </TabsList>
 
             <TabsContent value="profile">
+              <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                This is a read-only operational overview. Legal payee identity, documents, score, and verification status are maintained in <strong>Compliance</strong>.
+              </div>
               <div className="flex flex-wrap gap-4 mb-4">
                 {/* <div
                   className="border w-fit rounded-xl p-1"
