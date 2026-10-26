@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ExternalLink } from "lucide-react";
@@ -22,7 +22,6 @@ import { NameDetail } from "@/components/ui/name-detail";
 import { userApiService } from "@/services/user-api-service";
 import { User } from "@/interfaces/user-interface";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback/use-debounced-callback";
-import { useRouter, useSearchParams } from "next/navigation";
 import { ReadOnlyComplianceSnapshot } from "@/components/read-only-compliance-snapshot";
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -48,29 +47,11 @@ const compactAddress = (user: User) =>
   "-";
 
 export default function EventCoordinators() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
   const [searchTerm, setSearchTerm] = useState("");
   const [status, setStatus] = useState("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedCoordinator, setSelectedCoordinator] = useState<User | null>(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (status !== "all") params.set("status", status);
-    params.set("p", String(pagination.page));
-    params.set("l", String(pagination.limit));
-    const nextQuery = params.toString();
-    if (searchParams.toString() !== nextQuery) {
-      router.replace(`/event-coordinators?${nextQuery}`);
-    }
-  }, [pagination.page, pagination.limit, status, router, searchParams]);
-
-  useEffect(() => {
-    const st = searchParams.get("status");
-    setStatus(st === "enabled" || st === "disabled" ? st : "all");
-  }, [searchParams]);
 
   const {
     data: result,

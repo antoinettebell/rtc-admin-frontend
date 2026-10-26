@@ -5,6 +5,8 @@ export type ComplianceDocument = {
   document_id: string;
   food_truck_id?: any;
   vendor_user_id?: any;
+  document_scope?: "PAYEE" | "TRUCK_UNIT" | string;
+  truck_unit_id?: any;
   document_type: string;
   version: number;
   revalidation_cycle?: number;

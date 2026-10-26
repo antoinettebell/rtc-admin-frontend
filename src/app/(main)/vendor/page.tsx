@@ -1,7 +1,7 @@
 "use client";
 import { Edit, Eye, LoaderCircle } from "lucide-react";
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Column, DataTable } from "@/components/ui/data-table";
 import {
   AlertDialog,
@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { foodTruckApiService } from "@/services/food-truck-api-service";
 import { StringHelper } from "@/models/string-helper-model";
 import { LoadingButton } from "@/components/loading-button";
@@ -37,25 +37,12 @@ import dayjs from "dayjs";
 
 export default function Vendors() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  // Initialize page & limit from URL (?p=&l=)
-  const initialPage = (() => {
-    const p = parseInt(searchParams.get("p") || "1", 10);
-    return Number.isFinite(p) && p > 0 ? p : 1;
-  })();
-  const initialLimit = (() => {
-    const l = parseInt(searchParams.get("l") || "10", 10);
-    return Number.isFinite(l) && l > 0 ? l : 10;
-  })();
-
   const [pagination, setPagination] = useState({
-    page: initialPage,
-    limit: initialLimit,
+    page: 1,
+    limit: 10,
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [status, setStatus] = useState<null | string>(null);
-  const [paramST, setParamST] = useState<null | string>(null);
 
   const [changeStatus, setChangeStatus] = useState<User | null>(null);
   const [changing, setChanging] = useState<boolean>(false);
@@ -64,34 +51,6 @@ export default function Vendors() {
   const [changingFeature, setChangingFeature] = useState<boolean>(false);
 
   const [exporting, setExporting] = useState<boolean>(false);
-
-  // Read status from URL whenever it changes
-  useEffect(() => {
-    let st = searchParams.get("status");
-    st = ["PENDING", "APPROVED", "REJECTED", "COMPLETE", "INCOMPLETE"].includes(
-      st,
-    )
-      ? st
-      : null;
-    setStatus(st || null);
-    setParamST(st || null);
-  }, [searchParams]);
-
-  // Keep p & l in URL in sync with state (preserving status)
-  useEffect(() => {
-    const currentP = searchParams.get("p") || "";
-    const currentL = searchParams.get("l") || "";
-    const needUpdate =
-      currentP !== String(pagination.page) ||
-      currentL !== String(pagination.limit);
-    if (!needUpdate) return;
-
-    const params = new URLSearchParams();
-    if (status) params.set("status", status);
-    params.set("p", String(pagination.page));
-    params.set("l", String(pagination.limit));
-    router.replace(`/vendor?${params.toString()}`);
-  }, [pagination.page, pagination.limit, status, router, searchParams]);
 
   const {
     data: result,
@@ -359,6 +318,7 @@ export default function Vendors() {
         value={status}
         onValueChange={(val) => {
           setStatus(val);
+          setPagination((prev) => ({ ...prev, page: 1 }));
         }}
       >
         <SelectTrigger className="!h-10 min-w-[100px] bg-[#D9D9D933]">
@@ -405,7 +365,7 @@ export default function Vendors() {
         pageSize={pagination.limit}
         setPagination={setPagination}
         hideColumnFilter={true}
-        extraTemplate={paramST ? <></> : statusSelect()}
+        extraTemplate={statusSelect()}
         onRowClick={(d: any) => {
           const params = new URLSearchParams();
           if (d?._id) params.set("q", d._id);
