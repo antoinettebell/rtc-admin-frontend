@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useMemo, useState } from "react";
 import dayjs from "dayjs";
-import { Archive, LoaderCircle, PlusCircle } from "lucide-react";
+import { Archive, LoaderCircle, PlusCircle, RotateCcw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Column, DataTable } from "@/components/ui/data-table";
@@ -43,6 +43,9 @@ export default function AmbassadorCodesPage() {
   const archive = (item: AmbassadorCode) => ambassadorCodeApiService.archive(item._id)
     .then(() => { toast.success("Ambassador code archived"); refetch(); })
     .catch((error) => toast.error(error.response?.data?.message || "Unable to archive ambassador code"));
+  const restore = (item: AmbassadorCode) => ambassadorCodeApiService.update(item._id, { isActive: true })
+    .then(() => { toast.success("Ambassador code re-enabled"); refetch(); })
+    .catch((error) => toast.error(error.response?.data?.message || "Unable to re-enable ambassador code"));
   const search = useDebouncedCallback((value: string) => { setSearchTerm(value); setPagination((previous) => ({ ...previous, page: 1 })); }, 500);
   const columns: Column<AmbassadorCode>[] = [
     { header: "Referral Code", fieldName: "code", accessor: (item) => <span className="font-semibold">{item.code}</span> },
@@ -51,7 +54,7 @@ export default function AmbassadorCodesPage() {
     { header: "Phone", fieldName: "phoneNumber", accessor: (item) => item.phoneNumber },
     { header: "Status", fieldName: "isActive", accessor: (item) => <Badge variant={item.isActive ? "default" : "secondary"}>{item.isActive ? "Active" : "Archived"}</Badge> },
     { header: "Created", fieldName: "createdAt", accessor: (item) => item.createdAt ? dayjs(item.createdAt).format("DD MMM, YYYY") : "-" },
-    { header: "", fieldName: "_id", accessor: (item) => item.isActive ? <Button size="sm" variant="outline" onClick={() => archive(item)}><Archive size={14} className="mr-1" />Archive</Button> : null },
+    { header: "", fieldName: "_id", accessor: (item) => item.isActive ? <Button size="sm" variant="outline" onClick={() => archive(item)}><Archive size={14} className="mr-1" />Archive</Button> : <Button size="sm" variant="outline" onClick={() => restore(item)}><RotateCcw size={14} className="mr-1" />Re-enable</Button> },
   ];
   return <div className="space-y-6">
     <div><div className="font-semibold text-[28px] leading-[42px]">Ambassador Codes</div><p className="text-sm text-muted-foreground">Manage referral codes and the people who receive referral credit.</p></div>
