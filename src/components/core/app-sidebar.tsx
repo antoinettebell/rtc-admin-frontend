@@ -106,7 +106,10 @@ const navMain = [
     title: "Coupons & Rewards",
     url: "/coupons-rewards",
     icon: BadgeDollarSign,
-    items: [],
+    items: [
+      { title: "Coupons & Loyalty", url: "/coupons-rewards" },
+      { title: "Ambassador Codes", url: "/coupons-rewards/ambassador-codes" },
+    ],
   },
   {
     title: "Marketplace Repository",
