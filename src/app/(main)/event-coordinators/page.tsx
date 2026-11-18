@@ -9,6 +9,7 @@ import Image from "next/image";
 import { Column, DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -52,6 +53,8 @@ export default function EventCoordinators() {
   const [status, setStatus] = useState("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedCoordinator, setSelectedCoordinator] = useState<User | null>(null);
+  const [referralCode, setReferralCode] = useState("");
+  const [savingReferralCode, setSavingReferralCode] = useState(false);
 
   const {
     data: result,
@@ -100,6 +103,22 @@ export default function EventCoordinators() {
         toast.error("Could not update event coordinator access.");
       })
       .finally(() => setUpdatingId(null));
+  };
+  const openCoordinator = (user: User) => {
+    setSelectedCoordinator(user);
+    setReferralCode((user as User & { referralCode?: string }).referralCode || "");
+  };
+  const saveReferralCode = async () => {
+    if (!selectedCoordinator) return;
+    setSavingReferralCode(true);
+    try {
+      await userApiService.assignReferralCode(selectedCoordinator._id, referralCode.trim());
+      toast.success(referralCode.trim() ? "Referral code updated." : "Referral code cleared.");
+      setSelectedCoordinator((current) => current ? { ...current, referralCode: referralCode.trim().toUpperCase() || null } as User : current);
+      await refetch();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Unable to update referral code.");
+    } finally { setSavingReferralCode(false); }
   };
 
   const columns: Column<User>[] = [
@@ -152,7 +171,7 @@ export default function EventCoordinators() {
     {
       header: "Compliance",
       fieldName: "_id",
-      accessor: (user) => <Button variant="outline" size="sm" onClick={() => setSelectedCoordinator(user)}>View compliance</Button>,
+      accessor: (user) => <Button variant="outline" size="sm" onClick={() => openCoordinator(user)}>View compliance</Button>,
     },
     {
       header: "QR Code",
@@ -250,6 +269,7 @@ export default function EventCoordinators() {
       {selectedCoordinator ? (
         <div className="mt-5 rounded-lg border bg-white p-5">
           <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold">{`${selectedCoordinator.firstName || ""} ${selectedCoordinator.lastName || ""}`.trim() || "Event Coordinator"}</h2><p className="text-sm text-muted-foreground">Read-only compliance status</p></div><Button variant="outline" onClick={() => setSelectedCoordinator(null)}>Close</Button></div>
+          <div className="mt-4 rounded border p-4"><h3 className="font-semibold">Referral Attribution</h3><p className="mt-1 text-sm text-muted-foreground">Admin-only. This is not shown in the Coordinator profile.</p><div className="mt-3 flex flex-wrap items-end gap-3"><div className="w-full max-w-sm space-y-2"><label className="text-sm font-medium">Referral Code</label><Input value={referralCode} onChange={(event) => setReferralCode(event.target.value.toUpperCase())} placeholder="Leave blank to clear" /></div><Button disabled={savingReferralCode} onClick={saveReferralCode}>{savingReferralCode ? "Saving…" : "Save Referral Code"}</Button></div></div>
           {complianceQuery.isLoading ? <p className="mt-4 text-sm text-muted-foreground">Loading compliance…</p> : null}
           {complianceQuery.isError ? <p className="mt-4 text-sm text-red-700">Compliance could not be loaded.</p> : null}
           {complianceQuery.data ? <ReadOnlyComplianceSnapshot snapshot={complianceQuery.data?.data?.data} /> : null}

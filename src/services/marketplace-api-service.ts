@@ -24,6 +24,7 @@ export interface AdminEventVendorProfile {
     email?: string;
     countryCode?: string;
     mobileNumber?: string;
+    referralCode?: string | null;
   } | null;
   business_name?: string;
   business_description?: string;

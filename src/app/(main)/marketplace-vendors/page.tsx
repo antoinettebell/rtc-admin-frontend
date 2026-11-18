@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { userApiService } from "@/services/user-api-service";
 import {
   AdminEventVendorProfile,
   EventVendorReviewStatus,
@@ -24,6 +26,8 @@ export default function MarketplaceVendorsPage() {
   const [selected, setSelected] = useState<AdminEventVendorProfile | null>(null);
   const [reason, setReason] = useState("");
   const [reactivatingTerminalId, setReactivatingTerminalId] = useState<string | null>(null);
+  const [referralCode, setReferralCode] = useState("");
+  const [savingReferralCode, setSavingReferralCode] = useState(false);
   const listQuery = useQuery({
     queryKey: ["marketplace-vendors", status],
     queryFn: () => marketplaceApiService.listEventVendorProfiles(status),
@@ -41,6 +45,9 @@ export default function MarketplaceVendorsPage() {
   const profileValue = listQuery.data?.data?.data?.profileList;
   const profiles = Array.isArray(profileValue) ? profileValue : [];
   const detail = detailQuery.data?.data?.data;
+  useEffect(() => {
+    setReferralCode(detail?.eventVendorProfile?.vendor_user_id?.referralCode || "");
+  }, [detail?.eventVendorProfile?.vendor_user_id?._id, detail?.eventVendorProfile?.vendor_user_id?.referralCode]);
 
   const review = async (reviewStatus: "APPROVED" | "REJECTED") => {
     if (!selected) return;
@@ -76,6 +83,19 @@ export default function MarketplaceVendorsPage() {
     } finally {
       setReactivatingTerminalId(null);
     }
+  };
+  const saveReferralCode = async () => {
+    const userId = detail?.eventVendorProfile?.vendor_user_id?._id;
+    if (!userId) return;
+    setSavingReferralCode(true);
+    try {
+      await userApiService.assignReferralCode(userId, referralCode.trim());
+      toast.success(referralCode.trim() ? "Referral code updated." : "Referral code cleared.");
+      await detailQuery.refetch();
+      await listQuery.refetch();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Unable to update referral code.");
+    } finally { setSavingReferralCode(false); }
   };
 
   return (
@@ -119,6 +139,7 @@ export default function MarketplaceVendorsPage() {
             <p className="mt-2"><strong>Types:</strong> {(detail.eventVendorProfile.vendor_types || []).join(", ") || "None"}</p>
             <p><strong>Categories:</strong> {(detail.eventVendorProfile.merchandise_categories || []).map((item) => CATEGORY_LABELS[item] || item).join(", ") || "None"}</p>
             <p><strong>Contact:</strong> {detail.eventVendorProfile.vendor_user_id?.email || "Vendor account unavailable"}</p>
+            <div className="mt-4 rounded border p-3"><h3 className="font-semibold">Referral Attribution</h3><p className="mt-1 text-sm text-slate-600">Admin-only. This is not shown in the Marketplace Vendor profile.</p><div className="mt-3 flex flex-wrap items-end gap-3"><div className="w-full max-w-sm space-y-2"><label className="text-sm font-medium">Referral Code</label><Input value={referralCode} onChange={(event) => setReferralCode(event.target.value.toUpperCase())} placeholder="Leave blank to clear" /></div><Button disabled={savingReferralCode || !detail.eventVendorProfile.vendor_user_id?._id} onClick={saveReferralCode}>{savingReferralCode ? "Saving…" : "Save Referral Code"}</Button></div></div>
             <div className="mt-4 rounded border p-3">
               <h3 className="font-semibold">Tap to Pay Activation</h3>
               <p className="text-sm text-slate-600">Terminal serial suffix: {detail.eventVendorProfile.tap_to_pay_serial_number ? `••••${detail.eventVendorProfile.tap_to_pay_serial_number.slice(-4)}` : "Not activated"}</p>

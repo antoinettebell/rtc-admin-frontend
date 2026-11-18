@@ -50,6 +50,8 @@ export default function VendorDetail() {
   const [selectedPlan, setSelectedPlan] = useState<string>("");
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
+  const [referralCode, setReferralCode] = useState<string>("");
+  const [savingReferralCode, setSavingReferralCode] = useState(false);
   if (!id) {
     return 404;
   }
@@ -326,6 +328,19 @@ export default function VendorDetail() {
     }
   };
 
+  const saveReferralCode = async () => {
+    setSavingReferralCode(true);
+    try {
+      await userApiService.assignReferralCode(id.toString(), referralCode.trim());
+      toast.success(referralCode.trim() ? "Referral code updated." : "Referral code cleared.");
+      await refetch();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Unable to update referral code.");
+    } finally {
+      setSavingReferralCode(false);
+    }
+  };
+
   const {
     data: result,
     isFetching,
@@ -381,6 +396,7 @@ export default function VendorDetail() {
             (cuisine: any) => cuisine._id || cuisine,
           ) || [],
         );
+        setReferralCode(userRes?.data?.data?.user?.referralCode || "");
         console.log("addonRes", addonRes);
         return {
           ...(userRes?.data.data || {}),
@@ -966,6 +982,14 @@ export default function VendorDetail() {
                   Update Plan, Ad Space & Cuisines
                 </LoadingButton>
               </div>
+            </div>
+          </div>
+          <div className="border rounded-xl p-4 mt-9">
+            <h3 className="text-xl font-semibold">Referral Attribution</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Admin-only. This is not shown in the Vendor app.</p>
+            <div className="mt-4 flex flex-wrap items-end gap-3">
+              <div className="w-full max-w-sm space-y-2"><label className="text-sm font-medium">Referral Code</label><Input value={referralCode} onChange={(event) => setReferralCode(event.target.value.toUpperCase())} placeholder="Leave blank to clear" /></div>
+              <LoadingButton isLoading={savingReferralCode} disabled={savingReferralCode} onClick={saveReferralCode}>Save Referral Code</LoadingButton>
             </div>
           </div>
         </>

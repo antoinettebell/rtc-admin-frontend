@@ -72,6 +72,13 @@ class UserApiService extends BaseAPI {
     return this.put<IResponse<boolean>>(`${APIEndpoint.USER}/${id}`, data);
   }
 
+  assignReferralCode(id: string, referralCode: string) {
+    return this.put<IResponse<{ user: User }>>(
+      `${APIEndpoint.AMBASSADOR_CODE}/assign/${id}`,
+      { referralCode },
+    );
+  }
+
   getById(id: string) {
     return this.get<IResponse<{ user: User }>>(`${APIEndpoint.USER}/${id}`);
   }
